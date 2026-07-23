@@ -16,6 +16,7 @@ AI가 매일 뉴스를 수집·선별해 카드뉴스를 만들고, 텔레그램
 | 발행 | Instagram Graph API v25.0, Instagram Login 방식 (본인 계정, App Review 불필요) |
 | 미디어 호스팅 | Cloudflare R2 공개 버킷 |
 | 상태 저장 | SQLite (better-sqlite3) |
+| 템플릿 테마 | 라이트+블루 (2026-07-23 시안 3종 중 확정. `templates/card.html`의 `theme-light`) |
 
 ## 범위
 
