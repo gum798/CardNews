@@ -1,0 +1,13 @@
+{
+  "name": "cardnews",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-automated Instagram card news system",
+  "scripts": {
+    "preview": "node scripts/render-preview.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}
