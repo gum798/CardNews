@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 프로세스 B: 텔레그램 봇 리스너 (상시 상주). 죽으면 KeepAlive가 재기동. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cardnews.bot</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/seojeonghwa/project/CardNews/src/jobs/bot-listener.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/seojeonghwa/project/CardNews</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/bot.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/bot.log</string>
+</dict>
+</plist>

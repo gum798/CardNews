@@ -65,7 +65,7 @@ launchd/       plist 2개 (com.cardnews.digest, com.cardnews.bot)
 
 ### collector
 - 피드 목록(설정 파일): BBC World, Guardian World, Google News Reuters 프록시, ZDNet Korea, 전자신문 오늘의뉴스(`rss.etnews.com/Section901.xml`), AI타임스. 국내외 균형은 curator가 조절
-- `@rowanmanning/feed-parser` 사용. 어댑터 계층에서 http:// 피드 허용, 인코딩(EUC-KR 가능성)·pubDate 편차 정규화
+- `fast-xml-parser`로 RSS 2.0/RDF/Atom 파싱 (2026-07-25: `@rowanmanning/feed-parser`는 Node 26에서 engine 제약으로 파싱 불가 버전만 설치돼 교체). http:// 피드 허용, 인코딩(EUC-KR)·pubDate 편차 정규화. 6개 피드 라이브 검증 완료(268건)
 - 중복 제거: URL 정규화(UTM 제거) + 제목 유사도. 이미 `news_items`에 있는 URL은 스킵
 - 피드별 HTTP 상태·최신 pubDate 로깅 (죽은 피드 감지)
 

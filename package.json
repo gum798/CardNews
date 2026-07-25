@@ -5,16 +5,19 @@
   "type": "module",
   "description": "AI-automated Instagram card news system",
   "scripts": {
-    "preview": "node scripts/render-preview.mjs"
+    "preview": "node scripts/render-preview.mjs",
+    "digest": "node src/jobs/daily-digest.js",
+    "bot": "node src/jobs/bot-listener.js",
+    "collect": "node -e \"import('./src/collector/index.js').then(m=>m.collect()).then(r=>console.log('inserted',r.inserted))\""
   },
   "devDependencies": {
     "playwright": "^1.61.1"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1095.0",
-    "@rowanmanning/feed-parser": "^0.1.5",
     "better-sqlite3": "^13.0.1",
     "dotenv": "^17.4.2",
+    "fast-xml-parser": "^5.10.1",
     "grammy": "^1.45.1"
   }
 }
