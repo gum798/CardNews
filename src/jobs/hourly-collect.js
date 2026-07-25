@@ -1,6 +1,6 @@
 // 프로세스 A: launchd가 매시간 1회 실행 후 종료.
-// 주제별로: 수집 → 최신 미사용 뉴스 1건 선별(없으면 유용한 정보 evergreen 생성) → 후보 저장 → 즉시 텔레그램 전송.
-// 발행(캐러셀+릴스)은 프로세스 B(bot-listener)가 승인 콜백을 받아 처리.
+// 주제별로: 수집 → 최신 미사용 뉴스 1건 선별(없으면 evergreen 생성) → 후보 저장 →
+//   자동 발행(일일 한도 내) 또는 텔레그램 수동 승인으로 분기.
 import { collectTopic } from '../collector/index.js';
 import { filterAndRank, generateEvergreen } from '../curator/index.js';
 import {
@@ -8,12 +8,25 @@ import {
   insertNewsItem,
   getNewsItem,
   getRecentUnusedNewsItems,
+  countPublishedToday,
 } from '../db/index.js';
 import { sendDigest, report } from '../bot/index.js';
-import { topics, pipeline } from '../config.js';
+import { generateAndPublish } from '../pipeline.js';
+import { topics, pipeline, autoPublish } from '../config.js';
+
+// 자동 발행(주제별 일일 한도 내) 또는 텔레그램 수동 승인으로 분기.
+async function dispatch(id, topicKey, newsItem, reason) {
+  const label = topics[topicKey].label;
+  if (autoPublish && countPublishedToday(topicKey) < pipeline.maxPerTopicPerDay) {
+    console.log(`[hourly:${topicKey}] auto-publish candidate ${id}`);
+    await generateAndPublish(id, { auto: true });
+  } else {
+    await sendDigest([{ id, newsItem, reason: `[${label}] ${reason}` }]);
+    console.log(`[hourly:${topicKey}] sent for approval candidate ${id}`);
+  }
+}
 
 async function runTopic(topicKey) {
-  const t = topics[topicKey];
   await collectTopic(topicKey);
 
   // 최근 미사용(겹치지 않는) 뉴스 → AI로 1건 선별
@@ -32,8 +45,7 @@ async function runTopic(topicKey) {
         aiReason: r.reason,
         status: 'pending',
       });
-      await sendDigest([{ id, newsItem: getNewsItem(r.newsItemId), reason: `[${t.label}] ${r.reason}` }]);
-      console.log(`[hourly:${topicKey}] candidate ${id} (news)`);
+      await dispatch(id, topicKey, getNewsItem(r.newsItemId), r.reason);
       return;
     }
   }
@@ -43,9 +55,9 @@ async function runTopic(topicKey) {
   const cover = cardData.cards.find((c) => c.type === 'cover')?.card || {};
   const newsItemId = insertNewsItem({
     topic: topicKey,
-    source: t.label,
+    source: topics[topicKey].label,
     url: `evergreen://${topicKey}/${Date.now()}`,
-    title: cover.headline || t.label,
+    title: cover.headline || topics[topicKey].label,
     summary: cover.sub || '',
     publishedAt: new Date().toISOString(),
   });
@@ -56,11 +68,11 @@ async function runTopic(topicKey) {
     cardJson: cardData,
     status: 'pending',
   });
-  await sendDigest([{ id, newsItem: getNewsItem(newsItemId), reason: `[${t.label}] 최신 뉴스 없음 → 유용한 정보` }]);
-  console.log(`[hourly:${topicKey}] candidate ${id} (evergreen)`);
+  await dispatch(id, topicKey, getNewsItem(newsItemId), '최신 뉴스 없음 → 유용한 정보');
 }
 
 async function main() {
+  console.log(`[hourly] start (autoPublish=${autoPublish})`);
   for (const topicKey of Object.keys(topics)) {
     try {
       await runTopic(topicKey);

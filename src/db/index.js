@@ -141,6 +141,17 @@ export function setCandidateTelegramMessageId(id, messageId) {
   db.prepare('UPDATE candidates SET telegram_message_id = ? WHERE id = ?').run(messageId, id);
 }
 
+// 오늘(로컬 날짜) 해당 주제로 발행 완료된 후보 수 — 자동 발행 일일 한도 판정용.
+export function countPublishedToday(topic) {
+  return db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM candidates
+       WHERE topic = ? AND status = 'published'
+         AND date(created_at, 'localtime') = date('now', 'localtime')`
+    )
+    .get(topic).n;
+}
+
 // ---------- publishes ----------
 
 export function insertPublish({ candidateId, igCarouselId, igReelId, error }) {

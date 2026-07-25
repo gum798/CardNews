@@ -59,6 +59,7 @@ export const topics = {
 export const pipeline = {
   collectWindowHours: 6, // 매시간 잡: 최근 N시간 내 미사용 뉴스만 후보로
   perTopicPick: 1, // 주제당 매시간 1건 선별
+  maxPerTopicPerDay: 2, // 자동 발행: 주제별 1일 최대 건수 (초과분은 텔레그램 수동)
   cardsPerCandidate: { min: 3, max: 4 },
   secondsPerCard: 3.5,
   reelBitrate: { target: '6M', max: '8M' },
@@ -100,3 +101,6 @@ export const r2 = {
 
 // DRY_RUN=1이면 IG 발행 대신 로컬 저장 + 텔레그램 보고만.
 export const dryRun = process.env.DRY_RUN === '1';
+
+// AUTO_PUBLISH=1이면 매시간 잡이 일일 한도 내에서 승인 없이 자동 발행 (초과분은 텔레그램 수동 승인).
+export const autoPublish = process.env.AUTO_PUBLISH === '1';
