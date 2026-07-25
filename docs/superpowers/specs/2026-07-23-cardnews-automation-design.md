@@ -12,7 +12,7 @@ AI가 매일 뉴스를 수집·선별해 카드뉴스를 만들고, 텔레그램
 | 언어 | Node.js |
 | 자동화 수준 | 완전 자동 (텔레그램 발행 버튼 → 캐러셀+릴스 자동 업로드) |
 | 실행 환경 | macOS 로컬 + launchd (초기) |
-| AI | Anthropic SDK — Haiku 4.5(필터/랭킹) + Sonnet 5(카드 카피, json_schema 구조화 출력) |
+| AI | Claude Code 헤드리스 호출(`claude -p --output-format json`) — 기존 구독 사용, 토큰 과금 없음. 필터/랭킹·카드 카피 모두 처리. json_schema 강제가 없으므로 curator에서 스키마 검증+1회 재시도 (2026-07-25 변경: API SDK → 구독 활용) |
 | 발행 | Instagram Graph API v25.0, Instagram Login 방식 (본인 계정, App Review 불필요) |
 | 미디어 호스팅 | Cloudflare R2 공개 버킷 |
 | 상태 저장 | SQLite (better-sqlite3) |
@@ -70,8 +70,9 @@ launchd/       plist 2개 (com.cardnews.digest, com.cardnews.bot)
 - 피드별 HTTP 상태·최신 pubDate 로깅 (죽은 피드 감지)
 
 ### curator
-- 1단계 필터/랭킹 (Haiku 4.5): 최근 24h 수집분 → 카드뉴스 적합도 랭킹 상위 5~8건, 선정 사유 포함
-- 2단계 카드 카피 (Sonnet 5, `output_config.format` json_schema): 후보당 카드 3~4장 텍스트 생성
+- Claude Code CLI를 `claude -p "<프롬프트>" --output-format json`으로 shell 호출 (기존 구독 인증). `claude` 바이너리 전체 경로를 config에 저장 (launchd env 미상속 대응)
+- 1단계 필터/랭킹: 최근 24h 수집분 → 카드뉴스 적합도 랭킹 상위 5~8건, 선정 사유 포함
+- 2단계 카드 카피: 후보당 카드 3~4장 텍스트 생성. json_schema 강제가 없으므로 프롬프트에 스키마 명시 → 응답 파싱 실패/스키마 불일치 시 1회 재시도, 그래도 실패면 후보 스킵+텔레그램 보고
   - 카드 구성: ① 표지(후킹 헤드라인) ②~③ 본문(핵심 사실) ④ 마무리(요약/인사이트 + 저장·공유 유도)
   - **저작권/독창성 규칙을 시스템 프롬프트에 고정**: 사실만 자기 표현으로 재작성, 원문 문장 복사 금지, 자체 인사이트 한 줄 포함, 출처 매체명 필드 필수
   - 캡션도 함께 생성: 앞부분 검색 키워드 + 해시태그 3~5개
@@ -114,7 +115,7 @@ launchd/       plist 2개 (com.cardnews.digest, com.cardnews.bot)
 
 ## 시크릿/설정
 
-- `.env` (gitignore): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `IG_USER_ID`, `IG_ACCESS_TOKEN`, `R2_*`
+- `.env` (gitignore): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `IG_USER_ID`, `IG_ACCESS_TOKEN`, `IG_APP_SECRET`, `R2_*`. AI는 Claude Code 구독 인증을 쓰므로 API 키 불필요 — `config.ts`에 `claude` 바이너리 경로만 지정
 - launchd는 셸 env 미상속 → 엔트리포인트에서 dotenv 직접 로드
 - `config.ts`: 피드 목록, 다이제스트 시각(09:00), 카드 수, 카드당 초 등
 
