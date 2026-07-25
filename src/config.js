@@ -84,6 +84,11 @@ export const instagram = {
   apiVersion: 'v25.0',
 };
 
+// 표지 배경 사진: Pixabay 이미지 API (무료 키, 출처표기 불필요). 키 없으면 사진 없이 진행.
+export const pixabay = {
+  key: process.env.PIXABAY_KEY,
+};
+
 export const r2 = {
   accountId: process.env.R2_ACCOUNT_ID,
   accessKeyId: process.env.R2_ACCESS_KEY_ID,

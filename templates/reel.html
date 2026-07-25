@@ -46,12 +46,12 @@
   .theme-grad-blue {
     --bg: linear-gradient(150deg, #1E3A8A 0%, #2456E5 55%, #6D28D9 100%);
     --bg-soft: rgba(255,255,255,.12); --fg: #FFFFFF; --fg-muted: rgba(255,255,255,.82);
-    --point: #FFFFFF; --point-fg: #1E3A8A; --rule: rgba(255,255,255,.28);
+    --point: #FFFFFF; --point-fg: #1E3A8A; --rule: rgba(255,255,255,.28); --scrim-rgb: 14,22,64;
   }
   .theme-grad-green {
     --bg: linear-gradient(150deg, #064E3B 0%, #059669 55%, #34D399 100%);
     --bg-soft: rgba(255,255,255,.12); --fg: #FFFFFF; --fg-muted: rgba(255,255,255,.82);
-    --point: #FFFFFF; --point-fg: #065F46; --rule: rgba(255,255,255,.28);
+    --point: #FFFFFF; --point-fg: #065F46; --rule: rgba(255,255,255,.28); --scrim-rgb: 6,38,28;
   }
   .theme-grad-blue .badge, .theme-grad-green .badge {
     background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.34); color: #FFFFFF;
@@ -59,10 +59,27 @@
   .theme-grad-blue .top-bar, .theme-grad-green .top-bar { border-bottom-width: 3px; }
   .theme-bold {
     --bg: #FFE500; --bg-soft: #FFF3A8; --fg: #111318; --fg-muted: #5A551F;
-    --point: #111318; --point-fg: #FFE500; --rule: #D4BE00;
+    --point: #111318; --point-fg: #FFE500; --rule: #D4BE00; --scrim-rgb: 26,20,4;
   }
   .theme-bold .badge { border-radius: 6px; font-weight: 900; }
   .theme-bold .cover-headline { font-size: 108px; font-weight: 900; letter-spacing: -.03em; }
+
+  /* 표지 배경 사진 (has-photo) */
+  .photo-bg { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; }
+  .scrim { position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg,
+      rgba(var(--scrim-rgb, 8,12,20), .30) 0%,
+      rgba(var(--scrim-rgb, 8,12,20), .50) 42%,
+      rgba(var(--scrim-rgb, 8,12,20), .78) 100%); }
+  body.has-photo { --fg: #FFFFFF; --fg-muted: rgba(255,255,255,.86); --rule: rgba(255,255,255,.32); }
+  body.has-photo .safe { z-index: 2; }
+  body.has-photo .top-bar { border-bottom-color: rgba(255,255,255,.42); }
+  body.has-photo .brand-mark { background: #FFFFFF; }
+  body.has-photo .badge { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.42); color: #FFFFFF; }
+  body.theme-bold.has-photo .badge { background: #111318; border: none; color: #FFE500; }
+  body.has-photo .page-dots span { background: rgba(255,255,255,.42); }
+  body.has-photo .page-dots span.on { background: #FFFFFF; }
+  body.has-photo .cover-headline { text-shadow: 0 2px 30px rgba(0,0,0,.5); }
 
   .top-bar {
     display: flex;
@@ -194,6 +211,14 @@
   };
 
   document.body.innerHTML = `<div class="safe">${chromeTop}${bodies[type](data.card)}${chromeBottom}</div>`;
+
+  if (type === 'cover' && data.card.bg) {
+    document.body.classList.add('has-photo');
+    document.body.insertAdjacentHTML(
+      'afterbegin',
+      `<div class="photo-bg" style="background-image:url('${data.card.bg}')"></div><div class="scrim"></div>`
+    );
+  }
 </script>
 </body>
 </html>

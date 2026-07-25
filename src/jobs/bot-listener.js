@@ -14,7 +14,10 @@ import { renderCandidate } from '../renderer/index.js';
 import { makeReel } from '../video/index.js';
 import { uploadCandidate, uploadFile } from '../storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from '../publisher/index.js';
-import { dryRun, topics } from '../config.js';
+import { fetchTopicImage } from '../images/index.js';
+import { dryRun, topics, paths } from '../config.js';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 
 async function onApprove(candidateId) {
   try {
@@ -39,6 +42,15 @@ async function onApprove(candidateId) {
     // 주제별 테마(색) 적용.
     cardData.theme = topics[cand.topic]?.theme || 'navy';
     setCandidateCardJson(candidateId, cardData);
+
+    // 1b. 표지 배경 사진 (Pixabay, 베스트에포트 — 실패해도 사진 없이 진행)
+    const cover = cardData.cards.find((c) => c.type === 'cover');
+    if (cover && cardData.imageKeywords) {
+      const outDir = path.join(paths.out, String(candidateId));
+      await mkdir(outDir, { recursive: true });
+      const bg = await fetchTopicImage(cardData.imageKeywords, path.join(outDir, 'bg.jpg'));
+      if (bg) cover.card.bg = 'file://' + bg;
+    }
 
     // 2. 렌더 (4:5 카드 + 9:16 릴스 프레임)
     const { cardPaths, reelFramePaths } = await renderCandidate(candidateId, cardData);

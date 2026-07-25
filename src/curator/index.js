@@ -139,9 +139,10 @@ export async function writeCards(newsItem) {
     `- cover: {"type":"cover","card":{"category":"분류","headline":"후킹 헤드라인","sub":"부제"}}\n` +
     `- body:  {"type":"body","card":{"kicker":"소제목","title":"핵심 제목","text":"핵심 사실 본문","stat":{"value":"수치","label":"수치 설명"}}}  (stat은 수치가 있을 때만, 선택)\n` +
     `- last:  {"type":"last","card":{"summary":"한 줄 요약","insight":"자체 인사이트 한 줄"}}\n\n` +
-    `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n\n` +
+    `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n` +
+    `imageKeywords: 표지 배경 사진을 찾기 위한 영어 키워드 2~3개(공백 구분). 핵심 개념·장면을 일반적으로 묘사하되, 특정 인물명·기업명·상표는 넣지 마세요 (예: "stock market chart", "semiconductor factory").\n\n` +
     `아래 형식의 JSON 객체만 출력하세요(다른 텍스트 금지):\n` +
-    `{"cards":[...], "caption":"..."}`;
+    `{"cards":[...], "caption":"...", "imageKeywords":"..."}`;
 
   let parsed = await askClaudeJson(prompt, claude.copyModel);
   if (!validCards(parsed?.cards)) {
@@ -161,6 +162,7 @@ export async function writeCards(newsItem) {
     source: `출처: ${newsItem.source}`,
     cards: parsed.cards,
     caption: String(parsed.caption ?? ''),
+    imageKeywords: String(parsed.imageKeywords ?? ''),
   };
 }
 
@@ -181,9 +183,10 @@ export async function generateEvergreen(topicKey) {
     `- cover: {"type":"cover","card":{"category":"분류","headline":"후킹 헤드라인","sub":"부제"}}\n` +
     `- body:  {"type":"body","card":{"kicker":"소제목","title":"핵심 제목","text":"본문","stat":{"value":"수치","label":"수치 설명"}}}  (stat은 수치가 있을 때만, 선택)\n` +
     `- last:  {"type":"last","card":{"summary":"한 줄 요약","insight":"자체 인사이트 한 줄"}}\n\n` +
-    `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n\n` +
+    `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n` +
+    `imageKeywords: 표지 배경 사진을 찾기 위한 영어 키워드 2~3개(공백 구분). 핵심 개념·장면을 일반적으로 묘사하되, 특정 인물명·기업명·상표는 넣지 마세요 (예: "stock market chart", "semiconductor factory").\n\n` +
     `아래 형식의 JSON 객체만 출력하세요(다른 텍스트 금지):\n` +
-    `{"cards":[...], "caption":"..."}`;
+    `{"cards":[...], "caption":"...", "imageKeywords":"..."}`;
 
   let parsed = await askClaudeJson(prompt, claude.copyModel);
   if (!validCards(parsed?.cards)) {
@@ -200,6 +203,7 @@ export async function generateEvergreen(topicKey) {
     source: `${t.label} · 오늘의 정보`,
     cards: parsed.cards,
     caption: String(parsed.caption ?? ''),
+    imageKeywords: String(parsed.imageKeywords ?? ''),
     theme: t.theme,
   };
 }

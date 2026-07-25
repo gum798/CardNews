@@ -60,6 +60,7 @@
     --point: #FFFFFF;
     --point-fg: #1E3A8A;
     --rule: rgba(255,255,255,.28);
+    --scrim-rgb: 14,22,64;
   }
   /* AI: 그린 그라디언트 */
   .theme-grad-green {
@@ -70,6 +71,7 @@
     --point: #FFFFFF;
     --point-fg: #065F46;
     --rule: rgba(255,255,255,.28);
+    --scrim-rgb: 6,38,28;
   }
   /* 그라디언트 공통: 카테고리 글래스 필 + 상단선 완화 */
   .theme-grad-blue .badge, .theme-grad-green .badge {
@@ -88,6 +90,7 @@
     --point: #111318;
     --point-fg: #FFE500;
     --rule: #D4BE00;
+    --scrim-rgb: 26,20,4;
   }
   .theme-bold .badge { border-radius: 6px; font-weight: 900; }
   .theme-bold .cover-headline { font-size: 92px; font-weight: 900; letter-spacing: -.03em; }
@@ -261,6 +264,40 @@
     background: var(--point);
     color: var(--point-fg);
   }
+
+  /* ---------- 표지 배경 사진 (has-photo) ---------- */
+  .photo-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+  }
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(180deg,
+      rgba(var(--scrim-rgb, 8,12,20), .28) 0%,
+      rgba(var(--scrim-rgb, 8,12,20), .55) 52%,
+      rgba(var(--scrim-rgb, 8,12,20), .88) 100%);
+  }
+  body.has-photo { --fg: #FFFFFF; --fg-muted: rgba(255,255,255,.86); --rule: rgba(255,255,255,.32); }
+  body.has-photo .top-bar,
+  body.has-photo .content,
+  body.has-photo .bottom-bar { position: relative; z-index: 2; }
+  body.has-photo .top-bar { border-bottom-color: rgba(255,255,255,.42); }
+  body.has-photo .brand-mark { background: #FFFFFF; }
+  body.has-photo .badge {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.42);
+    color: #FFFFFF;
+  }
+  /* 볼드 테마는 사진 위에서도 검정 바 정체성 유지 */
+  body.theme-bold.has-photo .badge { background: #111318; border: none; color: #FFE500; }
+  body.has-photo .page-dots span { background: rgba(255,255,255,.42); }
+  body.has-photo .page-dots span.on { background: #FFFFFF; }
+  body.has-photo .cover-headline { text-shadow: 0 2px 28px rgba(0,0,0,.45); }
 </style>
 </head>
 <body>
@@ -309,6 +346,15 @@
   };
 
   document.body.innerHTML = chromeTop + bodies[type](data.card) + chromeBottom;
+
+  // 표지에 배경 사진(data.card.bg)이 있으면 사진 + 어두운 스크림을 깔고 텍스트를 흰색으로.
+  if (type === 'cover' && data.card.bg) {
+    document.body.classList.add('has-photo');
+    document.body.insertAdjacentHTML(
+      'afterbegin',
+      `<div class="photo-bg" style="background-image:url('${data.card.bg}')"></div><div class="scrim"></div>`
+    );
+  }
 </script>
 </body>
 </html>
