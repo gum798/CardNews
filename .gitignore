@@ -3,3 +3,7 @@ node_modules/
 out/
 *.log
 .DS_Store
+
+# BGM: Pixabay 라이선스가 음원 단독 재배포 금지 → 커밋 금지 (로컬 assets/bgm/에만 보관)
+assets/bgm/*.mp3
+assets/bgm/licenses/
