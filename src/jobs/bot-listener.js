@@ -51,13 +51,19 @@ async function onApprove(candidateId) {
     insertPublish({ candidateId, igCarouselId: carouselId, igReelId: reelId });
     updateCandidateStatus(candidateId, 'published');
 
-    // 6. 결과 보고 (카드 앨범 + 링크)
-    const tag = dryRun ? ' (DRY_RUN)' : '';
-    await report({
-      text: `✅ 발행 완료${tag}\n캐러셀: ${carouselId}\n릴스: ${reelId}`,
-      mediaPaths: cardPaths,
-    });
-    console.log(`[bot] published candidate ${candidateId}${tag}`);
+    // 6. 결과 보고 (카드 앨범 + 릴스 영상 + 캡션 + 고화질 원본 링크)
+    const lines = [];
+    if (dryRun) {
+      lines.push('✅ 생성 완료 (DRY_RUN — 인스타 자동발행은 건너뜀)');
+      lines.push('아래 카드 4장 + 릴스를 저장해 인스타에 수동 업로드하세요.');
+    } else {
+      lines.push('✅ 발행 완료');
+      lines.push(`캐러셀: ${carouselId}`);
+      lines.push(`릴스: ${reelId}`);
+    }
+    lines.push('', '📋 캡션 (복사용):', cardData.caption, '', `🎬 릴스 고화질 원본: ${reelUrl}`);
+    await report({ text: lines.join('\n'), mediaPaths: cardPaths, videoPath: reelPath });
+    console.log(`[bot] done candidate ${candidateId}${dryRun ? ' (DRY_RUN)' : ''}`);
   } catch (err) {
     updateCandidateStatus(candidateId, 'failed');
     insertPublish({ candidateId, error: err.message });
