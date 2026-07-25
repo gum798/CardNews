@@ -51,6 +51,46 @@
     --point-fg: #FFFFFF;
     --rule: #24395C;
   }
+  /* 뉴스: 블루 그라디언트 */
+  .theme-grad-blue {
+    --bg: linear-gradient(150deg, #1E3A8A 0%, #2456E5 55%, #6D28D9 100%);
+    --bg-soft: rgba(255,255,255,.12);
+    --fg: #FFFFFF;
+    --fg-muted: rgba(255,255,255,.82);
+    --point: #FFFFFF;
+    --point-fg: #1E3A8A;
+    --rule: rgba(255,255,255,.28);
+  }
+  /* AI: 그린 그라디언트 */
+  .theme-grad-green {
+    --bg: linear-gradient(150deg, #064E3B 0%, #059669 55%, #34D399 100%);
+    --bg-soft: rgba(255,255,255,.12);
+    --fg: #FFFFFF;
+    --fg-muted: rgba(255,255,255,.82);
+    --point: #FFFFFF;
+    --point-fg: #065F46;
+    --rule: rgba(255,255,255,.28);
+  }
+  /* 그라디언트 공통: 카테고리 글래스 필 + 상단선 완화 */
+  .theme-grad-blue .badge, .theme-grad-green .badge {
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.34);
+    color: #FFFFFF;
+  }
+  .theme-grad-blue .top-bar, .theme-grad-green .top-bar { border-bottom-width: 3px; }
+
+  /* 토픽: 볼드 타이포 (옐로) */
+  .theme-bold {
+    --bg: #FFE500;
+    --bg-soft: #FFF3A8;
+    --fg: #111318;
+    --fg-muted: #5A551F;
+    --point: #111318;
+    --point-fg: #FFE500;
+    --rule: #D4BE00;
+  }
+  .theme-bold .badge { border-radius: 6px; font-weight: 900; }
+  .theme-bold .cover-headline { font-size: 92px; font-weight: 900; letter-spacing: -.03em; }
 
   /* ---------- fixed chrome ---------- */
   .top-bar {

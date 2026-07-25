@@ -13,6 +13,7 @@ db.pragma('journal_mode = WAL');
 db.exec(`
 CREATE TABLE IF NOT EXISTS news_items (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  topic        TEXT,
   source       TEXT NOT NULL,
   url          TEXT NOT NULL UNIQUE,
   title        TEXT NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS news_items (
 CREATE TABLE IF NOT EXISTS candidates (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   news_item_id        INTEGER NOT NULL REFERENCES news_items(id),
+  topic               TEXT,
   rank                INTEGER,
   ai_reason           TEXT,
   card_json           TEXT,
@@ -47,15 +49,30 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 `);
 
+// 기존 DB 마이그레이션: 누락된 컬럼을 추가 (SQLite엔 ADD COLUMN IF NOT EXISTS가 없음).
+function ensureColumn(table, col, def) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+}
+ensureColumn('news_items', 'topic', 'TEXT');
+ensureColumn('candidates', 'topic', 'TEXT');
+
 // ---------- news_items ----------
 
-// 신규 뉴스 삽입. URL 중복이면 무시하고 false 반환. 성공 시 삽입된 row id.
-export function insertNewsItem({ source, url, title, summary, publishedAt }) {
+// 신규 뉴스 삽입. URL 중복이면 무시하고 null 반환. 성공 시 삽입된 row id.
+export function insertNewsItem({ topic, source, url, title, summary, publishedAt }) {
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO news_items (source, url, title, summary, published_at)
-     VALUES (@source, @url, @title, @summary, @publishedAt)`
+    `INSERT OR IGNORE INTO news_items (topic, source, url, title, summary, published_at)
+     VALUES (@topic, @source, @url, @title, @summary, @publishedAt)`
   );
-  const info = stmt.run({ source, url, title, summary: summary ?? null, publishedAt: publishedAt ?? null });
+  const info = stmt.run({
+    topic: topic ?? null,
+    source,
+    url,
+    title,
+    summary: summary ?? null,
+    publishedAt: publishedAt ?? null,
+  });
   return info.changes > 0 ? info.lastInsertRowid : null;
 }
 
@@ -70,20 +87,34 @@ export function getRecentNewsItems(hours) {
     .all(`-${hours} hours`);
 }
 
+// 특정 주제의 최근 N시간 미사용(후보로 안 쓰인) 뉴스 — 겹침 방지.
+export function getRecentUnusedNewsItems(topic, hours) {
+  return db
+    .prepare(
+      `SELECT n.* FROM news_items n
+       WHERE n.topic = ?
+         AND n.collected_at >= datetime('now', ?)
+         AND NOT EXISTS (SELECT 1 FROM candidates c WHERE c.news_item_id = n.id)
+       ORDER BY n.published_at DESC, n.collected_at DESC`
+    )
+    .all(topic, `-${hours} hours`);
+}
+
 export function getNewsItem(id) {
   return db.prepare('SELECT * FROM news_items WHERE id = ?').get(id);
 }
 
 // ---------- candidates ----------
 
-export function insertCandidate({ newsItemId, rank, aiReason, cardJson, status = 'pending' }) {
+export function insertCandidate({ newsItemId, topic, rank, aiReason, cardJson, status = 'pending' }) {
   const info = db
     .prepare(
-      `INSERT INTO candidates (news_item_id, rank, ai_reason, card_json, status)
-       VALUES (@newsItemId, @rank, @aiReason, @cardJson, @status)`
+      `INSERT INTO candidates (news_item_id, topic, rank, ai_reason, card_json, status)
+       VALUES (@newsItemId, @topic, @rank, @aiReason, @cardJson, @status)`
     )
     .run({
       newsItemId,
+      topic: topic ?? null,
       rank: rank ?? null,
       aiReason: aiReason ?? null,
       cardJson: cardJson ? JSON.stringify(cardJson) : null,

@@ -6,9 +6,8 @@
   "description": "AI-automated Instagram card news system",
   "scripts": {
     "preview": "node scripts/render-preview.mjs",
-    "digest": "node src/jobs/daily-digest.js",
-    "bot": "node src/jobs/bot-listener.js",
-    "collect": "node -e \"import('./src/collector/index.js').then(m=>m.collect()).then(r=>console.log('inserted',r.inserted))\""
+    "hourly": "node src/jobs/hourly-collect.js",
+    "bot": "node src/jobs/bot-listener.js"
   },
   "devDependencies": {
     "playwright": "^1.61.1"

@@ -3,7 +3,7 @@
 import { chromium } from 'playwright';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { paths, account } from '../config.js';
+import { paths } from '../config.js';
 
 const SIZES = {
   card: { file: 'card.html', width: 1080, height: 1350 },
@@ -16,7 +16,7 @@ async function renderOne(context, kind, cardData, index, outPath) {
   const { file, width, height } = SIZES[kind];
   const entry = cardData.cards[index];
   const payload = {
-    theme: account.theme,
+    theme: cardData.theme || 'navy',
     type: entry.type,
     page: index + 1,
     totalPages: cardData.cards.length,

@@ -15,26 +15,50 @@ export const paths = {
   db: path.join(root, 'data', 'cardnews.db'),
 };
 
-// RSS 피드 (2026-07-23 라이브 검증). allowHttp=true면 http:// 허용.
-export const feeds = [
-  { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', region: 'world' },
-  { name: 'Guardian World', url: 'https://www.theguardian.com/world/rss', region: 'world' },
-  { name: 'Reuters (Google News)', url: 'https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en', region: 'world' },
-  { name: 'ZDNet Korea', url: 'https://feeds.feedburner.com/zdkorea', region: 'kr' },
-  { name: '전자신문', url: 'https://rss.etnews.com/Section901.xml', region: 'kr' },
-  { name: 'AI타임스', url: 'https://www.aitimes.com/rss/allArticle.xml', region: 'kr' },
-];
-
 export const account = {
   name: '뉴스한입',
-  theme: 'light', // templates/card.html의 theme-light
   handle: '@news.hanip',
 };
 
+// 3개 주제 스트림. 각 주제는 고유 테마(색)와 피드 목록을 가진다.
+// evergreen: 최신 뉴스가 없을 때 AI가 만들 폴백 카드의 성격.
+export const topics = {
+  general: {
+    label: '일반뉴스',
+    theme: 'grad-blue',
+    evergreen: '오늘 알아두면 좋은 시사·경제 상식이나 뉴스를 똑똑하게 읽는 팁',
+    feeds: [
+      { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
+      { name: 'Guardian World', url: 'https://www.theguardian.com/world/rss' },
+      { name: 'Reuters', url: 'https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en' },
+      { name: '전자신문', url: 'https://rss.etnews.com/Section901.xml' },
+    ],
+  },
+  topic: {
+    label: '재밌는토픽',
+    theme: 'bold',
+    evergreen: '흥미로운 상식·기네스 기록·다가오는 이색 이벤트 등 가볍고 재밌는 이야기',
+    feeds: [
+      { name: 'Google뉴스 화제', url: 'https://news.google.com/rss/search?q=%ED%99%94%EC%A0%9C&hl=ko&gl=KR&ceid=KR:ko' },
+      { name: 'Google뉴스 이색', url: 'https://news.google.com/rss/search?q=%EC%9D%B4%EC%83%89&hl=ko&gl=KR&ceid=KR:ko' },
+      { name: 'UPI Odd', url: 'http://rss.upi.com/news/odd_news.rss' },
+    ],
+  },
+  ai: {
+    label: 'AI뉴스',
+    theme: 'grad-green',
+    evergreen: '실생활·업무에 바로 쓰는 AI 활용 팁이나 알아두면 좋은 AI 개념',
+    feeds: [
+      { name: 'AI타임스', url: 'https://www.aitimes.com/rss/allArticle.xml' },
+      { name: 'ZDNet Korea', url: 'https://feeds.feedburner.com/zdkorea' },
+      { name: 'Google뉴스 AI', url: 'https://news.google.com/rss/search?q=AI%20%EC%9D%B8%EA%B3%B5%EC%A7%80%EB%8A%A5&hl=ko&gl=KR&ceid=KR:ko' },
+    ],
+  },
+};
+
 export const pipeline = {
-  digestHour: 9, // 다이제스트 시각
-  collectWindowHours: 24, // 최근 N시간 수집분만 후보로
-  candidateCount: 6, // curator 1단계: 상위 5~8건
+  collectWindowHours: 6, // 매시간 잡: 최근 N시간 내 미사용 뉴스만 후보로
+  perTopicPick: 1, // 주제당 매시간 1건 선별
   cardsPerCandidate: { min: 3, max: 4 },
   secondsPerCard: 3.5,
   reelBitrate: { target: '6M', max: '8M' },

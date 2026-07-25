@@ -14,23 +14,30 @@ import { renderCandidate } from '../renderer/index.js';
 import { makeReel } from '../video/index.js';
 import { uploadCandidate, uploadFile } from '../storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from '../publisher/index.js';
-import { dryRun } from '../config.js';
+import { dryRun, topics } from '../config.js';
 
 async function onApprove(candidateId) {
   try {
     const cand = getCandidate(candidateId);
     if (!cand) throw new Error('후보를 찾을 수 없음');
-    const newsItem = getNewsItem(cand.news_item_id);
     updateCandidateStatus(candidateId, 'generating');
 
-    // 1. AI 카드 카피
-    const cardData = await writeCards({
-      id: newsItem.id,
-      source: newsItem.source,
-      title: newsItem.title,
-      summary: newsItem.summary,
-      url: newsItem.url,
-    });
+    // 1. 카드 데이터: evergreen 후보는 생성 시점에 card_json이 이미 있음 → writeCards 생략.
+    let cardData;
+    if (cand.card) {
+      cardData = cand.card;
+    } else {
+      const newsItem = getNewsItem(cand.news_item_id);
+      cardData = await writeCards({
+        id: newsItem.id,
+        source: newsItem.source,
+        title: newsItem.title,
+        summary: newsItem.summary,
+        url: newsItem.url,
+      });
+    }
+    // 주제별 테마(색) 적용.
+    cardData.theme = topics[cand.topic]?.theme || 'navy';
     setCandidateCardJson(candidateId, cardData);
 
     // 2. 렌더 (4:5 카드 + 9:16 릴스 프레임)

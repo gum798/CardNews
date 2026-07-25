@@ -1,7 +1,7 @@
 // RSS 수집. 피드별로 페치→파싱→정규화→중복제거→DB 삽입.
 // XML 파싱은 fast-xml-parser (node 버전 제약 없음). RSS 2.0 / RSS 1.0(RDF) / Atom 지원.
 import { XMLParser } from 'fast-xml-parser';
-import { feeds } from '../config.js';
+import { topics } from '../config.js';
 import { newsUrlExists, insertNewsItem } from '../db/index.js';
 
 const parser = new XMLParser({
@@ -129,12 +129,14 @@ async function fetchFeed(feed) {
   return { status, items };
 }
 
-// 모든 피드 수집. 피드별 try/catch로 하나가 죽어도 나머지 진행.
-export async function collect() {
+// 한 주제의 피드를 모두 수집, 각 아이템에 topic 태그. 피드별 try/catch로 하나가 죽어도 진행.
+export async function collectTopic(topicKey) {
+  const t = topics[topicKey];
+  if (!t) throw new Error(`알 수 없는 주제: ${topicKey}`);
   let inserted = 0;
   const perFeed = [];
 
-  for (const feed of feeds) {
+  for (const feed of t.feeds) {
     try {
       const { status, items, error } = await fetchFeed(feed);
       if (error) throw new Error(error);
@@ -143,14 +145,14 @@ export async function collect() {
       for (const item of items) {
         if (item.publishedAt && (!latest || item.publishedAt > latest)) latest = item.publishedAt;
         if (newsUrlExists(item.url)) continue;
-        if (insertNewsItem(item)) inserted++;
+        if (insertNewsItem({ ...item, topic: topicKey })) inserted++;
       }
 
-      console.log(`[collector] ${feed.name}: HTTP ${status}, ${items.length} items, latest ${latest || '-'}`);
+      console.log(`[collector:${topicKey}] ${feed.name}: HTTP ${status}, ${items.length} items, latest ${latest || '-'}`);
       perFeed.push({ name: feed.name, ok: true, count: items.length, latest });
     } catch (err) {
       const msg = err?.message || String(err);
-      console.error(`[collector] ${feed.name}: FAILED — ${msg}`);
+      console.error(`[collector:${topicKey}] ${feed.name}: FAILED — ${msg}`);
       perFeed.push({ name: feed.name, ok: false, count: 0, latest: null, error: msg });
     }
   }
