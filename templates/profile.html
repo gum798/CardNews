@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+    font-weight: 45 920;
+    font-display: block;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { width: 1080px; height: 1080px; overflow: hidden; }
+
+  body {
+    font-family: 'Pretendard', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .blue { background: #2456E5; }
+  .white { background: #FFFFFF; }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    font-weight: 850;
+  }
+
+  /* A: solid blue, white stacked wordmark */
+  .v-solid .stack { color: #FFFFFF; font-size: 300px; }
+
+  /* B: blue, white line + white pill with blue line */
+  .v-badge .stack { gap: 44px; }
+  .v-badge .line1 { color: #FFFFFF; font-size: 250px; }
+  .v-badge .pill {
+    background: #FFFFFF;
+    color: #2456E5;
+    font-size: 250px;
+    line-height: 1;
+    padding: 40px 84px 56px;
+    border-radius: 999px;
+  }
+
+  /* C: blue, white disc with a bite taken out, blue text inside */
+  .v-bite .disc {
+    position: relative;
+    width: 800px;
+    height: 800px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .v-bite .disc::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    right: 30px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: #2456E5;
+  }
+  .v-bite .stack { color: #2456E5; font-size: 210px; }
+
+  /* D: white, blue mark + blue stacked wordmark */
+  .v-light body { background: #FFFFFF; }
+  .v-light .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 64px;
+  }
+  .v-light .mark {
+    width: 150px;
+    height: 150px;
+    border-radius: 40px;
+    background: #2456E5;
+  }
+  .v-light .stack { color: #111318; font-size: 260px; }
+  .v-light .stack .accent { color: #2456E5; }
+</style>
+</head>
+<body>
+<script>
+  const variant = window.__PROFILE__;
+  document.body.classList.add(`v-${variant}`);
+
+  const views = {
+    solid: `<div class="stack"><span>뉴스</span><span>한입</span></div>`,
+    badge: `<div class="stack"><span class="line1">뉴스</span><span class="pill">한입</span></div>`,
+    bite: `<div class="disc"><div class="stack"><span>뉴스</span><span>한입</span></div></div>`,
+    light: `<div class="wrap"><div class="mark"></div><div class="stack"><span>뉴스</span><span class="accent">한입</span></div></div>`,
+  };
+
+  document.body.classList.add(variant === 'light' ? 'white' : 'blue');
+  document.body.innerHTML = views[variant];
+</script>
+</body>
+</html>
