@@ -26,13 +26,14 @@ function stripFences(text) {
 }
 
 // claude CLI를 실행해 result 텍스트를 JSON.parse. 파싱 실패 시 1회 재시도.
-async function askClaudeJson(prompt) {
+async function askClaudeJson(prompt, model) {
   const run = async (p) => {
-    const { stdout } = await execFileAsync(
-      claude.bin,
-      ['-p', p, '--output-format', 'json'],
-      { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 }
-    );
+    const args = ['-p', p, '--output-format', 'json'];
+    if (model) args.push('--model', model);
+    const { stdout } = await execFileAsync(claude.bin, args, {
+      timeout: 120_000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
     // --output-format json은 실행 메타를 감싼 객체. 모델 답변은 result 문자열 필드.
     const outer = JSON.parse(stdout);
     const resultText = typeof outer === 'string' ? outer : outer.result;
@@ -69,7 +70,7 @@ export async function filterAndRank(newsItems) {
     `아래 형식의 JSON 배열만 출력하세요(다른 텍스트 금지):\n` +
     `[{"newsItemId": <id>, "rank": 1, "reason": "한 줄 사유"}]`;
 
-  const parsed = await askClaudeJson(prompt);
+  const parsed = await askClaudeJson(prompt, claude.filterModel);
   const arr = Array.isArray(parsed) ? parsed : parsed.items;
   if (!Array.isArray(arr)) throw new Error('filterAndRank: 배열 응답 아님');
 
@@ -142,11 +143,12 @@ export async function writeCards(newsItem) {
     `아래 형식의 JSON 객체만 출력하세요(다른 텍스트 금지):\n` +
     `{"cards":[...], "caption":"..."}`;
 
-  let parsed = await askClaudeJson(prompt);
+  let parsed = await askClaudeJson(prompt, claude.copyModel);
   if (!validCards(parsed?.cards)) {
     // 스키마 불일치: 1회 재시도.
     parsed = await askClaudeJson(
-      `${prompt}\n\n앞선 응답이 스키마와 맞지 않았습니다. 스키마를 정확히 지켜 다시 출력하세요.`
+      `${prompt}\n\n앞선 응답이 스키마와 맞지 않았습니다. 스키마를 정확히 지켜 다시 출력하세요.`,
+      claude.copyModel
     );
     if (!validCards(parsed?.cards)) {
       throw new Error(`writeCards: 카드 스키마 검증 실패 (newsItemId=${newsItem.id})`);

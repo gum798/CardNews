@@ -41,8 +41,11 @@ export const pipeline = {
 };
 
 // AI: Claude Code 구독 인증을 헤드리스로 호출 (API 키 불필요).
+// 기본 모델(Fable 5)은 과하므로 --model로 경량 모델 고정: 필터=haiku, 카피=sonnet.
 export const claude = {
   bin: process.env.CLAUDE_BIN || 'claude',
+  filterModel: 'haiku',
+  copyModel: 'sonnet',
 };
 
 export const telegram = {
