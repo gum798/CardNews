@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+    font-weight: 45 920;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; font-family: 'Pretendard', sans-serif; }
+  .card { width: 1080px; height: 1350px; display: flex; flex-direction: column; padding: 72px;
+    background: var(--bg); color: var(--fg); }
+  .keep { word-break: keep-all; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 36px; border-bottom: 6px solid var(--fg); }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .mark { width: 44px; height: 44px; border-radius: 12px; background: var(--point); }
+  .name { font-size: 40px; font-weight: 750; letter-spacing: -.01em; }
+  .date { font-size: 30px; font-weight: 500; color: var(--muted); }
+  .body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cat { align-self: flex-start; background: var(--point); color: var(--point-fg); font-size: 34px; font-weight: 750; padding: 12px 32px; border-radius: 999px; margin-bottom: 48px; letter-spacing: var(--cat-ls, 0); }
+  .head { font-size: 84px; font-weight: 820; line-height: 1.24; letter-spacing: -.02em; }
+  .sub { margin-top: 44px; font-size: 40px; font-weight: 500; line-height: 1.5; color: var(--muted); }
+  .bot { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 2px solid var(--rule); }
+  .src { font-size: 28px; color: var(--muted); }
+  .dots { display: flex; gap: 12px; }
+  .dots span { width: 16px; height: 16px; border-radius: 50%; background: var(--rule); }
+  .dots span.on { background: var(--point); }
+
+  /* 일반뉴스: 네이비 + 레드 */
+  .t-general { --bg:#0B1F3A; --fg:#F7F8FA; --point:#E5484D; --point-fg:#fff; --muted:#93A3BC; --rule:#24395C; }
+  /* 재밌는 토픽: 크림 + 코랄 */
+  .t-topic { --bg:#FFF6F1; --fg:#1A1614; --point:#FF5A3C; --point-fg:#fff; --muted:#8A7F79; --rule:#F0E1D8; }
+  /* AI 뉴스: 다크 + 시안 */
+  .t-ai { --bg:#0A0F16; --fg:#E8F0F5; --point:#2DD4BF; --point-fg:#06231F; --muted:#8A9BA8; --rule:#1C2733; --cat-ls:.06em; }
+</style>
+</head>
+<body>
+<script>
+  const TOPICS = {
+    general: {
+      cls: 't-general', cat: '경제',
+      head: '미 연준, 3년 만에 기준금리 전격 인하',
+      sub: '0.25%p 내린 연 4.00%… 한국 경제엔 어떤 영향?',
+      src: '출처: Reuters · BBC World',
+    },
+    topic: {
+      cls: 't-topic', cat: '화제',
+      head: '1,200kg 세계 최대 호박, 신기록 경신',
+      sub: '미 대회서 우승… 씨앗 하나로 시작된 3년의 집념',
+      src: '출처: UPI · AP',
+    },
+    ai: {
+      cls: 't-ai', cat: 'AI',
+      head: '오픈AI, 코딩 특화 신모델 전격 공개',
+      sub: '실사용 벤치서 기존 대비 40% 향상… 개발자 반응은?',
+      src: '출처: AI타임스 · ZDNet',
+    },
+  };
+  const t = TOPICS[window.__TOPIC__];
+  const dots = [0,1,2,3].map(i=>`<span class="${i===0?'on':''}"></span>`).join('');
+  const el = document.createElement('div');
+  el.className = 'card ' + t.cls;
+  el.innerHTML = `
+    <div class="top"><div class="brand"><div class="mark"></div><div class="name">뉴스한입</div></div>
+      <div class="date">2026.07.25 (토)</div></div>
+    <div class="body"><div class="cat">${t.cat}</div>
+      <div class="head keep">${t.head}</div><div class="sub keep">${t.sub}</div></div>
+    <div class="bot"><div class="src">${t.src}</div><div class="dots">${dots}</div></div>`;
+  document.body.appendChild(el);
+</script>
+</body>
+</html>
