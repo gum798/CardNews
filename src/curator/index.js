@@ -27,6 +27,11 @@ function stripFences(text) {
 
 // claude CLI를 실행해 result 텍스트를 JSON.parse. 파싱 실패 시 1회 재시도.
 async function askClaudeJson(prompt, model) {
+  // 문자열 값 안의 큰따옴표가 JSON을 깨뜨리는 흔한 실패를 방지하는 규칙.
+  const RULE =
+    '\n\n[출력 규칙] 오직 유효한 JSON만 출력하세요(코드펜스·설명 금지). ' +
+    'JSON 문자열 값 안에서 인용이 필요하면 큰따옴표(") 대신 홑따옴표(\') 또는 「」를 쓰세요.';
+
   const run = async (p) => {
     const args = ['-p', p, '--output-format', 'json'];
     if (model) args.push('--model', model);
@@ -42,10 +47,10 @@ async function askClaudeJson(prompt, model) {
   };
 
   try {
-    return await run(prompt);
+    return await run(prompt + RULE);
   } catch (e) {
-    // 파싱 실패 등: 프롬프트에 JSON 강제 지시를 붙여 1회 재시도.
-    return await run(`${prompt}\n\nReturn ONLY valid JSON, no prose.`);
+    // 파싱 실패: 규칙을 강조해 1회 재시도.
+    return await run(`${prompt}${RULE}\n\n직전 응답이 유효한 JSON이 아니었습니다. 규칙을 지켜 다시 출력하세요.`);
   }
 }
 
