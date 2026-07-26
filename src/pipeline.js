@@ -101,7 +101,7 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
       if (reelId) lines.push(`🎬 인스타 릴스: ${reelId}`);
       if (ytId) {
         lines.push(`📺 유튜브: https://youtu.be/${ytId}`);
-        lines.push(`⚙️ 공개 전환(Studio): https://studio.youtube.com/video/${ytId}/edit`);
+        lines.push(`⚙️ Studio 관리: https://studio.youtube.com/video/${ytId}/edit`);
       }
       if (!carouselId && !reelId) lines.push('ℹ️ 인스타 미설정 — 유튜브만 발행됨');
     }
