@@ -15,7 +15,7 @@ import { uploadCandidate, uploadFile } from './storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from './publisher/index.js';
 import { uploadShort } from './youtube/index.js';
 import { report } from './bot/index.js';
-import { dryRun, topics, paths } from './config.js';
+import { dryRun, topics, paths, instagram } from './config.js';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -63,14 +63,22 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
     const coverUrl = await uploadFile(`${candidateId}/cover.jpg`, reelFramePaths[0], 'image/jpeg');
     updateCandidateStatus(candidateId, 'uploaded');
 
-    // 5. IG 발행 (dryRun이면 합성 ID)
-    await checkPublishingLimit();
-    const carouselId = await publishCarousel(cardUrls, cardData.caption);
-    const reelId = await publishReel(reelUrl, coverUrl, cardData.caption);
-    insertPublish({ candidateId, igCarouselId: carouselId, igReelId: reelId });
-    updateCandidateStatus(candidateId, 'published');
+    // 5. IG 발행 (베스트에포트 — 토큰 없거나 실패해도 유튜브는 계속). dryRun이면 합성 ID.
+    let carouselId = null;
+    let reelId = null;
+    if (dryRun || instagram.accessToken) {
+      try {
+        await checkPublishingLimit();
+        carouselId = await publishCarousel(cardUrls, cardData.caption);
+        reelId = await publishReel(reelUrl, coverUrl, cardData.caption);
+      } catch (e) {
+        console.error('[pipeline] IG 발행 실패(유튜브는 계속):', e.message);
+      }
+    } else {
+      console.log('[pipeline] IG 미설정 → 건너뜀 (유튜브만 발행)');
+    }
 
-    // 5b. 유튜브 쇼츠 업로드 (베스트에포트, 병렬 채널 — 실패해도 계속)
+    // 5b. 유튜브 쇼츠 업로드 (베스트에포트, 병렬 채널)
     const ytId = await uploadShort({
       videoPath: reelPath,
       title: cover?.card?.headline || '오늘의 뉴스',
@@ -79,16 +87,20 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
       categoryId: topics[cand.topic]?.ytCategory,
     });
 
+    if (!carouselId && !reelId && !ytId) throw new Error('IG·유튜브 모두 발행 실패');
+    insertPublish({ candidateId, igCarouselId: carouselId, igReelId: reelId });
+    updateCandidateStatus(candidateId, 'published');
+
     // 6. 보고
     const lines = [];
     if (dryRun) {
-      lines.push(`✅ ${tag}생성 완료 (DRY_RUN — 인스타/유튜브엔 아직 안 올라감)`);
-      lines.push('② Meta·유튜브 인증 완료 후 실제 자동 발행됩니다. 그전엔 아래를 저장해 수동 업로드 가능.');
+      lines.push(`✅ ${tag}생성 완료 (DRY_RUN — 실제 게시 안 함)`);
     } else {
       lines.push(`✅ ${tag}발행 완료`);
-      lines.push(`캐러셀: ${carouselId}`);
-      lines.push(`릴스: ${reelId}`);
-      if (ytId) lines.push(`유튜브 쇼츠: https://youtu.be/${ytId}`);
+      if (carouselId) lines.push(`캐러셀: ${carouselId}`);
+      if (reelId) lines.push(`릴스: ${reelId}`);
+      if (ytId) lines.push(`유튜브 쇼츠: https://youtu.be/${ytId} (심사 전이면 비공개)`);
+      if (!carouselId && !reelId) lines.push('ℹ️ 인스타 미설정 — 유튜브만 발행됨');
     }
     lines.push('', '📋 캡션 (복사용):', cardData.caption, '', `🎬 릴스 원본: ${reelUrl}`);
     await report({ text: lines.join('\n'), mediaPaths: cardPaths, videoPath: reelPath });
