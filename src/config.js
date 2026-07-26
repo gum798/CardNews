@@ -16,7 +16,7 @@ export const paths = {
 };
 
 export const account = {
-  name: '한입데일리',
+  name: '뉴스한입',
   handle: '@newshanip.daily',
 };
 
