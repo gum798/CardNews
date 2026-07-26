@@ -1,6 +1,7 @@
-// 프로세스 A: launchd가 매시간 1회 실행 후 종료.
+// 프로세스 A: launchd가 매일 08:00 · 19:00에 실행 후 종료.
 // 주제별로: 수집 → 최신 미사용 뉴스 1건 선별(없으면 evergreen 생성) → 후보 저장 →
 //   자동 발행(일일 한도 내) 또는 텔레그램 수동 승인으로 분기.
+//   2회 × 3주제 = 하루 6건 (주제별 2건). 한도(maxPerTopicPerDay)는 중복 실행 안전장치.
 import { collectTopic } from '../collector/index.js';
 import { filterAndRank, generateEvergreen } from '../curator/index.js';
 import {
@@ -18,11 +19,11 @@ import { topics, pipeline, autoPublish } from '../config.js';
 async function dispatch(id, topicKey, newsItem, reason) {
   const label = topics[topicKey].label;
   if (autoPublish && countPublishedToday(topicKey) < pipeline.maxPerTopicPerDay) {
-    console.log(`[hourly:${topicKey}] auto-publish candidate ${id}`);
+    console.log(`[publish:${topicKey}] auto-publish candidate ${id}`);
     await generateAndPublish(id, { auto: true });
   } else {
     await sendDigest([{ id, newsItem, reason: `[${label}] ${reason}` }]);
-    console.log(`[hourly:${topicKey}] sent for approval candidate ${id}`);
+    console.log(`[publish:${topicKey}] sent for approval candidate ${id}`);
   }
 }
 
@@ -72,12 +73,12 @@ async function runTopic(topicKey) {
 }
 
 async function main() {
-  console.log(`[hourly] start (autoPublish=${autoPublish})`);
+  console.log(`[publish] start (autoPublish=${autoPublish})`);
   for (const topicKey of Object.keys(topics)) {
     try {
       await runTopic(topicKey);
     } catch (err) {
-      console.error(`[hourly:${topicKey}] failed:`, err);
+      console.error(`[publish:${topicKey}] failed:`, err);
       await report({ text: `⚠️ [${topics[topicKey].label}] 수집 실패: ${err.message}` }).catch(() => {});
     }
   }
@@ -86,6 +87,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error('[hourly] fatal:', err);
+    console.error('[publish] fatal:', err);
     process.exit(1);
   });

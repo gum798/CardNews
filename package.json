@@ -6,7 +6,7 @@
   "description": "AI-automated Instagram card news system",
   "scripts": {
     "preview": "node scripts/render-preview.mjs",
-    "hourly": "node src/jobs/hourly-collect.js",
+    "publish": "node src/jobs/publish-cycle.js",
     "bot": "node src/jobs/bot-listener.js"
   },
   "devDependencies": {
