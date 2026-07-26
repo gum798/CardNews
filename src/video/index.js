@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { paths, pipeline } from '../config.js';
+import { getMeta, setMeta } from '../db/index.js';
 
 const FFMPEG = '/opt/homebrew/bin/ffmpeg';
 const FFPROBE = '/opt/homebrew/bin/ffprobe';
@@ -28,11 +29,34 @@ function run(bin, args) {
   });
 }
 
-// assets/bgm에서 .mp3 랜덤 선택.
+// assets/bgm에서 .mp3 선택. 셔플백: 모든 트랙을 한 바퀴 돌 때까지 반복 안 하고,
+// 같은 곡이 연달아 나오지 않게. 최근 사용 이력은 meta('bgm_recent')에 저장.
 function pickBgm() {
   const files = readdirSync(paths.bgm).filter((f) => f.toLowerCase().endsWith('.mp3'));
   if (files.length === 0) throw new Error(`BGM 없음: ${paths.bgm}에 .mp3 파일을 넣어라`);
-  return path.join(paths.bgm, files[Math.floor(Math.random() * files.length)]);
+  if (files.length === 1) return path.join(paths.bgm, files[0]);
+
+  let recent = [];
+  try {
+    recent = JSON.parse(getMeta('bgm_recent') || '[]').filter((f) => files.includes(f));
+  } catch {
+    recent = [];
+  }
+
+  let pool = files.filter((f) => !recent.includes(f));
+  if (pool.length === 0) {
+    // 한 바퀴 다 돌았음 → 리셋하되 직전 곡만 제외해 즉시 반복 방지.
+    const last = recent[recent.length - 1];
+    pool = files.filter((f) => f !== last);
+    recent = last ? [last] : [];
+  }
+
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  recent.push(chosen);
+  while (recent.length > files.length - 1) recent.shift();
+  setMeta('bgm_recent', JSON.stringify(recent));
+
+  return path.join(paths.bgm, chosen);
 }
 
 // 각 프레임을 1080×1920로 정규화하는 필터 조각.
