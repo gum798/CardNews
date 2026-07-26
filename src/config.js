@@ -26,6 +26,7 @@ export const topics = {
   general: {
     label: '일반뉴스',
     theme: 'grad-blue',
+    ytCategory: '25', // News & Politics
     evergreen: '오늘 알아두면 좋은 시사·경제 상식이나 뉴스를 똑똑하게 읽는 팁',
     feeds: [
       { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
@@ -37,6 +38,7 @@ export const topics = {
   topic: {
     label: '재밌는토픽',
     theme: 'bold',
+    ytCategory: '24', // Entertainment
     evergreen: '흥미로운 상식·기네스 기록·다가오는 이색 이벤트 등 가볍고 재밌는 이야기',
     feeds: [
       { name: 'Google뉴스 화제', url: 'https://news.google.com/rss/search?q=%ED%99%94%EC%A0%9C&hl=ko&gl=KR&ceid=KR:ko' },
@@ -47,6 +49,7 @@ export const topics = {
   ai: {
     label: 'AI뉴스',
     theme: 'grad-green',
+    ytCategory: '28', // Science & Technology
     evergreen: '실생활·업무에 바로 쓰는 AI 활용 팁이나 알아두면 좋은 AI 개념',
     feeds: [
       { name: 'AI타임스', url: 'https://www.aitimes.com/rss/allArticle.xml' },
@@ -88,6 +91,14 @@ export const instagram = {
 // 표지 배경 사진: Pixabay 이미지 API (무료 키, 출처표기 불필요). 키 없으면 사진 없이 진행.
 export const pixabay = {
   key: process.env.PIXABAY_KEY,
+};
+
+// 유튜브 쇼츠 자동 업로드 (OAuth). refreshToken 없으면 업로드 건너뜀 (베스트에포트).
+// 심사 전 프로젝트는 업로드가 비공개로 잠김 → 심사 통과 후 공개.
+export const youtube = {
+  clientId: process.env.YOUTUBE_CLIENT_ID,
+  clientSecret: process.env.YOUTUBE_CLIENT_SECRET,
+  refreshToken: process.env.YOUTUBE_REFRESH_TOKEN,
 };
 
 export const r2 = {

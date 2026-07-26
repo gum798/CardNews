@@ -150,3 +150,39 @@ renderer 모듈 완성 시 시안 3종(라이트/다크/포인트컬러 변형)�
 
 완료한 값들은 프로젝트 루트 `.env`에 채워 넣음 (구현 시 `.env.example` 제공 예정):
 `IG_USER_ID`, `IG_ACCESS_TOKEN`, `IG_APP_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `ANTHROPIC_API_KEY`
+
+---
+
+## 8. 유튜브 쇼츠 자동 업로드 (선택)
+
+릴스 영상을 유튜브 쇼츠로도 자동 발행. IG와 병렬로 나감. 안 하면 이 항목 비워두면 됨(자동 건너뜀).
+
+### (A) Google Cloud 프로젝트 + API
+1. https://console.cloud.google.com/ → 프로젝트 생성
+2. **API 및 서비스 → 라이브러리** → **YouTube Data API v3** 검색 → **사용**
+
+### (B) OAuth 동의 화면
+3. **API 및 서비스 → OAuth 동의 화면** → **External** → 앱 이름/이메일 입력
+4. **범위 추가** → `https://www.googleapis.com/auth/youtube.upload` 추가
+5. **테스트 사용자**에 본인 구글 계정 추가 (심사 전까지 테스트 모드로 사용)
+
+### (C) OAuth 자격증명
+6. **API 및 서비스 → 사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID**
+7. 애플리케이션 유형 **데스크톱 앱** 선택 → 생성
+8. 나온 **클라이언트 ID / 보안 비밀**을 `.env`에 입력:
+   `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`
+
+### (D) refresh token 발급 (1회)
+9. 터미널에서 `node scripts/youtube-auth.mjs` 실행
+10. 출력된 URL을 브라우저에서 열어 **업로드할 유튜브 채널 계정으로 승인**
+11. 터미널에 출력된 `YOUTUBE_REFRESH_TOKEN=...` 을 `.env`에 붙여넣기
+
+### ⚠️ 심사 전 = 비공개 잠금
+- 심사(감사) 안 받은 프로젝트는 업로드 영상이 **강제로 "비공개"** 로 올라갑니다. (스크린샷의 "비공개로 저장됨"이 그 이유)
+- 테스트/초기엔 이대로 쓰다가, 공개 자동 발행이 필요하면 **YouTube API Audit**를 신청해 통과해야 공개로 바뀝니다.
+- 그전까지는: 자동 업로드는 되지만 비공개 → 유튜브 스튜디오에서 수동으로 공개 전환, 또는 심사 통과 후 자동 공개.
+
+### 자동 채워지는 내용
+- **제목**: 카드 표지 헤드라인 + ` #Shorts`
+- **설명**: 카드 캡션 + `#Shorts`
+- **카테고리**: 일반=뉴스, 토픽=엔터테인먼트, AI=과학기술 (config.topics.ytCategory)

@@ -13,6 +13,7 @@ import { renderCandidate } from './renderer/index.js';
 import { makeReel } from './video/index.js';
 import { uploadCandidate, uploadFile } from './storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from './publisher/index.js';
+import { uploadShort } from './youtube/index.js';
 import { report } from './bot/index.js';
 import { dryRun, topics, paths } from './config.js';
 import { mkdir } from 'node:fs/promises';
@@ -69,15 +70,25 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
     insertPublish({ candidateId, igCarouselId: carouselId, igReelId: reelId });
     updateCandidateStatus(candidateId, 'published');
 
+    // 5b. 유튜브 쇼츠 업로드 (베스트에포트, 병렬 채널 — 실패해도 계속)
+    const ytId = await uploadShort({
+      videoPath: reelPath,
+      title: cover?.card?.headline || '오늘의 뉴스',
+      description: cardData.caption,
+      tags: ['뉴스', '오늘의뉴스', '쇼츠', 'shorts'],
+      categoryId: topics[cand.topic]?.ytCategory,
+    });
+
     // 6. 보고
     const lines = [];
     if (dryRun) {
-      lines.push(`✅ ${tag}생성 완료 (DRY_RUN — 인스타엔 아직 안 올라감)`);
-      lines.push('② Meta 완료 후 실제 자동 발행됩니다. 그전엔 아래를 저장해 수동 업로드 가능.');
+      lines.push(`✅ ${tag}생성 완료 (DRY_RUN — 인스타/유튜브엔 아직 안 올라감)`);
+      lines.push('② Meta·유튜브 인증 완료 후 실제 자동 발행됩니다. 그전엔 아래를 저장해 수동 업로드 가능.');
     } else {
       lines.push(`✅ ${tag}발행 완료`);
       lines.push(`캐러셀: ${carouselId}`);
       lines.push(`릴스: ${reelId}`);
+      if (ytId) lines.push(`유튜브 쇼츠: https://youtu.be/${ytId}`);
     }
     lines.push('', '📋 캡션 (복사용):', cardData.caption, '', `🎬 릴스 원본: ${reelUrl}`);
     await report({ text: lines.join('\n'), mediaPaths: cardPaths, videoPath: reelPath });
