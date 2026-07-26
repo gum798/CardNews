@@ -97,9 +97,12 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
       lines.push(`✅ ${tag}생성 완료 (DRY_RUN — 실제 게시 안 함)`);
     } else {
       lines.push(`✅ ${tag}발행 완료`);
-      if (carouselId) lines.push(`캐러셀: ${carouselId}`);
-      if (reelId) lines.push(`릴스: ${reelId}`);
-      if (ytId) lines.push(`유튜브 쇼츠: https://youtu.be/${ytId} (심사 전이면 비공개)`);
+      if (carouselId) lines.push(`📷 인스타 캐러셀: ${carouselId}`);
+      if (reelId) lines.push(`🎬 인스타 릴스: ${reelId}`);
+      if (ytId) {
+        lines.push(`📺 유튜브: https://youtu.be/${ytId}`);
+        lines.push(`⚙️ 공개 전환(Studio): https://studio.youtube.com/video/${ytId}/edit`);
+      }
       if (!carouselId && !reelId) lines.push('ℹ️ 인스타 미설정 — 유튜브만 발행됨');
     }
     lines.push('', '📋 캡션 (복사용):', cardData.caption, '', `🎬 릴스 원본: ${reelUrl}`);
