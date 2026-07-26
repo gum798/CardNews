@@ -17,7 +17,7 @@ export const paths = {
 
 export const account = {
   name: '한입데일리',
-  handle: '@한입데일리',
+  handle: '@newshanip.daily',
 };
 
 // 3개 주제 스트림. 각 주제는 고유 테마(색)와 피드 목록을 가진다.
