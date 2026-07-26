@@ -212,3 +212,27 @@ export async function generateEvergreen(topicKey) {
     theme: t.theme,
   };
 }
+
+// 표지 사진 관련성 검증(1회): 후보 사진 태그를 보고 뉴스에 가장 어울리는 인덱스 선택.
+// 어울리는 게 하나도 없으면 -1 (사진 없이 그래픽 표지로). candidates: [{ tags }]
+export async function pickBestImage(headline, category, candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return -1;
+
+  const list = candidates.map((c, i) => `${i}: ${c.tags}`).join('\n');
+  const prompt =
+    `당신은 한국어 카드뉴스 편집자입니다. 아래 뉴스의 표지 배경 사진을 고릅니다.\n` +
+    `뉴스: [${category}] ${headline}\n\n` +
+    `후보 사진(번호: 태그):\n${list}\n\n` +
+    `선택 기준: 뉴스의 주제·분위기에 어울리고, 내용과 모순되거나 부적절하지 않을 것.\n` +
+    `(예: 산불·재난 뉴스에 평화로운 들판이나 밝은 관광지 사진은 부적절)\n` +
+    `가장 잘 어울리는 사진 번호 하나만 고르세요. 어울리는 게 하나도 없으면 -1.\n` +
+    `JSON만 출력: {"index": <번호 또는 -1>}`;
+
+  try {
+    const parsed = await askClaudeJson(prompt, claude.filterModel);
+    const idx = Number(parsed?.index);
+    return Number.isInteger(idx) && idx >= 0 && idx < candidates.length ? idx : -1;
+  } catch {
+    return -1; // 검증 실패 시 사진 없이 진행
+  }
+}

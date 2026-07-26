@@ -7,8 +7,8 @@ import {
   setCandidateCardJson,
   insertPublish,
 } from './db/index.js';
-import { writeCards } from './curator/index.js';
-import { fetchTopicImage } from './images/index.js';
+import { writeCards, pickBestImage } from './curator/index.js';
+import { searchTopicImages, downloadImage } from './images/index.js';
 import { renderCandidate } from './renderer/index.js';
 import { makeReel } from './video/index.js';
 import { uploadCandidate, uploadFile } from './storage/index.js';
@@ -36,13 +36,23 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
     cardData.theme = topics[cand.topic]?.theme || 'navy';
     setCandidateCardJson(candidateId, cardData);
 
-    // 1b. 표지 배경 사진 (Pixabay, 베스트에포트 — 실패해도 사진 없이 진행)
+    // 1b. 표지 배경 사진: Pixabay 후보 검색 → AI 관련성 선택(1회) → 어울리면 그 1장 다운로드.
+    //     어울리는 게 없으면 사진 없이 그래픽 표지로. (전 과정 베스트에포트)
     const cover = cardData.cards.find((c) => c.type === 'cover');
     if (cover && cardData.imageKeywords) {
-      const outDir = path.join(paths.out, String(candidateId));
-      await mkdir(outDir, { recursive: true });
-      const bg = await fetchTopicImage(cardData.imageKeywords, path.join(outDir, 'bg.jpg'));
-      if (bg) cover.card.bg = 'file://' + bg;
+      const candidates = await searchTopicImages(cardData.imageKeywords);
+      if (candidates.length > 0) {
+        const idx = await pickBestImage(cover.card.headline, cover.card.category, candidates);
+        if (idx >= 0) {
+          const outDir = path.join(paths.out, String(candidateId));
+          await mkdir(outDir, { recursive: true });
+          const bg = await downloadImage(candidates[idx].url, path.join(outDir, 'bg.jpg'));
+          if (bg) cover.card.bg = 'file://' + bg;
+          console.log(`[pipeline] 표지 사진 선택 idx=${idx}/${candidates.length}`);
+        } else {
+          console.log('[pipeline] 어울리는 표지 사진 없음 → 그래픽 표지');
+        }
+      }
     }
 
     // 2~4. 렌더 → 릴스 → 업로드
