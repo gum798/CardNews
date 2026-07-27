@@ -15,6 +15,13 @@
   <key>WorkingDirectory</key>
   <string>/Users/seojeonghwa/project/CardNews</string>
 
+  <!-- 회사망(SK C&C) SSL검사 루트인증서 신뢰. 봇도 텔레그램/미디어 업로드에 TLS를 쓰므로 동일하게 필요. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_EXTRA_CA_CERTS</key>
+    <string>/Users/seojeonghwa/project/CardNews/certs/corp-root.pem</string>
+  </dict>
+
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

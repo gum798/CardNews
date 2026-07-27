@@ -68,6 +68,16 @@ export const pipeline = {
   reelBitrate: { target: '6M', max: '8M' },
 };
 
+// 발행 슬롯 + 실패 시 재시도 창. launchd가 target~retryUntilHour 매 정시에 잡을 실행하면,
+// 잡은 주제별 "완료" 플래그로 게이팅해 실패한 주제만 다음 정시에 재시도한다.
+// target = 정규 발행 시각, retryUntilHour = 그 시각까지 재시도 후 이 슬롯 포기.
+export const schedule = {
+  slots: {
+    morning: { target: 6, retryUntilHour: 11 }, // 오전 6시, 실패 시 11시까지 매시간 재시도
+    evening: { target: 18, retryUntilHour: 23 }, // 오후 6시, 실패 시 23시까지 매시간 재시도
+  },
+};
+
 // AI: Claude Code 구독 인증을 헤드리스로 호출 (API 키 불필요).
 // 기본 모델(Fable 5)은 과하므로 --model로 경량 모델 고정: 필터=haiku, 카피=sonnet.
 export const claude = {

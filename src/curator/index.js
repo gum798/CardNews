@@ -35,23 +35,43 @@ async function askClaudeJson(prompt, model) {
   const run = async (p) => {
     const args = ['-p', p, '--output-format', 'json'];
     if (model) args.push('--model', model);
-    const { stdout } = await execFileAsync(claude.bin, args, {
+    const exec = execFileAsync(claude.bin, args, {
       timeout: 120_000,
       maxBuffer: 10 * 1024 * 1024,
     });
+    // claude -p는 stdin을 3초 기다린 뒤 진행("no stdin data received in 3s") → 즉시 닫아 지연 제거.
+    exec.child?.stdin?.end();
+    const { stdout } = await exec;
     // --output-format json은 실행 메타를 감싼 객체. 모델 답변은 result 문자열 필드.
-    const outer = JSON.parse(stdout);
+    // CLI가 봉투 대신 평문 오류를 뱉는 경우가 있어(예: 'No skill found…') 원문을 오류에 남긴다.
+    let outer;
+    try {
+      outer = JSON.parse(stdout);
+    } catch {
+      throw new Error(`claude CLI가 JSON 봉투를 반환하지 않음: ${String(stdout).slice(0, 200)}`);
+    }
     const resultText = typeof outer === 'string' ? outer : outer.result;
     if (typeof resultText !== 'string') throw new Error('claude 응답에 result 문자열이 없음');
     return JSON.parse(stripFences(resultText));
   };
 
-  try {
-    return await run(prompt + RULE);
-  } catch (e) {
-    // 파싱 실패: 규칙을 강조해 1회 재시도.
-    return await run(`${prompt}${RULE}\n\n직전 응답이 유효한 JSON이 아니었습니다. 규칙을 지켜 다시 출력하세요.`);
+  // CLI의 일시적 오류(평문 응답 등)는 즉시 재시도해도 같은 결과가 나오므로 백오프를 둔다.
+  const RETRY = [
+    { suffix: '', waitMs: 0 },
+    { suffix: '\n\n직전 응답이 유효한 JSON이 아니었습니다. 규칙을 지켜 다시 출력하세요.', waitMs: 5_000 },
+    { suffix: '\n\n반드시 유효한 JSON 하나만 출력하세요.', waitMs: 20_000 },
+  ];
+  let lastErr;
+  for (const { suffix, waitMs } of RETRY) {
+    if (waitMs) await new Promise((r) => setTimeout(r, waitMs));
+    try {
+      return await run(prompt + RULE + suffix);
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[curator] claude 호출 실패(재시도 예정): ${e.message}`);
+    }
   }
+  throw lastErr;
 }
 
 // 1단계: 최근 수집 뉴스 목록에서 카드뉴스 적합도 상위 후보를 선별·랭킹.

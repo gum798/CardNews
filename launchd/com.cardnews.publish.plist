@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 프로세스 A: 매일 08:00 · 19:00 발행 사이클 (1회 실행 후 종료). 3주제 각 1건 수집→선별→자동 발행. -->
-<!-- launchd는 슬립 중 놓친 실행을 깨어날 때 캐치업한다. -->
+<!-- 프로세스 A: 발행 사이클 (1회 실행 후 종료). 3주제 각 1건 수집→선별→자동 발행. -->
+<!-- 아침 08~13시 · 저녁 19~23시 매 정시 실행. 잡이 슬롯·주제별 완료 플래그로 게이팅하므로 -->
+<!-- 정상 성공한 시간 이후의 실행은 no-op이고, 실패한 주제만 다음 정시에 재시도된다. -->
+<!-- launchd는 슬립 중 놓친 실행을 깨어날 때 1회 캐치업한다. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -16,21 +18,29 @@
   <key>WorkingDirectory</key>
   <string>/Users/seojeonghwa/project/CardNews</string>
 
-  <!-- 아침 08:00 · 저녁 19:00 두 번 실행 -->
+  <!-- 회사망(SK C&C) SSL검사 루트인증서를 Node가 신뢰하도록. 없으면 R2·피드가 SELF_SIGNED_CERT_IN_CHAIN로 실패. -->
+  <!-- 이 변수는 Node 시작 시점에 읽혀야 하므로 반드시 여기(launchd env)에 둔다 (.env/dotenv로는 불가). -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_EXTRA_CA_CERTS</key>
+    <string>/Users/seojeonghwa/project/CardNews/certs/corp-root.pem</string>
+  </dict>
+
+  <!-- 오전 창 06~11시 · 오후 창 18~23시 매 정시 (실패 시 재시도용). config.js schedule.slots와 일치. -->
   <key>StartCalendarInterval</key>
   <array>
-    <dict>
-      <key>Hour</key>
-      <integer>8</integer>
-      <key>Minute</key>
-      <integer>0</integer>
-    </dict>
-    <dict>
-      <key>Hour</key>
-      <integer>19</integer>
-      <key>Minute</key>
-      <integer>0</integer>
-    </dict>
+    <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
   </array>
 
   <key>RunAtLoad</key>

@@ -13,3 +13,12 @@ data/
 # BGM: Pixabay 라이선스가 음원 단독 재배포 금지 → 커밋 금지 (로컬 assets/bgm/에만 보관)
 assets/bgm/*.mp3
 assets/bgm/licenses/
+
+# 회사망 SSL검사 루트인증서 등 환경별 인증서 (커밋 금지)
+certs/
+
+# 프로필 이미지 시안용 임시 렌더 스크립트 (일회성)
+scripts/_*.mjs
+
+# 프로필 시안용 한글 폰트 (22MB, Google Fonts에서 재다운로드 가능)
+templates/fonts/cute/

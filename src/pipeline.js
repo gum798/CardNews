@@ -106,9 +106,18 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
       if (!carouselId && !reelId) lines.push('ℹ️ 인스타 미설정 — 유튜브만 발행됨');
     }
     lines.push('', '📋 캡션 (복사용):', cardData.caption, '', `🎬 릴스 원본: ${reelUrl}`);
-    await report({ text: lines.join('\n'), mediaPaths: cardPaths, videoPath: reelPath });
+    // 보고는 베스트에포트: 이미 발행(YouTube 등)이 끝난 뒤라 텔레그램 실패가 발행 상태를 'failed'로
+    // 뒤집으면 안 된다(뒤집히면 다음 정시 재시도에서 중복 업로드 발생). 미디어 전송이 끊기면 텍스트만이라도.
+    try {
+      await report({ text: lines.join('\n'), mediaPaths: cardPaths, videoPath: reelPath });
+    } catch (e) {
+      console.error('[pipeline] 텔레그램 미디어 보고 실패 → 텍스트만 재시도:', e.message);
+      await report({ text: lines.join('\n') }).catch((e2) =>
+        console.error('[pipeline] 텔레그램 텍스트 보고도 실패(발행은 성공):', e2.message)
+      );
+    }
     console.log(`[pipeline] ${tag}done candidate ${candidateId}${dryRun ? ' (DRY_RUN)' : ''}`);
-    return { ok: true, carouselId, reelId };
+    return { ok: true, carouselId, reelId, ytId };
   } catch (err) {
     updateCandidateStatus(candidateId, 'failed');
     insertPublish({ candidateId, error: err.message });
