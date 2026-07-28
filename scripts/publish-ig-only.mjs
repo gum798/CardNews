@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { getCandidate, insertPublish, updateCandidateStatus } from '../src/db/index.js';
 import { publishCarousel, publishReel, checkPublishingLimit } from '../src/publisher/index.js';
+import { publicUrlFor } from '../src/storage/index.js';
 import { report } from '../src/bot/index.js';
-import { r2, dryRun } from '../src/config.js';
+import { account, dryRun, profile } from '../src/config.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const id = Number(process.argv[2]);
@@ -26,11 +27,11 @@ const cardCount = readdirSync(dir).filter((f) => /^card-\d+\.jpg$/.test(f)).leng
 if (!cardCount) throw new Error('카드 이미지가 없습니다');
 
 // 업로드 시 사용한 키 규칙(storage/index.js)과 동일하게 URL 재구성.
-const cardUrls = Array.from({ length: cardCount }, (_, i) => `${r2.publicUrl}/${id}/card-${i + 1}.jpg`);
-const reelUrl = `${r2.publicUrl}/${id}/reel.mp4`;
-const coverUrl = `${r2.publicUrl}/${id}/cover.jpg`;
+const cardUrls = Array.from({ length: cardCount }, (_, i) => publicUrlFor(`${id}/card-${i + 1}.jpg`));
+const reelUrl = publicUrlFor(`${id}/reel.mp4`);
+const coverUrl = publicUrlFor(`${id}/cover.jpg`);
 
-console.log(`[ig-only] 후보 ${id} (${cand.topic}) 카드 ${cardCount}장, dryRun=${dryRun}`);
+console.log(`[ig-only] [${profile.key}/${account.name}] 후보 ${id} (${cand.topic}) 카드 ${cardCount}장, dryRun=${dryRun}`);
 console.log(`[ig-only] 캡션: ${caption.slice(0, 60)}…`);
 
 await checkPublishingLimit();

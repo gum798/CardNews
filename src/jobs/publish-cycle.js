@@ -21,7 +21,7 @@ import {
 import { sendDigest, report } from '../bot/index.js';
 import { maybeRefreshToken } from '../publisher/index.js';
 import { generateAndPublish } from '../pipeline.js';
-import { topics, pipeline, schedule, autoPublish } from '../config.js';
+import { topics, pipeline, schedule, autoPublish, profile, account, dryRun, instagram, youtube } from '../config.js';
 
 // 로컬 날짜 "YYYY-MM-DD" (슬롯 완료 플래그 키에 사용).
 function localDateStr(d = new Date()) {
@@ -100,10 +100,30 @@ async function main() {
   const override = process.env.CARDNEWS_SLOT || null;
   const slot = activeSlot(now.getHours(), override);
   const date = localDateStr(now);
-  console.log(`[publish] start slot=${slot ?? '(none)'} date=${date} hour=${now.getHours()} (autoPublish=${autoPublish})`);
+  console.log(
+    `[publish] start profile=${profile.key}(${account.name}) slot=${slot ?? '(none)'} ` +
+      `date=${date} hour=${now.getHours()} (autoPublish=${autoPublish})`
+  );
 
   if (!slot) {
-    console.log('[publish] 활성 발행 슬롯 아님 → 종료 (오전 6~11시 / 오후 18~23시에만 실행)');
+    const win = Object.entries(schedule.slots)
+      .map(([n, s]) => `${n} ${s.target}~${s.retryUntilHour}시`)
+      .join(' / ');
+    console.log(`[publish] 활성 발행 슬롯 아님 → 종료 (${win}에만 실행)`);
+    return;
+  }
+
+  // 발행처가 하나도 없으면 콘텐츠 생성(AI 호출)을 시작하지 않는다.
+  // 신규 프로필에서 자격증명을 안 넣은 채 도는 것을 막는 안전장치.
+  if (!dryRun && !instagram.accessToken && !youtube.refreshToken) {
+    const p = profile.envPrefix;
+    console.error(
+      `[publish] ${account.name}(${profile.key})의 발행 자격증명이 없습니다 → 종료. ` +
+        `.env에 ${p}_IG_ACCESS_TOKEN 또는 ${p}_YOUTUBE_REFRESH_TOKEN을 설정하세요.`
+    );
+    await report({
+      text: `⚠️ [${account.name}] 발행 자격증명 미설정 → 발행을 건너뜁니다.\n.env에 ${p}_IG_ACCESS_TOKEN / ${p}_YOUTUBE_REFRESH_TOKEN 필요`,
+    }).catch(() => {});
     return;
   }
 

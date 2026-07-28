@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 프로필 healthhana(건강하나) 발행 사이클. 1회 실행 후 종료. -->
+<!-- 09~14시 · 21~23시 매 정시 실행. 잡이 슬롯·주제별 완료 플래그로 게이팅하므로 -->
+<!-- 성공한 시간 이후의 실행은 no-op이고, 실패한 주제만 다음 정시에 재시도된다. -->
+<!-- 기존 뉴스하나(06·18시)와 시간대를 겹치지 않게 배치했다. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cardnews.publish.healthhana</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/seojeonghwa/project/CardNews/src/jobs/publish-cycle.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/seojeonghwa/project/CardNews</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- 이 잡이 어느 계정으로 동작할지 결정 (src/profiles/healthhana.js) -->
+    <key>CARDNEWS_PROFILE</key>
+    <string>healthhana</string>
+    <!-- 회사망(SK C&C) SSL검사 루트인증서 신뢰. 없으면 R2·피드가 SELF_SIGNED_CERT_IN_CHAIN로 실패. -->
+    <key>NODE_EXTRA_CA_CERTS</key>
+    <string>/Users/seojeonghwa/project/CardNews/certs/corp-root.pem</string>
+  </dict>
+
+  <!-- 오전 창 09~14시 · 오후 창 21~23시 매 정시. profiles/healthhana.js schedule과 일치. -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/publish-healthhana.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/publish-healthhana.log</string>
+</dict>
+</plist>
