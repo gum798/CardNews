@@ -44,7 +44,24 @@ export async function uploadShort({ videoPath, title, description, tags = [], ca
     console.log('[youtube] 업로드 완료:', id);
     return id;
   } catch (err) {
-    console.error('[youtube] 업로드 실패(계속 진행):', err?.message || err);
+    const msg = String(err?.message || err);
+    console.error('[youtube] 업로드 실패(계속 진행):', msg);
+    // invalid_grant는 재시도해도 절대 낫지 않는다(토큰 만료·취소). 조용히 넘기면
+    // 유튜브가 죽은 줄 모르고 며칠이 지나므로 즉시 알린다. 실제로 하루치를 날렸다.
+    if (/invalid_grant/i.test(msg)) throw Object.assign(new Error(msg), { authExpired: true });
     return null;
+  }
+}
+
+// 토큰이 살아있는지 사전 점검. 발행 전에 1회 호출해 죽었으면 알림을 띄운다.
+export async function checkAuth() {
+  if (dryRun || !yt.refreshToken) return { ok: true, skipped: true };
+  try {
+    const oauth2 = new gauth.OAuth2(yt.clientId, yt.clientSecret);
+    oauth2.setCredentials({ refresh_token: yt.refreshToken });
+    await oauth2.getAccessToken();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
   }
 }

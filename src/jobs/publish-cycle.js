@@ -59,7 +59,8 @@ async function runTopic(topicKey) {
   if (recent.length > 0) {
     const ranked = await filterAndRank(
       recent.map((r) => ({ id: r.id, source: r.source, title: r.title, summary: r.summary })),
-      pipeline.perTopicPick
+      pipeline.perTopicPick,
+      { topicKey }
     );
     if (ranked.length > 0) {
       const r = ranked[0];
@@ -142,7 +143,17 @@ async function main() {
   const label = (t) => topics[t].label;
   const pending = [];
 
-  for (const topicKey of Object.keys(topics)) {
+  // 이 슬롯에서 낼 주제. 여러 개 지정돼 있으면 날짜(일 단위)로 번갈아 하나만 낸다.
+  // slots[].topics가 없으면 기존 동작(전 주제)을 유지한다.
+  const slotTopics = schedule.slots[slot].topics;
+  let todaysTopics = Object.keys(topics);
+  if (Array.isArray(slotTopics) && slotTopics.length > 0) {
+    const dayIndex = Math.floor(now.getTime() / 86_400_000);
+    todaysTopics = [slotTopics[dayIndex % slotTopics.length]];
+  }
+  console.log(`[publish] ${slot} 대상 주제: ${todaysTopics.map(label).join(', ')}`);
+
+  for (const topicKey of todaysTopics) {
     const doneKey = `slotdone:${date}:${slot}:${topicKey}`;
     const alertKey = `slotalert:${date}:${slot}:${topicKey}`;
 

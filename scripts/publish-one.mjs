@@ -28,7 +28,8 @@ console.log(`[one] 미사용 최신 뉴스 ${recent.length}건`);
 if (recent.length > 0) {
   const ranked = await filterAndRank(
     recent.map((r) => ({ id: r.id, source: r.source, title: r.title, summary: r.summary })),
-    1
+    1,
+    { topicKey }
   );
   if (ranked.length > 0) {
     const r = ranked[0];

@@ -3,7 +3,7 @@
 import { execFile } from 'node:child_process';
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { paths, pipeline } from '../config.js';
+import { paths, pipeline, reel as reelCfg } from '../config.js';
 import { getMeta, setMeta } from '../db/index.js';
 
 const FFMPEG = '/opt/homebrew/bin/ffmpeg';
@@ -149,6 +149,176 @@ async function validate(outPath) {
     throw new Error(`검증 실패: 길이 ${duration}s가 IG 릴스 범위(${REEL_MIN}~${REEL_MAX}s) 밖`);
   }
   return duration;
+}
+
+// ── 나레이션 릴스 ──────────────────────────────────────────────────────────
+// 프레임 i는 오디오 세그먼트 i가 재생되는 동안만 보인다(자막·음성 자동 싱크).
+// 정지 이미지는 쇼츠에서 1초 안에 스와이프되므로 zoompan(켄번즈)으로 상시 모션을 준다.
+//
+// 훅도 나레이션에 포함한다(과거엔 1.1초 무음 정지 프레임을 앞에 뒀다).
+// 판정이 갈리는 첫 1초를 무음 정지화면으로 쓰는 건 이득이 없고, 프레임과 오디오가
+// 1:1로 대응하지 않아 정렬 코드도 복잡해졌다.
+const HOOK_SEC = 0;
+
+// 켄번즈: 짝수는 줌인, 홀수는 줌아웃으로 번갈아 단조로움을 피한다.
+// 입력을 먼저 크게 확대(scale→crop)해야 zoompan 결과가 뭉개지지 않는다.
+//
+// ⚠️ zoompan의 d는 "입력 이미지 1장당 출력할 프레임 수"다.
+// `-loop 1 -t T`는 이미 T*FPS장의 입력 프레임을 만들므로, 여기에 d=T*FPS를 주면
+// 출력이 (T*FPS)^2 프레임으로 폭증해 첫 장면만 재생되다 잘린다(실제로 그 버그를 겪었다).
+// 루프 입력에는 반드시 d=1을 쓰고, 줌은 출력 프레임 번호(on)로 직접 계산한다.
+const ZOOM_AMP = 0.16;
+const PAN_AMP = 0.06; // 화면 대비 이동량. 줌만 하면 단조로워서 방향도 섞는다.
+
+// 구간마다 다른 움직임을 준다(줌인/줌아웃 × 상하좌우 드리프트).
+const MOVES = [
+  { zoomIn: true, dx: 1, dy: 0 },
+  { zoomIn: false, dx: -1, dy: 0 },
+  { zoomIn: true, dx: 0, dy: 1 },
+  { zoomIn: false, dx: 1, dy: -1 },
+  { zoomIn: true, dx: -1, dy: 1 },
+  { zoomIn: false, dx: 0, dy: -1 },
+];
+
+function kenBurns(inIdx, outLabel, durSec, i) {
+  const n = Math.max(2, Math.round(durSec * FPS)); // 이 구간의 출력 프레임 수
+  const m = MOVES[i % MOVES.length];
+  const z = m.zoomIn
+    ? `1+${ZOOM_AMP}*on/${n}`
+    : `${(1 + ZOOM_AMP).toFixed(3)}-${ZOOM_AMP}*on/${n}`;
+  // 중앙 기준 + 진행도(on/n)에 비례한 드리프트. 확대된 영역 안에서만 움직이므로 검은 여백이 안 생긴다.
+  const px = m.dx ? `+(${m.dx})*(iw-iw/zoom)*${PAN_AMP}*on/${n}` : '';
+  const py = m.dy ? `+(${m.dy})*(ih-ih/zoom)*${PAN_AMP}*on/${n}` : '';
+  return (
+    `[${inIdx}:v]scale=1350:2400:force_original_aspect_ratio=increase:in_range=full:out_range=tv,` +
+    `crop=1350:2400,` +
+    `zoompan=z='${z}':d=1:x='iw/2-(iw/zoom/2)${px}':y='ih/2-(ih/zoom/2)${py}':s=1080x1920:fps=${FPS},` +
+    `setsar=1,format=yuv420p[${outLabel}]`
+  );
+}
+
+// 실사 영상 배경 + 투명 자막 오버레이. 배경이 실제로 움직여 정지 사진보다 이탈이 적다.
+// bgVideo는 대개 가로(16:9)이므로 세로를 채우도록 확대 후 중앙 크롭한다.
+async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath) {
+  const durations = segments.map((s) => s.duration);
+  const total = durations.reduce((a, b) => a + b, 0);
+
+  const args = ['-stream_loop', '-1', '-i', bgVideo]; // 0: 배경 영상(길이 부족분은 루프)
+  for (const f of framePaths) args.push('-loop', '1', '-t', total.toFixed(3), '-i', f); // 1..N: 오버레이
+  for (const s of segments) args.push('-i', s.audioPath);
+  args.push('-stream_loop', '-1', '-i', bgm);
+
+  const nOv = framePaths.length;
+  const aStart = 1 + nOv;
+  const bgmIdx = aStart + segments.length;
+
+  const g = [];
+  // 배경: 세로를 채우도록 확대 → 중앙 크롭 → 살짝 어둡게(자막 대비 확보)
+  g.push(
+    `[0:v]scale=1080:1920:force_original_aspect_ratio=increase:in_range=full:out_range=tv,` +
+      `crop=1080:1920,fps=${FPS},eq=brightness=-0.06:saturation=1.05,` +
+      `trim=duration=${total.toFixed(3)},setpts=PTS-STARTPTS,setsar=1[bgv]`
+  );
+  // 각 오버레이를 자기 구간에만 표시
+  let prev = '[bgv]';
+  let t = 0;
+  for (let i = 0; i < nOv; i++) {
+    const start = t;
+    const end = t + durations[i];
+    t = end;
+    const out = i === nOv - 1 ? '[vout]' : `[ov${i}]`;
+    g.push(
+      `${prev}[${i + 1}:v]overlay=0:0:enable='between(t,${start.toFixed(3)},${end.toFixed(3)})'` +
+        `${i === nOv - 1 ? ',format=yuv420p' : ''}${out}`
+    );
+    prev = out;
+  }
+
+  g.push(
+    `${segments.map((_, i) => `[${aStart + i}:a]`).join('')}concat=n=${segments.length}:v=0:a=1[narr]`
+  );
+  g.push(`[${bgmIdx}:a]volume=${reelCfg.bgmVolume},aformat=channel_layouts=stereo[bgmq]`);
+  g.push(`[narr][bgmq]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]`);
+
+  args.push('-filter_complex', g.join(';'));
+  args.push('-map', '[vout]', '-map', '[aout]');
+  args.push(...encodeArgs(), outPath);
+  await run(FFMPEG, args);
+}
+
+// framePaths[0]=훅, [1..]=자막 라인. segments[i]는 라인 i의 오디오({audioPath,duration}).
+// bgVideo를 주면 실사 영상 배경 + 투명 오버레이 방식으로, 없으면 정지 프레임 켄번즈 방식으로.
+// 반환: 생성된 mp4 경로.
+export async function makeNarratedReel(candidateId, framePaths, segments, { bgVideo = null } = {}) {
+  if (framePaths.length !== segments.length) {
+    throw new Error(`프레임(${framePaths.length})과 오디오 세그먼트(${segments.length}) 수가 같아야 함`);
+  }
+
+  const outDir = path.join(paths.out, String(candidateId));
+  mkdirSync(outDir, { recursive: true });
+  const outPath = path.join(outDir, 'reel.mp4');
+  const bgm = pickBgm();
+
+  const durations = segments.map((s) => s.duration);
+  const total = durations.reduce((a, b) => a + b, 0);
+
+  // 실사 영상 배경이 있으면 오버레이 방식으로.
+  if (bgVideo) {
+    await buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath);
+    const d = await validate(outPath);
+    console.log(`[video] 나레이션 릴스(실사배경) ${d.toFixed(1)}초 (라인 ${segments.length}개)`);
+    return outPath;
+  }
+
+  const args = [];
+  // 이미지 입력: 각 프레임을 해당 길이만큼
+  for (let i = 0; i < framePaths.length; i++) {
+    args.push('-loop', '1', '-framerate', String(FPS), '-t', durations[i].toFixed(3), '-i', framePaths[i]);
+  }
+  // 나레이션 오디오 입력
+  for (const s of segments) args.push('-i', s.audioPath);
+  // BGM
+  args.push('-stream_loop', '-1', '-i', bgm);
+
+  const nImg = framePaths.length;
+  const aStart = nImg;
+  const bgmIdx = nImg + segments.length;
+
+  const g = [];
+  for (let i = 0; i < nImg; i++) g.push(kenBurns(i, `v${i}`, durations[i], i));
+  g.push(`${framePaths.map((_, i) => `[v${i}]`).join('')}concat=n=${nImg}:v=1:a=0[vout]`);
+
+  g.push(
+    `${segments.map((_, i) => `[${aStart + i}:a]`).join('')}concat=n=${segments.length}:v=0:a=1[narr]`
+  );
+  g.push(`[${bgmIdx}:a]volume=${reelCfg.bgmVolume},aformat=channel_layouts=stereo[bgmq]`);
+  g.push(`[narr][bgmq]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]`);
+
+  args.push('-filter_complex', g.join(';'));
+  args.push('-map', '[vout]', '-map', '[aout]');
+  args.push(...encodeArgs(), outPath);
+
+  await run(FFMPEG, args);
+  const dur = await validate(outPath);
+  console.log(`[video] 나레이션 릴스 ${dur.toFixed(1)}초 (라인 ${segments.length}개, 목표 ${total.toFixed(1)}초)`);
+  if (dur < reelCfg.targetSec.min || dur > reelCfg.targetSec.max) {
+    console.warn(`[video] 길이 ${dur.toFixed(1)}초가 권장(${reelCfg.targetSec.min}~${reelCfg.targetSec.max}초) 밖 — 대본 길이 조정 필요`);
+  }
+  return outPath;
+}
+
+// 완성된 영상에서 표지(썸네일)용 정지 프레임 1장을 뽑는다. 실패 시 null.
+// 실사영상 배경일 때 훅 프레임이 투명 PNG라 표지로 못 쓰는 경우에 사용.
+export async function grabPoster(videoPath, outPath, atSec = 1.0) {
+  try {
+    await run(FFMPEG, [
+      '-hide_banner', '-loglevel', 'error',
+      '-ss', String(atSec), '-i', videoPath, '-frames:v', '1', '-q:v', '3', outPath, '-y',
+    ]);
+    return outPath;
+  } catch {
+    return null;
+  }
 }
 
 // 릴스 프레임(JPEG) 배열 → out/<candidateId>/reel.mp4 생성 후 경로 반환.

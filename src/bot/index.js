@@ -1,8 +1,34 @@
 // 텔레그램 봇 (grammY, 롱 폴링). 다이제스트 발송 · 승인 콜백 · 결과 보고.
 // import만으로는 폴링/네트워크를 열지 않는다 (Bot은 함수 호출 시 지연 생성).
 import { Bot, InlineKeyboard, InputFile, InputMediaBuilder } from 'grammy';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { telegram } from '../config.js';
 import * as db from '../db/index.js';
+
+const execFileAsync = promisify(execFile);
+
+// 세로 영상 크기를 텔레그램에 알려준다. width/height를 안 주면 텔레그램이 비율을 모르고
+// 미리보기를 납작하게 렌더링한다(파일 자체는 정상 9:16).
+async function probeVideo(file) {
+  try {
+    const { stdout } = await execFileAsync('/opt/homebrew/bin/ffprobe', [
+      '-v', 'error', '-select_streams', 'v:0',
+      '-show_entries', 'stream=width,height', '-show_entries', 'format=duration',
+      '-of', 'json', file,
+    ]);
+    const j = JSON.parse(stdout);
+    const s = j.streams?.[0] ?? {};
+    const d = Number(j.format?.duration);
+    return {
+      width: Number(s.width) || undefined,
+      height: Number(s.height) || undefined,
+      duration: Number.isFinite(d) ? Math.round(d) : undefined,
+    };
+  } catch {
+    return {}; // 메타 없이도 전송은 되게
+  }
+}
 
 // 단일 Bot 인스턴스를 지연 생성 (프로세스 A/B가 각각 필요한 함수만 호출).
 let _bot;
@@ -77,6 +103,12 @@ export async function report({ text, mediaPaths, videoPath }) {
       await bot.api.sendMediaGroup(telegram.chatId, media);
     }
   }
-  if (videoPath) await bot.api.sendVideo(telegram.chatId, new InputFile(videoPath));
+  if (videoPath) {
+    const meta = await probeVideo(videoPath);
+    await bot.api.sendVideo(telegram.chatId, new InputFile(videoPath), {
+      ...meta,
+      supports_streaming: true,
+    });
+  }
   if (text) await bot.api.sendMessage(telegram.chatId, text);
 }

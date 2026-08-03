@@ -24,7 +24,12 @@ const oauth2 = new gauth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT);
 const authUrl = oauth2.generateAuthUrl({
   access_type: 'offline', // refresh_token을 받으려면 필수
   prompt: 'consent',
-  scope: ['https://www.googleapis.com/auth/youtube.upload'],
+  // upload = 발행용. readonly = 성과 수집용(scripts/stats.mjs의 조회수·구독자 조회).
+  // readonly가 없으면 channels.list가 403(insufficient scopes)으로 막힌다.
+  scope: [
+    'https://www.googleapis.com/auth/youtube.upload',
+    'https://www.googleapis.com/auth/youtube.readonly',
+  ],
 });
 
 const server = http.createServer(async (req, res) => {

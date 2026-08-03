@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+    font-weight: 45 920;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: #fff; }
+
+  /* 테마: 배경만 쓴다(자막 프레임은 항상 흰 글씨 + 어두운 배경으로 대비 고정) */
+  .theme-navy       { --bg: #0B1F3A; --accent: #FF5A5F; }
+  .theme-dark       { --bg: #101418; --accent: #4C8DFF; }
+  .theme-light      { --bg: #12161B; --accent: #2456E5; }
+  .theme-bold       { --bg: #101010; --accent: #FFE14D; }
+  .theme-grad-blue  { --bg: linear-gradient(150deg, #1E3A8A 0%, #2456E5 55%, #6D28D9 100%); --accent: #FFE14D; }
+  .theme-grad-green { --bg: linear-gradient(155deg, #061F1C 0%, #0B4A45 50%, #147E6E 100%); --accent: #7DF2C3; }
+
+  /* 배경 사진 + 스크림 (텍스트 가독성 확보) */
+  .photo {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    transform: scale(1.04);
+  }
+  .scrim {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.28) 30%, rgba(0,0,0,.45) 62%, rgba(0,0,0,.82) 100%);
+  }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.45) 100%); }
+
+  /* 릴스 안전영역. 하단은 인스타 UI(캡션·버튼)가 덮으므로 y=1248px 아래로는 글자를 두지 않는다
+     → bottom 여백을 672px(1920-1248)로 잡는다. */
+  .safe { position: absolute; top: 220px; bottom: 672px; left: 76px; right: 76px; display: flex; }
+
+  /* ── 훅 프레임: 첫 1초에 스와이프를 막는 화면. 최대 크기, 중앙. ── */
+  .hook { align-items: center; justify-content: center; text-align: center; }
+  .hook .big {
+    font-size: 168px; font-weight: 900; line-height: 1.06; letter-spacing: -.045em;
+    text-shadow: 0 10px 44px rgba(0,0,0,.62);
+    word-break: keep-all;
+  }
+  .hook .big em { font-style: normal; color: var(--accent); }
+  .hook .kicker {
+    font-size: 46px; font-weight: 700; letter-spacing: .02em;
+    color: rgba(255,255,255,.86); margin-bottom: 34px;
+  }
+
+  /* ── 자막 프레임: 하단 정렬(시선이 머무는 위치), 큰 글씨 ── */
+  .line { align-items: flex-end; }
+  .line .box { width: 100%; }
+  .line .txt {
+    font-size: 92px; font-weight: 850; line-height: 1.24; letter-spacing: -.035em;
+    text-shadow: 0 8px 34px rgba(0,0,0,.72);
+    word-break: keep-all;
+  }
+  .line .txt em { font-style: normal; color: var(--accent); }
+  /* 글자 수가 많으면 자동 축소 */
+  .line .txt.len-m { font-size: 80px; }
+  .line .txt.len-l { font-size: 70px; }
+
+  /* 진행 표시: 남은 분량을 보여줘 이탈을 늦춘다 */
+  .bar { position: absolute; left: 76px; right: 76px; bottom: 596px; height: 8px; background: rgba(255,255,255,.22); border-radius: 4px; }
+  .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+
+  /* ── 프롬프트 프레임: 저장을 유발하는 화면. 복붙할 내용을 카드로 보여준다. ── */
+  .prompt { flex-direction: column; justify-content: center; }
+  .prompt .label {
+    font-size: 40px; font-weight: 800; letter-spacing: .04em;
+    color: var(--accent); margin-bottom: 22px;
+  }
+  .prompt .card {
+    background: rgba(8,10,14,.82);
+    border: 3px solid var(--accent);
+    border-radius: 28px;
+    padding: 40px 42px;
+  }
+  .prompt .card p {
+    font-size: 44px; font-weight: 650; line-height: 1.5; letter-spacing: -.02em;
+    color: #fff; word-break: keep-all;
+  }
+  .prompt .card p + p { margin-top: 14px; }
+  .prompt .card b { color: var(--accent); font-weight: 800; }
+  .prompt .save {
+    margin-top: 28px; font-size: 40px; font-weight: 800; color: #fff;
+    text-shadow: 0 6px 24px rgba(0,0,0,.7);
+  }
+  .prompt .sub { font-size: 88px; font-weight: 850; line-height: 1.2; letter-spacing: -.035em; margin-bottom: 30px; text-shadow: 0 8px 34px rgba(0,0,0,.72); }
+  .prompt .sub em { font-style: normal; color: var(--accent); }
+
+  /* ── 체크리스트 프레임: 저장의 유일한 트리거. 실행 항목을 남겨 "나중에 보려고" 저장하게 만든다. ── */
+  .check { flex-direction: column; justify-content: center; }
+  .check .ttl {
+    font-size: 74px; font-weight: 900; letter-spacing: -.035em; line-height: 1.18;
+    margin-bottom: 32px; text-shadow: 0 8px 30px rgba(0,0,0,.72); word-break: keep-all;
+  }
+  .check .ttl em { font-style: normal; color: var(--accent); }
+  .check ul { list-style: none; display: flex; flex-direction: column; gap: 20px; }
+  .check li {
+    display: flex; gap: 20px; align-items: flex-start;
+    font-size: 50px; font-weight: 700; line-height: 1.34; letter-spacing: -.025em;
+    text-shadow: 0 6px 24px rgba(0,0,0,.7); word-break: keep-all;
+  }
+  .check li::before {
+    content: '✓'; color: var(--accent); font-weight: 900; flex: none;
+    font-size: 50px; line-height: 1.34;
+  }
+  .check li b { color: var(--accent); font-weight: 800; }
+  .check .share {
+    margin-top: 34px; font-size: 44px; font-weight: 800; color: #fff;
+    background: rgba(8,10,14,.62); border-left: 8px solid var(--accent);
+    padding: 20px 26px; border-radius: 0 16px 16px 0; word-break: keep-all;
+  }
+
+  /* 계정 워터마크 */
+  .brand {
+    position: absolute; top: 132px; left: 76px;
+    font-size: 34px; font-weight: 800; letter-spacing: -.01em;
+    color: rgba(255,255,255,.82); text-shadow: 0 4px 18px rgba(0,0,0,.6);
+  }
+</style>
+</head>
+<body>
+<script>
+  const D = window.__LINE__ || { theme: 'navy', kind: 'hook', text: '샘플', index: 0, total: 1 };
+  document.body.className = 'theme-' + (D.theme || 'navy');
+  // 실사 영상 위에 얹는 오버레이 모드: 배경색을 비워 투명 PNG로 뽑는다.
+  // (스크림·비네트는 반투명이라 그대로 남아 영상 위에서도 자막이 읽힌다)
+  if (D.transparent) document.body.style.background = 'transparent';
+
+  // *강조* → <em> (숫자·금액·마감일을 포인트 컬러로)
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const mark = (s) => esc(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  const parts = [];
+  if (D.bg) parts.push('<div class="photo" style="background-image:url(\'' + D.bg + '\')"></div>');
+  parts.push('<div class="scrim"></div><div class="vignette"></div>');
+  if (D.account) parts.push('<div class="brand">' + esc(D.account) + '</div>');
+
+  if (D.kind === 'hook') {
+    parts.push(
+      '<div class="safe hook"><div>' +
+      (D.kicker ? '<div class="kicker">' + esc(D.kicker) + '</div>' : '') +
+      '<div class="big">' + mark(D.text) + '</div>' +
+      '</div></div>'
+    );
+  } else if (D.kind === 'checklist') {
+    const cl = D.checklist || {};
+    parts.push(
+      '<div class="safe check">' +
+      '<div class="ttl">' + mark(cl.title || '') + '</div>' +
+      '<ul>' + (cl.items || []).map((it) => '<li><span>' + mark(it) + '</span></li>').join('') + '</ul>' +
+      (D.shareCta ? '<div class="share">' + esc(D.shareCta) + '</div>' : '') +
+      '</div>'
+    );
+  } else if (D.kind === 'prompt') {
+    // 마지막 자막과 함께 복붙용 프롬프트를 띄운다 → 저장 유발
+    const rows = String(D.prompt || '').split('\n').filter((l) => l.trim());
+    parts.push(
+      '<div class="safe prompt">' +
+      '<div class="sub">' + mark(D.text) + '</div>' +
+      '<div class="label">복붙용 프롬프트</div>' +
+      '<div class="card">' + rows.map((r) =>
+        '<p>' + esc(r).replace(/\[([^\]]+)\]/g, '<b>[$1]</b>') + '</p>'
+      ).join('') + '</div>' +
+      '<div class="save">저장 ↓ 캡션에 전문 있어요</div>' +
+      '</div>'
+    );
+  } else {
+    const plain = String(D.text).replace(/\*/g, '');
+    const size = plain.length > 26 ? ' len-l' : plain.length > 16 ? ' len-m' : '';
+    parts.push(
+      '<div class="safe line"><div class="box">' +
+      '<div class="txt' + size + '">' + mark(D.text) + '</div>' +
+      '</div></div>'
+    );
+    const pct = D.total > 1 ? Math.round(((D.index + 1) / D.total) * 100) : 100;
+    parts.push('<div class="bar"><i style="width:' + pct + '%"></i></div>');
+  }
+
+  document.body.insertAdjacentHTML('beforeend', parts.join(''));
+</script>
+</body>
+</html>

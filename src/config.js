@@ -44,8 +44,24 @@ export const pipeline = {
   perTopicPick: 1, // 주제당 실행마다 1건 선별
   maxPerTopicPerDay: 2, // 자동 발행: 주제별 1일 최대 건수 (하루 2슬롯 = 2건. 중복 실행 안전장치)
   cardsPerCandidate: { min: 3, max: 4 },
-  secondsPerCard: 3.5,
+  secondsPerCard: 3.5, // (무나레이션 구형 릴스에서만 사용)
   reelBitrate: { target: '6M', max: '8M' },
+};
+
+// 나레이션 릴스(포맷 엔진). 정지 카드 슬라이드쇼는 쇼츠에서 1초 안에 스와이프되므로
+// TTS 나레이션 + 번인 자막 + 켄번즈 줌으로 교체한다.
+// narrated=false면 기존 무음 슬라이드쇼로 폴백.
+export const reel = {
+  narrated: true,
+  voice: process.env.TTS_VOICE || 'Yuna', // macOS `say -v` 음성 (한국어)
+  rate: Number(process.env.TTS_RATE || 190), // 말 속도(wpm). 쇼츠는 약간 빠른 편이 낫다.
+  linePadSec: 0.32, // 라인 사이 호흡
+  targetSec: { min: 20, max: 32 }, // 이 범위를 벗어나면 라인 수를 조정하도록 경고
+  scriptLines: { min: 7, max: 11 }, // 나레이션 라인 수 (라인당 약 2.5초)
+  bgmVolume: 0.07, // 나레이션 아래 깔리는 BGM 음량
+  // 배경으로 Pixabay 실사 영상을 쓴다(자막은 투명 PNG로 위에 오버레이).
+  // 실패하면 사진 켄번즈로 자동 폴백하므로 꺼도 동작한다.
+  stockVideo: process.env.REEL_STOCK_VIDEO !== '0',
 };
 
 // 발행 슬롯 + 실패 시 재시도 창. launchd가 target~retryUntilHour 매 정시에 잡을 실행하면,
@@ -73,6 +89,8 @@ export const instagram = {
   accessToken: envFor('IG_ACCESS_TOKEN'),
   appSecret: envFor('IG_APP_SECRET'),
   apiVersion: 'v25.0',
+  // 캐러셀(카드뉴스) 발행 여부. 0이면 카드 렌더·업로드·발행을 모두 건너뛰고 릴스만 올린다.
+  carousel: envFor('IG_CAROUSEL') !== '0',
 };
 
 // 표지 배경 사진: Pixabay 이미지 API (무료 키, 출처표기 불필요). 계정 공용. 키 없으면 사진 없이 진행.
