@@ -18,17 +18,33 @@ const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
 // 인계 문서에서 실호출로 검증된 모델 (200 · JPEG 1024x1024)
 const OMNI_MODEL = process.env.OMNIROUTE_IMAGE_MODEL || 'antigravity/gemini-3.1-flash-image';
 
-function backend(wantRef) {
-  const explicit = process.env.IMAGE_BACKEND;
+// 쓸 수 있는 백엔드를 우선순위대로 나열한다. 앞에서 실패하면 다음으로 넘어간다.
+// 기본 순서는 gemini 우선 — OmniRoute의 무료 provider는 할당량 소진(429)이 잦다.
+// IMAGE_BACKEND로 선두를 바꿀 수 있다.
+function backendChain(wantRef) {
   const hasOmni = Boolean(process.env.OMNIROUTE_URL && process.env.OMNIROUTE_API_KEY);
   const hasGemini = Boolean(process.env.GEMINI_API_KEY);
-  // 레퍼런스 첨부가 필요하면 OmniRoute(OpenAI 형식)로는 불가 → gemini 우선
-  if (wantRef && hasGemini) return 'gemini';
-  if (explicit === 'omniroute' && hasOmni) return 'omniroute';
-  if (explicit === 'gemini' && hasGemini) return 'gemini';
-  if (hasOmni) return 'omniroute';
-  if (hasGemini) return 'gemini';
-  throw new Error('이미지 백엔드 없음: OMNIROUTE_URL+OMNIROUTE_API_KEY 또는 GEMINI_API_KEY 필요');
+
+  let chain = [];
+  if (hasGemini) chain.push('gemini');
+  if (hasOmni) chain.push('omniroute');
+
+  // 레퍼런스 첨부는 OpenAI 형식(/v1/images/generations)이 지원하지 않는다 → gemini만.
+  if (wantRef) chain = chain.filter((b) => b === 'gemini');
+
+  const explicit = process.env.IMAGE_BACKEND;
+  if (explicit && chain.includes(explicit)) {
+    chain = [explicit, ...chain.filter((b) => b !== explicit)];
+  }
+
+  if (!chain.length) {
+    throw new Error(
+      wantRef
+        ? '레퍼런스 첨부에는 GEMINI_API_KEY가 필요합니다'
+        : '이미지 백엔드 없음: GEMINI_API_KEY 또는 OMNIROUTE_URL+OMNIROUTE_API_KEY 필요'
+    );
+  }
+  return chain;
 }
 
 // ── OmniRoute (OpenAI 호환) ────────────────────────────────
@@ -97,23 +113,30 @@ async function viaGemini(prompt, refImages) {
 
 // prompt로 이미지 1장 생성. refImages(파일 경로)를 주면 그 인물을 유지하도록 첨부한다.
 export async function generateImage(prompt, { refImages = [], outPath, size } = {}) {
-  const which = backend(refImages.length > 0);
+  const chain = backendChain(refImages.length > 0);
   let lastErr;
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const buf =
-        which === 'omniroute' ? await viaOmniroute(prompt, size) : await viaGemini(prompt, refImages);
-      if (buf.length < 1000) throw new Error('빈 이미지 응답');
-      if (outPath) {
-        await mkdir(path.dirname(outPath), { recursive: true });
-        await writeFile(outPath, buf);
+  // 백엔드 하나가 할당량(429)에 걸려도 다른 쪽으로 넘어간다. 둘 다 무료라 비용은 안 든다.
+  for (const which of chain) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const buf =
+          which === 'omniroute' ? await viaOmniroute(prompt, size) : await viaGemini(prompt, refImages);
+        if (buf.length < 1000) throw new Error('빈 이미지 응답');
+        if (outPath) {
+          await mkdir(path.dirname(outPath), { recursive: true });
+          await writeFile(outPath, buf);
+        }
+        return outPath || buf;
+      } catch (e) {
+        lastErr = e;
+        // 인증·요청 형식 오류는 재시도해도 같은 결과 → 바로 다음 백엔드로.
+        if (e.fatal) break;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 2000));
       }
-      return outPath || buf;
-    } catch (e) {
-      if (e.fatal) throw e;
-      lastErr = e;
-      if (attempt < 2) await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
+    }
+    if (chain.length > 1) {
+      console.warn(`[persona] ${which} 실패 → 다음 백엔드 시도: ${String(lastErr?.message).slice(0, 100)}`);
     }
   }
   throw lastErr;
@@ -121,7 +144,7 @@ export async function generateImage(prompt, { refImages = [], outPath, size } = 
 
 export function activeBackend(wantRef = false) {
   try {
-    return backend(wantRef);
+    return backendChain(wantRef)[0];
   } catch {
     return null;
   }
@@ -129,7 +152,11 @@ export function activeBackend(wantRef = false) {
 
 // 씬 프롬프트를 조립한다. 각도를 정면 ±30°로 묶는 게 드리프트를 가장 크게 줄인다.
 // phase: 'before' | 'after' — 점 제거 에피소드 전/후. 기본값은 PERSONA_PHASE 환경변수.
-export function scenePrompt(persona, { look = 'news', scene = '', angle = 'front', phase } = {}) {
+// framing: 'reel'(9:16 세로) | 'feed'(4:5 인스타 피드) — 일상 포스트는 feed를 쓴다.
+export function scenePrompt(
+  persona,
+  { look = 'news', scene = '', angle = 'front', phase, framing = 'reel' } = {}
+) {
   const a = persona.appearance;
   const ph = phase || process.env.PERSONA_PHASE || 'before';
   const fragment = a.phases?.[ph]?.promptFragment || '';
@@ -140,13 +167,21 @@ export function scenePrompt(persona, { look = 'news', scene = '', angle = 'front
     right: 'turned about 25 degrees to her right, still facing camera',
   }[angle];
 
+  // 릴스는 세로 꽉 채우는 구도, 피드는 4:5에 스냅샷 느낌.
+  const framingText =
+    framing === 'feed'
+      ? 'Vertical 4:5 photo, casual snapshot taken on a phone, natural candid moment, not a posed studio shot'
+      : 'Vertical 9:16 framing, upper body';
+
   return [
-    a.referencePrompt,
+    // 기준 프롬프트의 프레이밍 지시는 아래에서 덮어쓴다.
+    a.referencePrompt.replace(/,\s*vertical 9:16 framing, upper body$/, ''),
     fragment, // 시기별 차이(입가 점 유무)
     `Styling: ${a.looks[look]}`,
     // 방 배치를 매번 동일하게 박는다. 이게 없으면 같은 사람이어도 다른 채널처럼 보인다.
     persona.setting?.roomPrompt || '',
     scene ? `Action: ${scene}` : '',
+    framingText,
     `Camera: ${angleText}. Keep the head angle within 30 degrees of frontal.`,
     // 눈물점은 영구 표식이라 매번 반복해야 유지된다
     `Important: keep the single small beauty mark below her left eye in the same position.`,
