@@ -13,6 +13,7 @@ import { renderCandidate, renderReelLines } from './renderer/index.js';
 import { makeReel, makeNarratedReel, grabPoster } from './video/index.js';
 import { synthesizeLines } from './tts/index.js';
 import { scriptViolations, ADVICE_GUARD_PROMPT } from './guards/policy.js';
+import { getReelKeyframes } from './persona/keyframe.js';
 import { uploadCandidate, uploadFile } from './storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from './publisher/index.js';
 import { uploadShort } from './youtube/index.js';
@@ -129,6 +130,9 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
           }
         }
 
+        // 3b. 진행자 하나 (베스트에포트). 인트로/아웃트로에만 등장한다.
+        const personaFrames = reelCfg.persona ? await getReelKeyframes() : null;
+
         // 훅도 낭독한다 → 0초부터 소리가 나고, 프레임과 오디오가 1:1로 맞는다.
         const narrationLines = [cardData.script.hook, ...cardData.script.lines];
         const segments = await synthesizeLines(narrationLines, path.join(outDir, 'audio'));
@@ -137,6 +141,7 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
           bgs: reelBgs,
           account: account.name,
           aiNotice: 'AI 생성 콘텐츠',
+          persona: personaFrames,
           transparent: Boolean(bgVideo), // 영상 위에 얹으려면 투명 PNG
         });
         // 투명 오버레이(실사영상 배경)일 때는 배경이 없는 PNG라 표지로 못 쓴다 → 영상 첫 프레임을 뽑아 쓴다.

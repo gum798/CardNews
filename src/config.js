@@ -62,6 +62,8 @@ export const reel = {
   // 배경으로 Pixabay 실사 영상을 쓴다(자막은 투명 PNG로 위에 오버레이).
   // 실패하면 사진 켄번즈로 자동 폴백하므로 꺼도 동작한다.
   stockVideo: process.env.REEL_STOCK_VIDEO !== '0',
+  // 진행자 하나를 인트로/아웃트로에 합성한다. 실패해도 발행은 계속(베스트에포트).
+  persona: process.env.REEL_PERSONA !== '0',
 };
 
 // 발행 슬롯 + 실패 시 재시도 창. launchd가 target~retryUntilHour 매 정시에 잡을 실행하면,

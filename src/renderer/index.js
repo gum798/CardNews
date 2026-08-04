@@ -76,7 +76,17 @@ export async function renderCandidate(candidateId, cardData, { cards = true } = 
 export async function renderReelLines(
   candidateId,
   script,
-  { theme = 'navy', bgs = [], account = '', transparent = false, aiNotice = '' } = {}
+  {
+    theme = 'navy',
+    bgs = [],
+    account = '',
+    transparent = false,
+    aiNotice = '',
+    // 진행자 하나. 첫 프레임(훅)과 마지막 프레임에만 등장시킨다.
+    // 전 구간에 두면 자막을 가리고, 동일 인물·동일 구도가 30초 내내 이어져
+    // 유튜브 "템플릿 반복" 조항에 가까워진다.
+    persona = null, // { intro, outro } file 경로
+  } = {}
 ) {
   const outDir = path.join(paths.out, String(candidateId));
   await mkdir(outDir, { recursive: true });
@@ -119,11 +129,19 @@ export async function renderReelLines(
       return pool[Math.min(pool.length - 1, Math.floor(i / block))];
     };
 
+    const lastIdx = frames.length - 1;
+    const personaFor = (i) => {
+      if (!persona) return null;
+      const f = i === 0 ? persona.intro : i === lastIdx ? persona.outro : null;
+      return f ? 'file://' + f : null;
+    };
+
     for (let i = 0; i < frames.length; i++) {
       const payload = {
         theme,
         bg: transparent ? null : bgFor(i), // 영상 배경이면 사진을 깔지 않는다
         transparent,
+        persona: personaFor(i),
         account,
         aiNotice,
         kind: frames[i].kind,

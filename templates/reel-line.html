@@ -27,6 +27,19 @@
     background-size: cover; background-position: center;
     transform: scale(1.04);
   }
+
+  /* 진행자 하나. 인트로/아웃트로 프레임에만 등장한다.
+     화면을 다 덮지 않고 하단 절반에 두어 자막과 겹치지 않게 한다.
+     아래쪽으로 페이드시켜 배경과 이어 붙인다. */
+  .persona {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 62%;
+    background-size: cover; background-position: center 18%;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
+  }
+  /* 하나가 있는 프레임은 자막을 위로 올려 얼굴을 가리지 않게 한다 */
+  .safe.with-persona { bottom: 1020px; }
   .scrim {
     position: absolute; inset: 0;
     background:
@@ -158,13 +171,16 @@
   const parts = [];
   if (D.bg) parts.push('<div class="photo" style="background-image:url(\'' + D.bg + '\')"></div>');
   parts.push('<div class="scrim"></div><div class="vignette"></div>');
+  // 진행자는 스크림 위에 올려 배경보다 앞에 두되, 자막보다는 뒤에 둔다.
+  if (D.persona) parts.push('<div class="persona" style="background-image:url(\'' + D.persona + '\')"></div>');
+  const safeCls = D.persona ? 'safe with-persona' : 'safe';
   if (D.account) parts.push('<div class="brand">' + esc(D.account) + '</div>');
   // AI 고지는 전 프레임에 상시 노출한다 (정책 요구).
   if (D.aiNotice) parts.push('<div class="ai-badge">' + esc(D.aiNotice) + '</div>');
 
   if (D.kind === 'hook') {
     parts.push(
-      '<div class="safe hook"><div>' +
+      '<div class="' + safeCls + ' hook"><div>' +
       (D.kicker ? '<div class="kicker">' + esc(D.kicker) + '</div>' : '') +
       '<div class="big">' + mark(D.text) + '</div>' +
       '</div></div>'
@@ -172,7 +188,7 @@
   } else if (D.kind === 'checklist') {
     const cl = D.checklist || {};
     parts.push(
-      '<div class="safe check">' +
+      '<div class="' + safeCls + ' check">' +
       '<div class="ttl">' + mark(cl.title || '') + '</div>' +
       '<ul>' + (cl.items || []).map((it) => '<li><span>' + mark(it) + '</span></li>').join('') + '</ul>' +
       (D.shareCta ? '<div class="share">' + esc(D.shareCta) + '</div>' : '') +
@@ -182,7 +198,7 @@
     // 마지막 자막과 함께 복붙용 프롬프트를 띄운다 → 저장 유발
     const rows = String(D.prompt || '').split('\n').filter((l) => l.trim());
     parts.push(
-      '<div class="safe prompt">' +
+      '<div class="' + safeCls + ' prompt">' +
       '<div class="sub">' + mark(D.text) + '</div>' +
       '<div class="label">복붙용 프롬프트</div>' +
       '<div class="card">' + rows.map((r) =>
@@ -195,7 +211,7 @@
     const plain = String(D.text).replace(/\*/g, '');
     const size = plain.length > 26 ? ' len-l' : plain.length > 16 ? ' len-m' : '';
     parts.push(
-      '<div class="safe line"><div class="box">' +
+      '<div class="' + safeCls + ' line"><div class="box">' +
       '<div class="txt' + size + '">' + mark(D.text) + '</div>' +
       '</div></div>'
     );
