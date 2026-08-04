@@ -57,7 +57,12 @@ export const hana = {
       'Her face: a slightly wide jaw rather than a sharp V-line, her left eye monolid and her right eye with a faint partial crease, ' +
       'straight natural eyebrows with the left one sitting about two millimetres higher than the right, ' +
       'a medium nose bridge with slightly uneven nostrils, lower lip fuller than the upper and a little dry. ' +
-      'One small dark beauty mark sits just below her left eye, close to the inner corner — small, slightly irregular in shape, not a perfect dot. ' +
+      // 점 위치는 랜드마크 + 거리로 못 박는다. "왼쪽 눈 아래" 정도로는 매번 흔들린다.
+      // 좌우도 명시한다 — 인물이 몸을 돌리면 모델이 해부학적 좌우와 화면 좌우를 헷갈린다.
+      'She has exactly three moles on her face and nowhere else. ' +
+      'Mole 1: on her own left cheek (the side away from the window), ' +
+      'directly below the inner corner of her left eye, about one centimetre down, sitting in the tear trough — ' +
+      'small, dark, slightly irregular in shape, not a perfect circle. ' +
       'Shoulder-length fine hair dyed light brown with darker roots showing along the part, one side tucked behind her right ear, ' +
       'about fifteen individual flyaway strands catching the light, scalp visible at the part. ' +
       'Her skin is uneven: rosier across the cheeks and nose, more olive on the forehead, a faint blue-grey shadow under the eyes, ' +
@@ -76,11 +81,16 @@ export const hana = {
 
     // 씬 프롬프트에 들어가는 짧은 신원 고정 문구. 레퍼런스 이미지와 함께 쓴다.
     // 얼굴 묘사를 길게 반복하면 토큰 비중이 얼굴로 쏠려 촬영 조건 지시가 묻힌다.
+    // 점은 말로 다시 묘사하지 말고 레퍼런스에서 그대로 베끼게 한다.
+    // 재묘사하면 모델이 위치를 재해석해 매번 조금씩 옮긴다.
     identityLock:
       'The woman in the reference image, same person, unchanged: same face shape, ' +
       'same monolid left eye and faint partial crease on the right, ' +
-      'same single small beauty mark just below her left eye in exactly the same position, ' +
       'same shoulder-length light brown hair with darker roots at the part. ' +
+      'Copy her moles exactly as they appear in the reference image — same count, same positions, ' +
+      'same sizes, on the same side of her face. Do not move them, do not resize them, ' +
+      'do not add any extra moles, freckles or blemishes anywhere on her face or neck. ' +
+      'Do not mirror or flip the image. ' +
       'Do not restyle, beautify, slim or smooth her face.',
 
     // 시기(phase) — 점 제거 에피소드를 기점으로 외모가 한 번 바뀐다.
@@ -88,14 +98,18 @@ export const hana = {
     phases: {
       before: {
         label: '점 빼기 전',
+        // 입가 점도 랜드마크에 붙인다. "입 오른쪽 위" 정도로 두면 뺨으로 밀려난다.
         promptFragment:
-          'she also has two small moles above the right corner of her mouth, natural and unretouched',
+          'Mole 2 and Mole 3: two tiny dark moles just above the right corner of her mouth, ' +
+          'both within half a centimetre of the lip line — on the lip border area, not out on the cheek. ' +
+          'They sit close together, one slightly higher than the other. Natural and unretouched.',
         note: '초기 콘텐츠. 입가 점이 캐릭터의 콤플렉스로 언급된다.',
       },
       after: {
         label: '점 뺀 후',
         promptFragment:
-          'no moles or marks anywhere around the mouth or upper lip, clean skin around the lips',
+          'Mole 2 and Mole 3 have been removed — no moles or marks anywhere around the mouth, ' +
+          'lips or chin. Only the mole under her left eye remains.',
         note: '제거 에피소드 이후. 눈물점만 남는다.',
       },
     },

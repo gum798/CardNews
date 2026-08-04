@@ -232,7 +232,10 @@ export function scenePrompt(
 
   return [
     identity,
-    fragment, // 시기별 차이(입가 점 유무)
+    // ⚠️ 레퍼런스를 첨부할 때는 점을 말로 다시 설명하지 않는다.
+    //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
+    //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
+    withReference ? '' : fragment,
     `Styling: ${a.looks[look]}`,
     persona.setting?.roomPrompt || '',
     scene ? `Action: ${scene}` : '',
