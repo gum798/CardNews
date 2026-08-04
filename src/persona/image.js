@@ -153,31 +153,98 @@ export function activeBackend(wantRef = false) {
 // 씬 프롬프트를 조립한다. 각도를 정면 ±30°로 묶는 게 드리프트를 가장 크게 줄인다.
 // 촬영 조건. AI 티의 대부분은 "조명이 고르고 구도가 완벽한 것"에서 온다.
 // 창광/플래시 두 종을 두고 로테이션한다 — 매번 같은 빛이면 그 자체가 패턴이 된다.
+// ⚠️ FRAMING은 빛과 센서 특성만 말한다. 카메라 위치는 COMPOSITIONS가 정한다.
+//    여기서 "she sits left of centre" 같은 3인칭 구도를 지정하면 셀카 구도와 싸워서
+//    오버헤드 셀카를 요청해도 평범한 눈높이 사진이 나온다(실제로 그 증상을 겪었다).
 const FRAMING = {
   feedWindow:
-    'Vertical 4:5. A snapshot from her own camera roll, shot on a phone main camera at 26mm equivalent, f/1.8, ' +
-    'so the room behind her stays sharp and readable instead of blurring out. ' +
+    'Vertical 4:5, a snapshot straight from her camera roll. ' +
     'Late afternoon light comes only from the single window at camera left: the far side of her face is about two stops darker, ' +
     'a hard shadow falls under her jaw onto her neck, and a bright stripe lands on the wall beside her. ' +
     'The white balance is caught between the window and the ceiling LED, so the shadows carry a faint cool cast. ' +
-    'Handheld and tilted about two degrees, she sits left of centre with dead space on the right, ' +
-    'the top of her hair just clipped by the frame edge, and one object cropped by the right edge. ' +
-    'Focus landed slightly behind her eyes, on her ear. ' +
-    'ISO 800: grain in the shadows, a small blown highlight on her forehead, corners a little dark and soft.',
+    'ISO 800: grain in the shadows, a small blown highlight on her forehead, corners a little dark and soft. ' +
+    'Handheld, the frame tilted a couple of degrees.',
 
   feedFlash:
-    'Vertical 4:5. A snapshot taken at night in her room with the phone flash on, 26mm equivalent. ' +
+    'Vertical 4:5, taken at night in her room with the phone flash on. ' +
     'The flash is the only light: a hard specular highlight on her forehead, nose and cheekbones, ' +
-    'a sharp dark shadow thrown onto the wall behind her shoulder, and the background falling off to near black. ' +
+    'a sharp dark shadow thrown onto the wall behind her, and the background falling off to near black. ' +
     'Her eyes catch a small round flash reflection. Slight red-eye correction artifact. ' +
-    'Handheld, framing casual and a little crooked, subject off-centre. ' +
-    'Colours look slightly washed out and cool the way direct phone flash renders skin.',
+    'Colours look slightly washed out and cool the way direct phone flash renders skin. ' +
+    'Handheld, framing casual and a little crooked.',
 
   reel:
-    'Vertical 9:16, head and shoulders with room above her. Shot on a phone propped on the desk, 26mm equivalent, f/1.8. ' +
+    'Vertical 9:16 with room above her head. Shot on a phone propped on the desk, 26mm equivalent, f/1.8. ' +
     'Window light from camera left only — one side of her face clearly darker, a shadow under the jaw. ' +
-    'She sits slightly off-centre. Focus on her face, the room behind still legible. ' +
-    'Mild grain in the shadows, corners a touch darker.',
+    'Focus on her face, the room behind still legible. Mild grain in the shadows, corners a touch darker.',
+};
+
+// 사진 구도 풀. 인스타에 실제로 올라오는 형태들이다.
+// 매번 같은 "책상 앞 반신"이면 계정 전체가 한 장짜리처럼 보인다.
+// 셀카는 전면카메라 특성(광각·팔 길이·약간 위에서)을 명시해야 셀카로 읽힌다.
+export const COMPOSITIONS = {
+  // ── 셀카 계열 ──
+  selfieHigh:
+    'This photo IS taken by the phone she is holding — the phone must not appear in the frame. ' +
+    'A front-camera selfie held at arm\'s length, about 45cm from her face, raised slightly above eye level ' +
+    'and angled down, so her face is a little larger than the rest of the frame and the ceiling shows behind her. ' +
+    'Wide front-camera lens, about 23mm equivalent: mild barrel distortion, her nose and the near cheek slightly enlarged. ' +
+    'Her extended arm is cut off at the bottom corner of the frame. She looks straight into the lens.',
+
+  // 머리 위에서 내려찍는 각도. 한국 셀카에서 가장 흔한 구도다.
+  // ⚠️ 전면카메라 셀카는 폰이 곧 카메라라 화면에 폰이 보이면 안 된다.
+  //    명시하지 않으면 모델이 폰 든 손을 그려 거울샷처럼 만들어 버린다.
+  selfieOverhead:
+    'This photo IS taken by the phone she is holding above her head — the phone itself is the camera ' +
+    'and must not appear anywhere in the frame. Her hand and the phone are out of shot. ' +
+    'The camera looks steeply down on her from about 40cm above her head, tilted down roughly 40 degrees. ' +
+    'Because of the high angle: the top of her head and her forehead are closest to the lens and largest, ' +
+    'her chin and shoulders recede and look small, and the background behind her is the floor and her lap, ' +
+    'not the wall. She tilts her chin up and looks up into the lens. ' +
+    'Wide front-camera lens at 23mm equivalent with the mild distortion that angle produces.',
+
+  selfieLow:
+    'This photo IS taken by the phone she is holding — the phone must not appear in the frame. ' +
+    'A front-camera selfie held at chest height and tilted up slightly, shot in a hurry — ' +
+    'the frame is crooked, part of her shoulder fills the lower left corner, and she is looking at the screen ' +
+    'rather than the lens so her eyes are a fraction off-axis. Wide front-camera lens, mild distortion.',
+
+  mirrorSelfie:
+    'A mirror selfie taken in her room: she stands holding the phone up in front of her chest, ' +
+    'the phone and her hand clearly visible in the reflection, her face partly behind it. ' +
+    'The mirror is a little smudged, the room behind her reflected including the unmade bed. ' +
+    'Shot on the rear camera through the mirror.',
+
+  // ── 남이 찍어준 것 같은 계열 ──
+  candidSide:
+    'Shot from the side by someone else in the room, she is not aware of the camera, ' +
+    'looking down at what she is doing. Her face is in three-quarter profile, one ear toward the lens.',
+
+  overShoulder:
+    'Shot from slightly behind and above her shoulder, so we see the back of her head, ' +
+    'part of her cheek, and what she is looking at on the desk in front of her.',
+
+  // ── 얼굴이 없거나 작은 계열 (피드에 리듬을 준다) ──
+  handsOnly:
+    'A close-up of her hands and the desk surface only — her face is not in the frame at all. ' +
+    'Shot looking down from her own eye level, phone held in one hand.',
+
+  wideRoom:
+    'A wide shot of the whole room taken from the doorway, she is small in the frame and off to one side, ' +
+    'absorbed in what she is doing. Most of the frame is the room itself.',
+};
+
+// 슬롯별 구도 배분. 첫 장은 항상 셀카로 고정하고(피드 썸네일에 얼굴이 걸리게),
+// 나머지는 섞는다. 얼굴 없는 컷을 하나쯤 넣어야 피드에 리듬이 생긴다.
+export const COMPOSITION_SETS = {
+  day: {
+    first: ['selfieOverhead', 'selfieHigh', 'selfieLow'],
+    rest: ['handsOnly', 'candidSide', 'overShoulder'],
+  },
+  evening: {
+    first: ['selfieOverhead', 'selfieLow', 'mirrorSelfie', 'selfieHigh'],
+    rest: ['wideRoom', 'overShoulder', 'handsOnly', 'candidSide'],
+  },
 };
 
 // 불완전성 풀. 한 이미지당 2~3개만 쓴다 — 넘기면 오히려 더 눈에 띄는 AI 티가 된다.
@@ -214,17 +281,29 @@ function pickImperfections(seed, n = 3) {
 // 긴 얼굴 묘사를 매번 반복하면 토큰이 얼굴로 쏠려 촬영 조건 지시가 묻힌다.
 export function scenePrompt(
   persona,
-  { look = 'news', scene = '', angle = 'front', phase, framing = 'reel', withReference = false, seed = '' } = {}
+  {
+    look = 'news',
+    scene = '',
+    angle = 'front',
+    phase,
+    framing = 'reel',
+    withReference = false,
+    seed = '',
+    composition = null, // COMPOSITIONS 키. 주면 angle 대신 이걸 쓴다.
+  } = {}
 ) {
   const a = persona.appearance;
   const ph = phase || process.env.PERSONA_PHASE || 'before';
   const fragment = a.phases?.[ph]?.promptFragment || '';
 
-  const angleText = {
-    front: 'she is turned toward the camera but her eyes are not quite on the lens',
-    left: 'turned about 25 degrees to her left, looking away from the lens',
-    right: 'turned about 25 degrees to her right, looking past the camera',
-  }[angle];
+  // 구도가 지정되면 그게 카메라 위치를 결정한다. 아니면 기존 각도 표현.
+  const angleText =
+    (composition && COMPOSITIONS[composition]) ||
+    {
+      front: 'she is turned toward the camera but her eyes are not quite on the lens',
+      left: 'turned about 25 degrees to her left, looking away from the lens',
+      right: 'turned about 25 degrees to her right, looking past the camera',
+    }[angle];
 
   const identity = withReference
     ? a.identityLock
