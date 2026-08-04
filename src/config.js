@@ -57,7 +57,7 @@ export const reel = {
   rate: Number(process.env.TTS_RATE || 190), // 말 속도(wpm). 쇼츠는 약간 빠른 편이 낫다.
   linePadSec: 0.32, // 라인 사이 호흡
   targetSec: { min: 20, max: 32 }, // 이 범위를 벗어나면 라인 수를 조정하도록 경고
-  scriptLines: { min: 7, max: 11 }, // 나레이션 라인 수 (라인당 약 2.5초)
+  scriptLines: { min: 6, max: 9 }, // 훅도 낭독하므로 총 세그먼트는 +1. 라인당 약 2.8초
   bgmVolume: 0.07, // 나레이션 아래 깔리는 BGM 음량
   // 배경으로 Pixabay 실사 영상을 쓴다(자막은 투명 PNG로 위에 오버레이).
   // 실패하면 사진 켄번즈로 자동 폴백하므로 꺼도 동작한다.
