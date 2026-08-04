@@ -151,42 +151,96 @@ export function activeBackend(wantRef = false) {
 }
 
 // 씬 프롬프트를 조립한다. 각도를 정면 ±30°로 묶는 게 드리프트를 가장 크게 줄인다.
+// 촬영 조건. AI 티의 대부분은 "조명이 고르고 구도가 완벽한 것"에서 온다.
+// 창광/플래시 두 종을 두고 로테이션한다 — 매번 같은 빛이면 그 자체가 패턴이 된다.
+const FRAMING = {
+  feedWindow:
+    'Vertical 4:5. A snapshot from her own camera roll, shot on a phone main camera at 26mm equivalent, f/1.8, ' +
+    'so the room behind her stays sharp and readable instead of blurring out. ' +
+    'Late afternoon light comes only from the single window at camera left: the far side of her face is about two stops darker, ' +
+    'a hard shadow falls under her jaw onto her neck, and a bright stripe lands on the wall beside her. ' +
+    'The white balance is caught between the window and the ceiling LED, so the shadows carry a faint cool cast. ' +
+    'Handheld and tilted about two degrees, she sits left of centre with dead space on the right, ' +
+    'the top of her hair just clipped by the frame edge, and one object cropped by the right edge. ' +
+    'Focus landed slightly behind her eyes, on her ear. ' +
+    'ISO 800: grain in the shadows, a small blown highlight on her forehead, corners a little dark and soft.',
+
+  feedFlash:
+    'Vertical 4:5. A snapshot taken at night in her room with the phone flash on, 26mm equivalent. ' +
+    'The flash is the only light: a hard specular highlight on her forehead, nose and cheekbones, ' +
+    'a sharp dark shadow thrown onto the wall behind her shoulder, and the background falling off to near black. ' +
+    'Her eyes catch a small round flash reflection. Slight red-eye correction artifact. ' +
+    'Handheld, framing casual and a little crooked, subject off-centre. ' +
+    'Colours look slightly washed out and cool the way direct phone flash renders skin.',
+
+  reel:
+    'Vertical 9:16, head and shoulders with room above her. Shot on a phone propped on the desk, 26mm equivalent, f/1.8. ' +
+    'Window light from camera left only — one side of her face clearly darker, a shadow under the jaw. ' +
+    'She sits slightly off-centre. Focus on her face, the room behind still legible. ' +
+    'Mild grain in the shadows, corners a touch darker.',
+};
+
+// 불완전성 풀. 한 이미지당 2~3개만 쓴다 — 넘기면 오히려 더 눈에 띄는 AI 티가 된다.
+// 반드시 얼굴의 특정 위치에 고정한다. 위치 없는 형용사는 전역 균일 적용돼 무효가 된다.
+const IMPERFECTIONS = [
+  'a faint under-eye shadow, she looks a little tired',
+  'a few flyaway hairs catching the light near her part',
+  'her lower lip slightly chapped',
+  'a faint shine on her forehead and the bridge of her nose',
+  'one eyebrow sitting marginally higher than the other',
+  'slight redness at the sides of her nose',
+  'one small healing blemish near her chin',
+  'uneven colour between her forehead and her jaw',
+  'baby hairs along her hairline',
+  'dark roots showing at her part',
+];
+
+// 결정적 선택 — 같은 씬은 항상 같은 결점을 갖고, 씬이 바뀌면 조합이 바뀐다.
+function pickImperfections(seed, n = 3) {
+  let h = 0;
+  for (const c of String(seed)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const pool = [...IMPERFECTIONS];
+  const out = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    out.push(...pool.splice(h % pool.length, 1));
+  }
+  return out.join(', ') + '.';
+}
+
 // phase: 'before' | 'after' — 점 제거 에피소드 전/후. 기본값은 PERSONA_PHASE 환경변수.
-// framing: 'reel'(9:16 세로) | 'feed'(4:5 인스타 피드) — 일상 포스트는 feed를 쓴다.
+// framing: 'reel' | 'feedWindow' | 'feedFlash'
+// withReference=true면 짧은 identityLock을 쓴다(레퍼런스 이미지를 함께 첨부할 때).
+// 긴 얼굴 묘사를 매번 반복하면 토큰이 얼굴로 쏠려 촬영 조건 지시가 묻힌다.
 export function scenePrompt(
   persona,
-  { look = 'news', scene = '', angle = 'front', phase, framing = 'reel' } = {}
+  { look = 'news', scene = '', angle = 'front', phase, framing = 'reel', withReference = false, seed = '' } = {}
 ) {
   const a = persona.appearance;
   const ph = phase || process.env.PERSONA_PHASE || 'before';
   const fragment = a.phases?.[ph]?.promptFragment || '';
 
   const angleText = {
-    front: 'facing the camera directly',
-    left: 'turned about 25 degrees to her left, still facing camera',
-    right: 'turned about 25 degrees to her right, still facing camera',
+    front: 'she is turned toward the camera but her eyes are not quite on the lens',
+    left: 'turned about 25 degrees to her left, looking away from the lens',
+    right: 'turned about 25 degrees to her right, looking past the camera',
   }[angle];
 
-  // 릴스는 세로 꽉 채우는 구도, 피드는 4:5에 스냅샷 느낌.
-  const framingText =
-    framing === 'feed'
-      ? 'Vertical 4:5 photo, casual snapshot taken on a phone, natural candid moment, not a posed studio shot'
-      : 'Vertical 9:16 framing, upper body';
+  const identity = withReference
+    ? a.identityLock
+    : a.referencePrompt.replace(/\s*Vertical 4:5, head and shoulders\.$/, '');
 
   return [
-    // 기준 프롬프트의 프레이밍 지시는 아래에서 덮어쓴다.
-    a.referencePrompt.replace(/,\s*vertical 9:16 framing, upper body$/, ''),
+    identity,
     fragment, // 시기별 차이(입가 점 유무)
     `Styling: ${a.looks[look]}`,
-    // 방 배치를 매번 동일하게 박는다. 이게 없으면 같은 사람이어도 다른 채널처럼 보인다.
     persona.setting?.roomPrompt || '',
     scene ? `Action: ${scene}` : '',
-    framingText,
-    `Camera: ${angleText}. Keep the head angle within 30 degrees of frontal.`,
-    // 눈물점은 영구 표식이라 매번 반복해야 유지된다
-    `Important: keep the single small beauty mark below her left eye in the same position.`,
-    `Do not beautify or slim the face. Keep the ordinary, natural look.`,
-    `No text, no watermark, no logo in the image.`,
+    FRAMING[framing] || FRAMING.reel,
+    angleText,
+    `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`)}`,
+    'Unedited camera roll photo. No filter, no retouching, no beauty app.',
+    'No legible text or characters anywhere in the image, no watermark, no logo.',
   ]
     .filter(Boolean)
     .join('\n');

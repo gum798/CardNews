@@ -13,6 +13,12 @@ import { generateImage, scenePrompt } from './image.js';
 
 const CACHE_DIR = path.join(paths.root, 'assets', 'persona', 'cache');
 
+// 시기별 앵커 이미지. 이 한 장이 얼굴 일관성의 원천이라 리포에 커밋해 둔다.
+export function anchorPath(phase = process.env.PERSONA_PHASE || 'before') {
+  const p = path.join(paths.root, 'assets', 'persona', 'hana', phase, 'anchor-news-front.png');
+  return existsSync(p) ? p : null;
+}
+
 // 릴스에서 쓰는 고정 씬. 여기서 벗어난 씬은 만들지 않는다 — 종류가 늘면 캐시 효율이 죽는다.
 export const SCENES = {
   intro: {
@@ -44,14 +50,21 @@ export async function getKeyframe(sceneName, { phase = process.env.PERSONA_PHASE
   if (existsSync(file)) return file;
 
   try {
+    // 앵커를 레퍼런스로 첨부해야 같은 사람이 유지된다.
+    // 첨부 없이 텍스트 묘사만으로 버티면 얼굴 묘사를 길게 써야 하고,
+    // 그러면 토큰이 얼굴로 쏠려 촬영 조건 지시가 묻혀 "AI 티"가 남는다.
+    const anchor = anchorPath(phase);
     const prompt = scenePrompt(hana, {
       look: scene.look,
       angle: scene.angle,
       scene: scene.action,
       phase,
+      framing: 'reel',
+      withReference: Boolean(anchor),
+      seed: `${sceneName}-${phase}`,
     });
-    await generateImage(prompt, { outPath: file });
-    console.log(`[persona] 키프레임 생성 ${sceneName}/${phase}`);
+    await generateImage(prompt, { outPath: file, refImages: anchor ? [anchor] : [] });
+    console.log(`[persona] 키프레임 생성 ${sceneName}/${phase}${anchor ? ' (앵커 첨부)' : ''}`);
     return file;
   } catch (e) {
     console.warn(`[persona] 키프레임 실패 (${sceneName}): ${e.message.slice(0, 120)}`);

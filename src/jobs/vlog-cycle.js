@@ -10,6 +10,7 @@ import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt } from '../persona/image.js';
+import { anchorPath } from '../persona/keyframe.js';
 import { hana } from '../persona/hana.js';
 import { paths, telegram } from '../config.js';
 import { setMeta } from '../db/index.js';
@@ -31,8 +32,11 @@ async function main() {
   const outDir = path.join(paths.out, id);
   await mkdir(outDir, { recursive: true });
 
-  // 사진 생성. 첫 장은 인물 정면, 나머지는 각도를 바꿔 같은 방 안의 다른 컷처럼.
+  // 사진 생성. 앵커를 첨부해 같은 사람을 유지하고, 조명·각도를 바꿔 다른 컷처럼 보이게 한다.
+  // 매번 같은 창광이면 그 자체가 패턴이 되므로 세 번째 컷은 플래시로 돌린다.
+  const anchor = anchorPath();
   const angles = ['front', 'left', 'right'];
+  const framings = ['feedWindow', 'feedWindow', 'feedFlash'];
   const files = [];
   for (let i = 0; i < post.photos.length; i++) {
     const ph = post.photos[i];
@@ -43,9 +47,11 @@ async function main() {
           look: ph.look,
           angle: angles[i % angles.length],
           scene: ph.action,
-          framing: 'feed',
+          framing: framings[i % framings.length],
+          withReference: Boolean(anchor),
+          seed: `${id}-${i}`,
         }),
-        { outPath: out }
+        { outPath: out, refImages: anchor ? [anchor] : [] }
       );
       files.push(out);
       console.log(`[vlog] 사진 ${i + 1} 생성`);

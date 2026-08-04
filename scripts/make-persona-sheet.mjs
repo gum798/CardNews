@@ -44,7 +44,7 @@ for (const phase of TARGETS) {
   console.log('2) 변형 생성 (앵커를 레퍼런스로 첨부)…');
   for (const [name, look, angle, scene] of VARIANTS) {
     try {
-      await generateImage(scenePrompt(hana, { look, angle, scene, phase }), {
+      await generateImage(scenePrompt(hana, { look, angle, scene, phase, withReference: true, seed: name }), {
         refImages: [ANCHOR],
         outPath: path.join(OUT, `${name}.png`),
       });

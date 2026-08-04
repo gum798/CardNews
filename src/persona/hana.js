@@ -39,18 +39,49 @@ export const hana = {
     // (취준하며 증명사진 때문에 점 빼는 이야기). 외모가 바뀌는 이유가 스토리 안에서 설명된다.
     marks: '왼쪽 눈 밑 눈물점 1개 (영구)',
     hair: '어깨에 닿는 단발, 가늘고 옅은 갈색, 자연스러운 c컬',
-    // 기준 이미지 생성용 영어 프롬프트 (일관성의 핵심 — 절대 바꾸지 말 것)
-    // 시기별로 달라지는 부분은 phases에서 주입한다.
+    // ⚠️ 앵커 이미지 1장을 만들 때만 쓴다. 씬 프롬프트에는 identityLock을 쓴다.
+    // 이 문자열을 바꾸면 다른 사람이 된다. 바꾸면 앵커 재생성 + 캐시 전량 삭제 필수.
+    //
+    // 「AI 티」의 원인을 프롬프트에서 걷어냈다:
+    // - 'photorealistic'은 사진이 아니라 하이퍼리얼 렌더 화풍 라벨이라 광택 쪽으로 당긴다.
+    // - 'soft even studio lighting'의 even은 물리적으로 불가능한 전방향 광원 요구다.
+    //   얼굴이 평면이 되고 턱 그림자·색온도 차가 사라진다. 최악의 한 구절이었다.
+    // - 'clear skin without freckles'와 'visible pores'는 정면 모순이라
+    //   모델이 강한 prior(매끈함) 쪽으로 해소해 버린다.
+    // - 'typical Korean features'는 평균화 지시인데, 학습 데이터의 한국인 사진은
+    //   보정 비율이 압도적이라 결과가 아이돌 보정본으로 수렴한다.
+    // - '85mm + shallow DoF'는 폰 스냅 서사와 모순된다(폰 메인캠은 26mm 환산).
+    // 대신 비대칭을 구체적으로 서술한다 — 추상적 '계란형'보다 재현성이 오히려 높다.
     referencePrompt:
-      'photorealistic portrait of a 25-year-old Korean woman, ' +
-      'typical Korean features, oval face with soft jawline, monolid eyes, natural straight eyebrows, ' +
-      'clear skin without freckles, ' +
-      'a single small beauty mark just below her left eye, ' +
-      'shoulder-length fine light brown hair with soft inward curl, ' +
-      'girl-next-door look, approachable not glamorous, natural skin texture with visible pores, ' +
-      'neutral friendly expression, looking at camera, ' +
-      'soft even studio lighting, shallow depth of field, ' +
-      'shot on 85mm lens, vertical 9:16 framing, upper body',
+      'A candid indoor photo of a 25-year-old Korean woman, taken by a friend standing in the doorway of her room. ' +
+      'Her face: a slightly wide jaw rather than a sharp V-line, her left eye monolid and her right eye with a faint partial crease, ' +
+      'straight natural eyebrows with the left one sitting about two millimetres higher than the right, ' +
+      'a medium nose bridge with slightly uneven nostrils, lower lip fuller than the upper and a little dry. ' +
+      'One small dark beauty mark sits just below her left eye, close to the inner corner — small, slightly irregular in shape, not a perfect dot. ' +
+      'Shoulder-length fine hair dyed light brown with darker roots showing along the part, one side tucked behind her right ear, ' +
+      'about fifteen individual flyaway strands catching the light, scalp visible at the part. ' +
+      'Her skin is uneven: rosier across the cheeks and nose, more olive on the forehead, a faint blue-grey shadow under the eyes, ' +
+      'pores visible on the nose wings and inner cheeks and almost none at the temples, a faint shine on the T-zone while the cheeks stay matte, ' +
+      'fine vellus hair along the jawline catching the light. Light everyday makeup mostly worn off by late afternoon. ' +
+      'One window at camera left is the only real light source: the right side of her face falls about two stops darker, ' +
+      'a hard shadow drops under her jaw onto her neck, and a ceiling LED adds a cooler cast in the shadows so the white balance never fully resolves. ' +
+      'The catchlight in her eyes is the rectangle of the window, larger in her left eye than in her right and at a different angle in each; ' +
+      'the sclera is slightly yellowish toward the corners and the upper lid casts a shadow across the top of the eyeball. ' +
+      'Shot on a phone main camera at 26mm equivalent, f/1.8, so the room behind her stays legible rather than melting into bokeh. ' +
+      'She sits a little off-centre with dead space to one side, the frame tilted about two degrees, ' +
+      'mouth relaxed and slightly open as if mid-thought, her eyes not quite meeting the lens. ' +
+      'Keep the skin exactly as photographed. Do not smooth it, do not slim the jaw, do not enlarge the eyes, ' +
+      'no beauty filter, no tone-up, no glass skin. She is an ordinary person, not a model and not an idol. ' +
+      'Vertical 4:5, head and shoulders.',
+
+    // 씬 프롬프트에 들어가는 짧은 신원 고정 문구. 레퍼런스 이미지와 함께 쓴다.
+    // 얼굴 묘사를 길게 반복하면 토큰 비중이 얼굴로 쏠려 촬영 조건 지시가 묻힌다.
+    identityLock:
+      'The woman in the reference image, same person, unchanged: same face shape, ' +
+      'same monolid left eye and faint partial crease on the right, ' +
+      'same single small beauty mark just below her left eye in exactly the same position, ' +
+      'same shoulder-length light brown hair with darker roots at the part. ' +
+      'Do not restyle, beautify, slim or smooth her face.',
 
     // 시기(phase) — 점 제거 에피소드를 기점으로 외모가 한 번 바뀐다.
     // PERSONA_PHASE 환경변수로 전환한다. 전환 시점은 브이로그가 나간 뒤.
@@ -88,14 +119,18 @@ export const hana = {
       'Setting: a small Korean one-room studio apartment, tidied but clearly lived-in. ' +
       'Fixed layout, keep identical in every image: ' +
       'plain off-white wall directly behind her; ' +
-      'on that wall, three A4 sheets taped in a row at head height, slightly crooked — a job application schedule, a company wishlist, and interview question notes; ' +
+      // ⚠️ 벽 메모에 읽히는 글자를 요구하면 깨진 유사 한글이 나온다. 프레임에서 가장 눈에 띄는
+      //    위치라 AI 티의 큰 원인이 된다. 내용 대신 "읽히지 않는 손글씨"로만 지정한다.
+      'on that wall, three A4 sheets taped in a row at head height, slightly crooked, ' +
+      'covered in small handwriting that is too small and too blurred to read, no legible characters; ' +
       'to her left in frame, a low light-wood bookshelf with books lying flat in a leaning stack and a small green plant on top; ' +
       'to her right in frame, a window with thin white linen curtains half drawn, soft daylight coming through; ' +
       'a beige fabric-covered bed edge visible at the bottom right corner; ' +
       'a light-wood folding desk in front of her with a closed laptop, a white ceramic mug, and a stack of printed cover letter drafts with highlighter marks; ' +
       'a clothing rack in the far left background with a navy interview suit jacket hanging on it; ' +
-      'warm natural daylight from the window as the main light, no studio lighting; ' +
-      'slightly messy but clean — not staged, not a studio.',
+      'the window is the only light source, so one side of the room falls clearly darker; ' +
+      'real clutter, not styled: a charging cable trailing across the floor, a crumpled tissue, ' +
+      'a hoodie thrown over the chair back, a half-empty water bottle beside the desk leg.',
   },
 
   // ── 성격 ────────────────────────────────────────────────────
