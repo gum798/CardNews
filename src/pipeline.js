@@ -12,6 +12,7 @@ import { searchTopicImages, downloadImage, searchTopicVideos, downloadVideo } fr
 import { renderCandidate, renderReelLines } from './renderer/index.js';
 import { makeReel, makeNarratedReel, grabPoster } from './video/index.js';
 import { synthesizeLines } from './tts/index.js';
+import { scriptViolations, ADVICE_GUARD_PROMPT } from './guards/policy.js';
 import { uploadCandidate, uploadFile } from './storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from './publisher/index.js';
 import { uploadShort } from './youtube/index.js';
@@ -42,10 +43,24 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
       cardData = cand.card;
     } else {
       const n = getNewsItem(cand.news_item_id);
-      cardData = await writeCards(
-        { id: n.id, source: n.source, title: n.title, summary: n.summary, url: n.url },
-        { hookType: nextHookType(), scriptStyle: topics[cand.topic]?.scriptStyle || 'impact' }
-      );
+      const opts = {
+        hookType: nextHookType(),
+        scriptStyle: topics[cand.topic]?.scriptStyle || 'impact',
+      };
+      const news = { id: n.id, source: n.source, title: n.title, summary: n.summary, url: n.url };
+      cardData = await writeCards(news, opts);
+
+      // 민감 주제(건강·법률·재무·정치)에서 조언성 표현이 나오면 1회 재생성한다.
+      // AI 생성 인물이 전문가처럼 조언하는 것으로 읽히면 유튜브 수익화가 막힌다.
+      const bad = scriptViolations(cardData);
+      if (bad.length) {
+        console.warn(`[pipeline] 정책 가드: ${bad[0]} → 대본 재생성`);
+        cardData = await writeCards(news, { ...opts, extraInstruction: ADVICE_GUARD_PROMPT });
+        const still = scriptViolations(cardData);
+        if (still.length) {
+          throw new Error(`정책 가드 재생성 후에도 위반: ${still[0]}`);
+        }
+      }
     }
     // 캡션에 실물을 남긴다. 영상에서 "저장해두세요"라고 해놓고 캡션이 비면 거짓말이 된다.
     const sc = cardData.script;
@@ -121,6 +136,7 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
           theme: cardData.theme,
           bgs: reelBgs,
           account: account.name,
+          aiNotice: 'AI 생성 콘텐츠',
           transparent: Boolean(bgVideo), // 영상 위에 얹으려면 투명 PNG
         });
         // 투명 오버레이(실사영상 배경)일 때는 배경이 없는 PNG라 표지로 못 쓴다 → 영상 첫 프레임을 뽑아 쓴다.

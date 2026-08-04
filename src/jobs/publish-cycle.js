@@ -20,6 +20,7 @@ import {
 } from '../db/index.js';
 import { sendDigest, report } from '../bot/index.js';
 import { maybeRefreshToken } from '../publisher/index.js';
+import { filterCandidates, activeBlackout } from '../guards/policy.js';
 import { generateAndPublish } from '../pipeline.js';
 import { topics, pipeline, schedule, autoPublish, profile, account, dryRun, instagram, youtube } from '../config.js';
 
@@ -54,8 +55,13 @@ async function dispatch(id, topicKey, newsItem, reason) {
 async function runTopic(topicKey) {
   await collectTopic(topicKey);
 
-  // 최근 미사용(겹치지 않는) 뉴스 → AI로 1건 선별
-  const recent = getRecentUnusedNewsItems(topicKey, pipeline.collectWindowHours);
+  // 최근 미사용(겹치지 않는) 뉴스 → 정책 가드로 선별 대상에서 제외 → AI로 1건 선별
+  const recentAll = getRecentUnusedNewsItems(topicKey, pipeline.collectWindowHours);
+  const { kept: recent, dropped } = filterCandidates(recentAll);
+  if (dropped.length) {
+    console.log(`[publish:${topicKey}] 정책 가드로 ${dropped.length}건 제외 — ${dropped[0].reason}`);
+  }
+
   if (recent.length > 0) {
     const ranked = await filterAndRank(
       recent.map((r) => ({ id: r.id, source: r.source, title: r.title, summary: r.summary })),

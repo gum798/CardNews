@@ -76,7 +76,7 @@ export async function renderCandidate(candidateId, cardData, { cards = true } = 
 export async function renderReelLines(
   candidateId,
   script,
-  { theme = 'navy', bgs = [], account = '', transparent = false } = {}
+  { theme = 'navy', bgs = [], account = '', transparent = false, aiNotice = '' } = {}
 ) {
   const outDir = path.join(paths.out, String(candidateId));
   await mkdir(outDir, { recursive: true });
@@ -125,6 +125,7 @@ export async function renderReelLines(
         bg: transparent ? null : bgFor(i), // 영상 배경이면 사진을 깔지 않는다
         transparent,
         account,
+        aiNotice,
         kind: frames[i].kind,
         text: frames[i].text,
         kicker: frames[i].kicker,

@@ -280,7 +280,7 @@ function validCards(cards) {
 
 // 2단계: 후보 뉴스 1건 → 카드 텍스트 + 캡션 생성.
 // newsItem: { id, source, title, summary, url } → { account, date, source, cards, caption }
-export async function writeCards(newsItem, { hookType = '지목형', scriptStyle = 'impact' } = {}) {
+export async function writeCards(newsItem, { hookType = '지목형', scriptStyle = 'impact', extraInstruction = '' } = {}) {
   const { min, max } = pipeline.cardsPerCandidate;
 
   const prompt =
@@ -301,7 +301,7 @@ export async function writeCards(newsItem, { hookType = '지목형', scriptStyle
     `\n아래 형식의 JSON 객체만 출력하세요(다른 텍스트 금지):\n` +
     `{"cards":[...], "caption":"...", "imageKeywords":"...", "script":{"hook":"...","kicker":"...","lines":["...","..."],"checklist":{"title":"...","items":["...","..."]},"shareCta":"..."${
       SCRIPT_STYLES[scriptStyle]?.needsPrompt ? ', "prompt":"복붙용 프롬프트"' : ''
-    }}}`;
+    }}}` + extraInstruction;
 
   const ok = (p) => validCards(p?.cards) && validScript(p?.script, scriptStyle);
   let parsed = await askClaudeJson(prompt, claude.copyModel);
