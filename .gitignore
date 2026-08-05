@@ -22,3 +22,6 @@ scripts/_*.mjs
 
 # 프로필 시안용 한글 폰트 (22MB, Google Fonts에서 재다운로드 가능)
 templates/fonts/cute/
+
+# 컴파일된 매트 바이너리 (tools/matte.swift에서 빌드)
+tools/matte

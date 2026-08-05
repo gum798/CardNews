@@ -8,6 +8,7 @@
 import { Bot, InputFile, InputMediaBuilder } from 'grammy';
 import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
+import { savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS } from '../persona/image.js';
 import { anchorPath } from '../persona/keyframe.js';
@@ -102,31 +103,41 @@ async function main() {
   }
   if (files.length === 0) throw new Error('사진을 한 장도 만들지 못했습니다');
 
-  // 텔레그램 전송 — 검토용. 캡션은 복사해서 쓸 수 있게 따로 보낸다.
+  // 텔레그램 전송 — 검토용. 승인 버튼을 눌러야 인스타에 올라간다.
+  //
+  // 인스타 API에는 초안·비공개·예약 게시가 없다(컨테이너를 안 올리면 앱에서 보이지도 않고
+  // 24시간 뒤 만료된다). 그래서 "올려두고 나중에 공개" 대신 "승인 전까지 아예 안 올림"으로 간다.
+  // 검토 목적으로는 이쪽이 더 안전하다 — 잘못 나간 글이 잠깐이라도 노출될 일이 없다.
   const bot = new Bot(telegram.botToken);
   const caption = [post.caption, '', post.hashtags.join(' ')].filter(Boolean).join('\n');
 
+  // 승인 시 발행할 내용을 남겨둔다. 사진 선택·글 수정은 텔레그램에서 한다.
+  const record = savePost({
+    id,
+    slot,
+    theme: post.theme,
+    caption,
+    files,
+    selected: files.map(() => true),
+    status: 'pending',
+  });
+
+  // 앨범으로 보내되 각 장에 번호를 달아 어느 게 몇 번인지 알 수 있게 한다.
   if (files.length === 1) {
-    await bot.api.sendPhoto(telegram.chatId, new InputFile(files[0]));
+    await bot.api.sendPhoto(telegram.chatId, new InputFile(files[0]), { caption: '1' });
   } else {
     await bot.api.sendMediaGroup(
       telegram.chatId,
-      files.map((f) => InputMediaBuilder.photo(new InputFile(f)))
+      files.map((f, i) => InputMediaBuilder.photo(new InputFile(f), { caption: `${i + 1}` }))
     );
   }
 
-  await bot.api.sendMessage(
-    telegram.chatId,
-    [
-      `📸 하나 일상 (${slot === 'day' ? '낮' : '저녁'}) — 검토용`,
-      `소재: ${post.theme}`,
-      '',
-      '📋 캡션 (복사용):',
-      caption,
-      '',
-      '⚠️ 자동 발행하지 않았습니다. 사진 저장 후 직접 올리세요.',
-    ].join('\n')
-  );
+  const msg = await bot.api.sendMessage(telegram.chatId, reviewText(record), {
+    reply_markup: reviewKeyboard(record),
+  });
+  // 나중에 이 메시지를 갱신하려면 id가 필요하다(사진 토글·글 수정 반영).
+  record.reviewMessageId = msg.message_id;
+  savePost(record);
 
   setMeta(`vlog_last:${slot}`, new Date().toISOString());
   console.log('[vlog] 텔레그램 전송 완료');

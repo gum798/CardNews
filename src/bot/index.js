@@ -53,7 +53,14 @@ export async function sendDigest(candidates) {
 
 // 롱 폴링 리스너. pub/skip 콜백을 화이트리스트 검사 후 처리한다.
 // 버튼을 "⏳ 생성 중…"으로 교체해 중복 탭을 막고 콜백을 실행. Bot 인스턴스 반환.
-export function startListener({ onApprove, onSkip }) {
+export function startListener({
+  onApprove,
+  onSkip,
+  onVlogSelect,
+  onVlogPublish,
+  onVlogSkip,
+  onVlogCaption,
+}) {
   const bot = getBot();
   const generating = () => new InlineKeyboard().text('⏳ 생성 중…', 'noop');
 
@@ -80,6 +87,71 @@ export function startListener({ onApprove, onSkip }) {
     if (!allowed(ctx)) return void ctx.answerCallbackQuery().catch(() => {});
     await ack(ctx);
     await onSkip(Number(ctx.match[1]));
+  });
+
+  // ── 브이로그 검토 ────────────────────────────────────────────────────────
+  // 인스타에 초안·비공개 게시가 없으므로, 승인 전까지 아예 올리지 않는 방식으로 검토한다.
+  // 핸들러는 갱신된 { text, keyboard }를 돌려주고, 여기서 검토 메시지를 그 자리에서 고쳐 쓴다.
+  const VLOG_ID = String.raw`vlog-\d{8}-(?:day|evening)`;
+
+  // 텔레그램은 내용이 같은 편집을 400으로 거절한다 — 사용자 잘못이 아니므로 삼킨다.
+  async function rewrite(ctx, view, messageId) {
+    if (!view) return;
+    try {
+      await ctx.api.editMessageText(ctx.chat.id, messageId, view.text, {
+        reply_markup: view.keyboard,
+      });
+    } catch (e) {
+      const d = e?.description || '';
+      if (!d.includes('message is not modified')) {
+        console.warn('[bot] 메시지 갱신 실패:', d || e?.message);
+      }
+    }
+  }
+
+  // 사진 선택 토글. 어느 장을 쓸지 고른 뒤 게시한다.
+  bot.callbackQuery(new RegExp(`^vsel:(${VLOG_ID}):(\\d+)$`), async (ctx) => {
+    if (!allowed(ctx)) return void ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery().catch(() => {});
+    if (!onVlogSelect) return;
+    const view = await onVlogSelect(ctx.match[1], Number(ctx.match[2]));
+    await rewrite(ctx, view, ctx.callbackQuery.message.message_id);
+  });
+
+  // 게시는 되돌릴 수 없다 → 누르는 즉시 버튼을 잠가 중복 탭을 막는다.
+  bot.callbackQuery(new RegExp(`^vpub:(${VLOG_ID})$`), async (ctx) => {
+    if (!allowed(ctx)) return void ctx.answerCallbackQuery().catch(() => {});
+    const msgId = ctx.callbackQuery.message.message_id;
+    try {
+      await ctx.answerCallbackQuery({ text: '인스타에 올리는 중…' });
+      await ctx.editMessageReplyMarkup({
+        reply_markup: new InlineKeyboard().text('⏳ 게시 중…', 'noop'),
+      });
+    } catch (e) {
+      console.warn('[bot] ack 실패(계속 진행):', e?.description || e?.message);
+    }
+    if (onVlogPublish) await rewrite(ctx, await onVlogPublish(ctx.match[1]), msgId);
+  });
+
+  bot.callbackQuery(new RegExp(`^vskip:(${VLOG_ID})$`), async (ctx) => {
+    if (!allowed(ctx)) return void ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery({ text: '보류했습니다' }).catch(() => {});
+    if (onVlogSkip) await rewrite(ctx, await onVlogSkip(ctx.match[1]), ctx.callbackQuery.message.message_id);
+  });
+
+  // 검토 메시지에 답장하면 글을 통째로 갈아끼운다.
+  bot.on('message:text', async (ctx) => {
+    if (!allowed(ctx)) return;
+    const replied = ctx.message.reply_to_message;
+    if (!replied) return;
+    // id는 버튼의 callback_data에 들어 있다(본문에는 노출하지 않는다).
+    const btn = replied.reply_markup?.inline_keyboard?.flat().map((b) => b.callback_data) || [];
+    const id = btn.map((d) => d?.match(new RegExp(VLOG_ID))?.[0]).find(Boolean);
+    if (!id || !onVlogCaption) return;
+    const view = await onVlogCaption(id, ctx.message.text);
+    if (!view) return void (await ctx.reply(`⚠️ ${id} 를 찾지 못했습니다`));
+    await rewrite(ctx, view, replied.message_id);
+    await ctx.reply('✏️ 글을 바꿨습니다.');
   });
 
   // 핸들러에서 던진 에러가 프로세스를 죽이지 않게 (없으면 update 재전송→크래시 루프).

@@ -173,7 +173,8 @@
   parts.push('<div class="scrim"></div><div class="vignette"></div>');
   // 진행자는 스크림 위에 올려 배경보다 앞에 두되, 자막보다는 뒤에 둔다.
   if (D.persona) parts.push('<div class="persona" style="background-image:url(\'' + D.persona + '\')"></div>');
-  const safeCls = D.persona ? 'safe with-persona' : 'safe';
+  // personaReserve: 하나를 ffmpeg가 얹는 경우. 여기선 안 그리되 자막은 위로 올려둔다.
+  const safeCls = (D.persona || D.personaReserve) ? 'safe with-persona' : 'safe';
   if (D.account) parts.push('<div class="brand">' + esc(D.account) + '</div>');
   // AI 고지는 전 프레임에 상시 노출한다 (정책 요구).
   if (D.aiNotice) parts.push('<div class="ai-badge">' + esc(D.aiNotice) + '</div>');

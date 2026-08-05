@@ -86,6 +86,11 @@ export async function renderReelLines(
     // 전 구간에 두면 자막을 가리고, 동일 인물·동일 구도가 30초 내내 이어져
     // 유튜브 "템플릿 반복" 조항에 가까워진다.
     persona = null, // { intro, outro } file 경로
+    // ffmpeg가 오려서 얹을 하나 이미지 경로 목록. 여기 든 것만 HTML에서 뺀다.
+    // ⚠️ 매트가 실패한 컷은 이 목록에 없으므로 HTML이 예전 방식대로 그린다 —
+    //    양쪽 다 안 그려서 하나가 통째로 사라지는 사고를 막는다.
+    // 안전영역은 목록과 무관하게 비워둔다(ffmpeg가 얹든 HTML이 그리든 얼굴 위치는 같다).
+    personaLayerImages = [],
   } = {}
 ) {
   const outDir = path.join(paths.out, String(candidateId));
@@ -130,10 +135,19 @@ export async function renderReelLines(
     };
 
     const lastIdx = frames.length - 1;
-    const personaFor = (i) => {
+    const personaFileFor = (i) => {
       if (!persona) return null;
-      const f = i === 0 ? persona.intro : i === lastIdx ? persona.outro : null;
+      return i === 0 ? persona.intro : i === lastIdx ? persona.outro : null;
+    };
+    const personaFor = (i) => {
+      const f = personaFileFor(i);
       return f ? 'file://' + f : null;
+    };
+    // 이 컷은 ffmpeg가 오려서 얹는가?
+    const layerSet = new Set(personaLayerImages.filter(Boolean));
+    const byFfmpeg = (i) => {
+      const f = personaFileFor(i);
+      return Boolean(f && layerSet.has(f));
     };
 
     for (let i = 0; i < frames.length; i++) {
@@ -141,7 +155,9 @@ export async function renderReelLines(
         theme,
         bg: transparent ? null : bgFor(i), // 영상 배경이면 사진을 깔지 않는다
         transparent,
-        persona: personaFor(i),
+        persona: byFfmpeg(i) ? null : personaFor(i),
+        // 그리지 않아도 자리는 비워둬야 ffmpeg가 얹을 하나와 자막이 겹치지 않는다.
+        personaReserve: Boolean(personaFor(i)),
         account,
         aiNotice,
         kind: frames[i].kind,

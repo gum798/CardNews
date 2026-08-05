@@ -170,6 +170,30 @@ export async function publishCarousel(imageUrls, caption) {
   return await publishContainer(parent.id, caption, 'FEED', '캐러셀 발행');
 }
 
+// 단일 사진 발행. 캐러셀은 2장 이상이어야 하므로 1장짜리는 이 경로로 간다.
+export async function publishPhoto(imageUrl, caption) {
+  if (dryRun) {
+    const id = `DRYRUN-${Date.now()}`;
+    console.log(`[publisher] DRY_RUN 사진: ${imageUrl} → ${id}`);
+    return id;
+  }
+
+  const already = await findRecentDuplicate(caption, 'IMAGE');
+  if (already) {
+    console.log(`[publisher] 동일 캡션 사진이 이미 게시됨 → 발행 생략 (media_id=${already})`);
+    return already;
+  }
+
+  const container = await apiCall(
+    'POST',
+    `/${instagram.userId}/media?${qs({ image_url: imageUrl, caption: caption ?? '' })}`,
+    'IMAGE 컨테이너 생성'
+  );
+  console.log(`[publisher] IMAGE creation_id=${container.id}`);
+  await waitForContainer(container.id, { intervalMs: 5000, maxWaitMs: 120_000, label: 'IMAGE' });
+  return await publishContainer(container.id, caption, 'FEED', '사진 발행');
+}
+
 // 릴스 발행: REELS 컨테이너 생성 → FINISHED까지 폴링 → 발행. 발행된 media id 반환.
 export async function publishReel(videoUrl, coverUrl, caption) {
   if (dryRun) {

@@ -5,6 +5,7 @@ import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { paths, pipeline, reel as reelCfg } from '../config.js';
 import { getMeta, setMeta } from '../db/index.js';
+import { foregroundMatte, personaPlacement } from './matte.js';
 
 const FFMPEG = '/opt/homebrew/bin/ffmpeg';
 const FFPROBE = '/opt/homebrew/bin/ffprobe';
@@ -180,26 +181,81 @@ const MOVES = [
   { zoomIn: false, dx: 0, dy: -1 },
 ];
 
+// 손떨림 진폭(px). 이보다 키우면 오버스캔 여유를 넘어 가장자리가 튄다.
+const SHAKE_AMP = 6;
+
 function kenBurns(inIdx, outLabel, durSec, i) {
   const n = Math.max(2, Math.round(durSec * FPS)); // 이 구간의 출력 프레임 수
   const m = MOVES[i % MOVES.length];
+  // ⚠️ zoompan 필터 안에는 변수 t가 없다. 시간은 출력 프레임 번호 on으로 만든다.
+  const T = `(on/${FPS})`;
+  // 줌 바닥을 1.0이 아니라 1.02로 올린다. 1.0이면 첫 프레임의 오버스캔 여유가 0이라
+  // 손떨림이 클램프되어 죽거나 가장자리가 드러난다.
   const z = m.zoomIn
-    ? `1+${ZOOM_AMP}*on/${n}`
-    : `${(1 + ZOOM_AMP).toFixed(3)}-${ZOOM_AMP}*on/${n}`;
+    ? `1.02+${ZOOM_AMP}*on/${n}`
+    : `${(1.02 + ZOOM_AMP).toFixed(3)}-${ZOOM_AMP}*on/${n}`;
   // 중앙 기준 + 진행도(on/n)에 비례한 드리프트. 확대된 영역 안에서만 움직이므로 검은 여백이 안 생긴다.
   const px = m.dx ? `+(${m.dx})*(iw-iw/zoom)*${PAN_AMP}*on/${n}` : '';
   const py = m.dy ? `+(${m.dy})*(ih-ih/zoom)*${PAN_AMP}*on/${n}` : '';
+  // 서로 나누어떨어지지 않는 두 주기를 겹쳐 "사람이 든 카메라"처럼 보이게 한다.
+  const sx = `+${SHAKE_AMP}*sin(2*PI*${T}/2.3)+${(SHAKE_AMP / 2).toFixed(1)}*sin(2*PI*${T}/0.71)`;
+  const sy = `+${SHAKE_AMP - 1}*sin(2*PI*${T}/3.1)+${(SHAKE_AMP / 3).toFixed(1)}*sin(2*PI*${T}/0.53)`;
   return (
     `[${inIdx}:v]scale=1350:2400:force_original_aspect_ratio=increase:in_range=full:out_range=tv,` +
     `crop=1350:2400,` +
-    `zoompan=z='${z}':d=1:x='iw/2-(iw/zoom/2)${px}':y='ih/2-(ih/zoom/2)${py}':s=1080x1920:fps=${FPS},` +
+    `zoompan=z='${z}':d=1:x='iw/2-(iw/zoom/2)${px}${sx}':y='ih/2-(ih/zoom/2)${py}${sy}':` +
+    `s=1080x1920:fps=${FPS},` +
     `setsar=1,format=yuv420p[${outLabel}]`
   );
 }
 
+// ── 2.5D 패럴랙스 ──────────────────────────────────────────────────────────
+// 배경 영상과 하나를 서로 반대 방향으로, 다른 속도로 움직인다.
+// 깊이가 다른 두 레이어가 어긋나게 움직이면 뇌가 "카메라 앞에 사람이 서 있다"로 읽는다.
+// 주기를 서로 나누어떨어지지 않는 값으로 잡아야 패턴이 눈에 띄지 않는다.
+const BG_OVERSCAN_W = 1160; // 1080 + 흔들림 여유
+const BG_OVERSCAN_H = 2062; // 1920 + 흔들림 여유
+
+// 배경: 느리고 작게. 손으로 든 카메라가 가만히 있으려 애쓰는 정도.
+const bgDriftX = `14*sin(2*PI*t/8.7)`;
+const bgDriftY = `11*sin(2*PI*t/11.3)`;
+// 하나: 배경 반대 방향으로 더 크게(시차) + 미세 손떨림(고주파 소진폭).
+const personaDriftX = `-16*sin(2*PI*t/5.9)-4*sin(2*PI*t/0.83)`;
+const personaDriftY = `12*sin(2*PI*t/7.1)+3*sin(2*PI*t/0.67)`;
+
+// 하나 키프레임 → 오려낸 레이어 정보. 인트로는 첫 구간, 아웃트로는 마지막 구간에만 보인다.
+// 매트가 실패하거나 못 믿을 수준이면 그 컷은 조용히 빠진다(영상은 그대로 나간다).
+export async function personaLayersFor(persona, durations) {
+  if (!persona) return [];
+  const total = durations.reduce((a, b) => a + b, 0);
+  const lastStart = total - durations[durations.length - 1];
+
+  const wanted = [
+    { image: persona.intro, start: 0, end: durations[0] },
+    { image: persona.outro, start: lastStart, end: total },
+  ].filter((w) => w.image);
+
+  const layers = [];
+  for (const w of wanted) {
+    const info = await foregroundMatte(w.image);
+    if (!info) continue;
+    layers.push({
+      image: w.image,
+      mask: info.maskPath,
+      place: personaPlacement(info),
+      start: w.start,
+      end: w.end,
+    });
+  }
+  return layers;
+}
+
 // 실사 영상 배경 + 투명 자막 오버레이. 배경이 실제로 움직여 정지 사진보다 이탈이 적다.
 // bgVideo는 대개 가로(16:9)이므로 세로를 채우도록 확대 후 중앙 크롭한다.
-async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath) {
+//
+// personaLayers: [{ image, mask, place, start, end }] — 오려낸 하나를 자막 위에 세운다.
+// 자막 안전영역이 이미 위로 비켜나 있어(.safe.with-persona) 겹치지 않는다.
+async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, personaLayers = []) {
   const durations = segments.map((s) => s.duration);
   const total = durations.reduce((a, b) => a + b, 0);
 
@@ -207,29 +263,65 @@ async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath) {
   for (const f of framePaths) args.push('-loop', '1', '-t', total.toFixed(3), '-i', f); // 1..N: 오버레이
   for (const s of segments) args.push('-i', s.audioPath);
   args.push('-stream_loop', '-1', '-i', bgm);
+  // 하나 레이어: 이미지 + 마스크를 쌍으로
+  for (const p of personaLayers) {
+    args.push('-loop', '1', '-t', total.toFixed(3), '-i', p.image);
+    args.push('-loop', '1', '-t', total.toFixed(3), '-i', p.mask);
+  }
 
   const nOv = framePaths.length;
   const aStart = 1 + nOv;
   const bgmIdx = aStart + segments.length;
+  const pStart = bgmIdx + 1;
 
   const g = [];
-  // 배경: 세로를 채우도록 확대 → 중앙 크롭 → 살짝 어둡게(자막 대비 확보)
+  // 배경: 세로를 채우도록 확대 → 오버스캔 크롭 → 살짝 어둡게(자막 대비 확보)
+  //       → 시간가변 크롭으로 느린 드리프트. setpts 뒤에 둬야 t가 0부터 시작한다.
   g.push(
-    `[0:v]scale=1080:1920:force_original_aspect_ratio=increase:in_range=full:out_range=tv,` +
-      `crop=1080:1920,fps=${FPS},eq=brightness=-0.06:saturation=1.05,` +
-      `trim=duration=${total.toFixed(3)},setpts=PTS-STARTPTS,setsar=1[bgv]`
+    `[0:v]scale=${BG_OVERSCAN_W}:${BG_OVERSCAN_H}:force_original_aspect_ratio=increase:in_range=full:out_range=tv,` +
+      `crop=${BG_OVERSCAN_W}:${BG_OVERSCAN_H},fps=${FPS},eq=brightness=-0.06:saturation=1.05,` +
+      `trim=duration=${total.toFixed(3)},setpts=PTS-STARTPTS,` +
+      `crop=1080:1920:x='(iw-ow)/2+${bgDriftX}':y='(ih-oh)/2+${bgDriftY}',setsar=1[bgv]`
   );
   // 각 오버레이를 자기 구간에만 표시
   let prev = '[bgv]';
   let t = 0;
+  const spans = [];
   for (let i = 0; i < nOv; i++) {
     const start = t;
     const end = t + durations[i];
+    spans.push({ start, end });
     t = end;
-    const out = i === nOv - 1 ? '[vout]' : `[ov${i}]`;
+    const last = i === nOv - 1 && personaLayers.length === 0;
+    const out = last ? '[vout]' : `[ov${i}]`;
     g.push(
       `${prev}[${i + 1}:v]overlay=0:0:enable='between(t,${start.toFixed(3)},${end.toFixed(3)})'` +
-        `${i === nOv - 1 ? ',format=yuv420p' : ''}${out}`
+        `${last ? ',format=yuv420p' : ''}${out}`
+    );
+    prev = out;
+  }
+
+  // 하나는 자막 오버레이 **위**에 얹는다. 예전 HTML에서도 진행자가 스크림보다 앞이었고,
+  // 아래에 두면 스크림 그라디언트(하단 82%)에 얼굴이 어두워진다.
+  for (let k = 0; k < personaLayers.length; k++) {
+    const p = personaLayers[k];
+    const ii = pStart + k * 2;
+    const mi = ii + 1;
+    const { canvasW, canvasH, x, y } = p.place;
+    // 이미지: 배치 크기로 확대 + 배경 영상 톤에 맞춰 아주 살짝 눌러준다(오려낸 티 완화)
+    g.push(
+      `[${ii}:v]scale=${canvasW}:${canvasH},setsar=1,eq=brightness=-0.02:saturation=0.97,format=rgba[pi${k}]`
+    );
+    // 마스크: 같은 크기로 확대 후 가장자리를 부드럽게(칼로 오린 티 제거)
+    g.push(`[${mi}:v]scale=${canvasW}:${canvasH},format=gray,gblur=sigma=1.8[pm${k}]`);
+    g.push(`[pi${k}][pm${k}]alphamerge[pa${k}]`);
+
+    const last = k === personaLayers.length - 1;
+    const out = last ? '[vout]' : `[pv${k}]`;
+    g.push(
+      `${prev}[pa${k}]overlay=x='${x}${personaDriftX.startsWith('-') ? '' : '+'}${personaDriftX}':` +
+        `y='${y}+${personaDriftY}':enable='between(t,${p.start.toFixed(3)},${p.end.toFixed(3)})'` +
+        `${last ? ',format=yuv420p' : ''}${out}`
     );
     prev = out;
   }
@@ -249,7 +341,13 @@ async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath) {
 // framePaths[0]=훅, [1..]=자막 라인. segments[i]는 라인 i의 오디오({audioPath,duration}).
 // bgVideo를 주면 실사 영상 배경 + 투명 오버레이 방식으로, 없으면 정지 프레임 켄번즈 방식으로.
 // 반환: 생성된 mp4 경로.
-export async function makeNarratedReel(candidateId, framePaths, segments, { bgVideo = null } = {}) {
+export async function makeNarratedReel(
+  candidateId,
+  framePaths,
+  segments,
+  // personaLayers를 미리 계산해 넘기면 그대로 쓴다(호출부가 렌더 전에 매트 성공 여부를 알아야 하므로).
+  { bgVideo = null, persona = null, personaLayers = null } = {}
+) {
   if (framePaths.length !== segments.length) {
     throw new Error(`프레임(${framePaths.length})과 오디오 세그먼트(${segments.length}) 수가 같아야 함`);
   }
@@ -264,9 +362,13 @@ export async function makeNarratedReel(candidateId, framePaths, segments, { bgVi
 
   // 실사 영상 배경이 있으면 오버레이 방식으로.
   if (bgVideo) {
-    await buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath);
+    const layers = personaLayers ?? (await personaLayersFor(persona, durations));
+    await buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, layers);
     const d = await validate(outPath);
-    console.log(`[video] 나레이션 릴스(실사배경) ${d.toFixed(1)}초 (라인 ${segments.length}개)`);
+    console.log(
+      `[video] 나레이션 릴스(실사배경) ${d.toFixed(1)}초 (라인 ${segments.length}개` +
+        `${layers.length ? `, 하나 ${layers.length}컷 오려냄` : ''})`
+    );
     return outPath;
   }
 
