@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 하나 브이로그 생성 → 텔레그램 전송. 자동 발행하지 않는다. -->
-<!-- 낮 13시(지금 하는 일) / 저녁 21시(오늘 있었던 일). 뉴스 슬롯(06·18시)과 겹치지 않게 배치. -->
+<!-- 낮 11시(지금 하는 일) / 저녁 20시(오늘 있었던 일). 뉴스 슬롯(06·18시)과 겹치지 않게 배치. -->
 <!-- 실패해도 뉴스 발행에 영향이 없으므로 재시도 창은 두지 않는다. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -28,8 +28,8 @@
 
   <key>StartCalendarInterval</key>
   <array>
-    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
   </array>
 
   <key>RunAtLoad</key>
