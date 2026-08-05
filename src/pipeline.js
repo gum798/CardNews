@@ -13,7 +13,7 @@ import { renderCandidate, renderReelLines } from './renderer/index.js';
 import { makeReel, makeNarratedReel, grabPoster } from './video/index.js';
 import { synthesizeLines } from './tts/index.js';
 import { scriptViolations, ADVICE_GUARD_PROMPT } from './guards/policy.js';
-import { getReelKeyframes } from './persona/keyframe.js';
+import { getReelKeyframes, publishKey } from './persona/keyframe.js';
 import { uploadCandidate, uploadFile } from './storage/index.js';
 import { checkPublishingLimit, publishCarousel, publishReel } from './publisher/index.js';
 import { uploadShort } from './youtube/index.js';
@@ -131,7 +131,13 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
         }
 
         // 3b. 진행자 하나 (베스트에포트). 인트로/아웃트로에만 등장한다.
-        const personaFrames = reelCfg.persona ? await getReelKeyframes() : null;
+        // 발행마다 다른 그림이 나오도록 날짜·슬롯·주제를 키로 준다.
+        // 키가 같으면(같은 발행의 재시도) 캐시가 먹어 그림이 튀지 않는다.
+        const personaFrames = reelCfg.persona
+          ? await getReelKeyframes({
+              key: publishKey({ slot: new Date().getHours() < 12 ? 'am' : 'pm', topic: cand.topic }),
+            })
+          : null;
 
         // 훅도 낭독한다 → 0초부터 소리가 나고, 프레임과 오디오가 1:1로 맞는다.
         const narrationLines = [cardData.script.hook, ...cardData.script.lines];

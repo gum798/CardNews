@@ -1,10 +1,16 @@
-// 페르소나 키프레임: 씬별 하나 이미지를 생성하고 캐시한다.
+// 페르소나 키프레임: 릴스에 넣을 하나 이미지를 얻는다.
 //
-// 매 발행마다 새로 생성하면 (a) 비용이 쌓이고 (b) 방·얼굴이 미세하게 흔들린다.
-// 씬 종류는 몇 개 안 되므로(인트로/아웃트로 × 룩) 캐시해서 재사용하는 게 낫다.
-// 캐시 키에 phase를 넣어 점 제거 전/후가 섞이지 않게 한다.
+// ⚠️ 예전에는 씬+시기로만 캐시 키를 잡아 같은 파일이 영원히 재사용됐다.
+//    그래서 어제 뉴스와 오늘 뉴스에 똑같은 사진이 나갔다.
+//    이제 키에 날짜·슬롯·주제를 넣어 발행마다 다른 그림이 나온다.
+//    같은 발행 안에서는 캐시가 그대로 먹으므로 재시도해도 그림이 튀지 않는다.
+//
+// 그림을 얻는 순서:
+//   1) 전날 브이로그 사진 중 어울리는 것 재사용 (있으면 — 캐릭터의 하루가 이어져 보인다)
+//   2) 새로 생성
+//   3) 둘 다 실패하면 null (페르소나는 부가 요소라 발행을 막지 않는다)
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { paths } from '../config.js';
@@ -19,55 +25,117 @@ export function anchorPath(phase = process.env.PERSONA_PHASE || 'before') {
   return existsSync(p) ? p : null;
 }
 
-// 릴스에서 쓰는 고정 씬. 여기서 벗어난 씬은 만들지 않는다 — 종류가 늘면 캐시 효율이 죽는다.
+// 릴스 씬. 행동을 여러 개 두고 날짜로 골라 매번 다른 그림이 나오게 한다.
 export const SCENES = {
   intro: {
     look: 'news',
     angle: 'front',
-    action: 'sitting at the desk, looking straight at the camera, about to start speaking',
+    actions: [
+      'sitting at the desk with the laptop open, mid-sentence, one hand on a printed page',
+      'leaning back in the chair with a mug in both hands, about to say something',
+      'sitting cross-legged on the floor by the bed with the laptop on her lap',
+      'perched on the edge of the desk chair, turned toward the camera, pen still in hand',
+      'sitting at the desk with the notebook open, glancing up from it',
+    ],
   },
   outro: {
     look: 'news',
     angle: 'right',
-    action: 'sitting at the desk, slight friendly smile, wrapping up',
+    actions: [
+      'sitting at the desk, a small tired smile, wrapping up',
+      'closing the laptop lid with one hand, looking slightly off camera',
+      'stretching her shoulders back after finishing, half smiling',
+      'resting her chin on her hand, looking past the camera, thinking',
+      'reaching for the mug at the edge of the desk, mid-motion',
+    ],
   },
 };
 
-function cacheKey(sceneName, phase) {
-  const s = SCENES[sceneName];
-  const src = JSON.stringify({ sceneName, phase, s, room: hana.setting.roomPrompt });
-  return createHash('sha1').update(src).digest('hex').slice(0, 12);
+// 발행 단위 키. 날짜·슬롯·주제가 바뀌면 새 그림이 나온다.
+export function publishKey({ date, slot = '', topic = '' } = {}) {
+  const d = date || new Date();
+  const stamp =
+    typeof d === 'string'
+      ? d
+      : `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  return `${stamp}-${slot}-${topic}`;
 }
 
-// 씬 이미지를 얻는다. 캐시에 있으면 그대로, 없으면 생성 후 저장.
-// 실패하면 null — 페르소나는 부가 요소라 이것 때문에 발행이 멈추면 안 된다.
-export async function getKeyframe(sceneName, { phase = process.env.PERSONA_PHASE || 'before' } = {}) {
+function pickAction(scene, seed) {
+  let h = 0x811c9dc5;
+  for (const c of String(seed)) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  return scene.actions[(h >>> 0) % scene.actions.length];
+}
+
+// 전날 브이로그 사진 중 쓸 만한 것. 캐릭터의 하루가 뉴스로 이어져 보인다.
+// 어제 것을 우선하고 없으면 최근 것. 얼굴이 나온 첫 장(photo-1)만 쓴다.
+export function recentVlogPhoto({ maxAgeDays = 3 } = {}) {
+  try {
+    const dirs = readdirSync(paths.out)
+      .filter((d) => /^vlog-\d{8}-(day|evening)$/.test(d))
+      .sort()
+      .reverse();
+    const today = new Date();
+    for (const d of dirs) {
+      const stamp = d.slice(5, 13); // YYYYMMDD
+      const dt = new Date(
+        Number(stamp.slice(0, 4)),
+        Number(stamp.slice(4, 6)) - 1,
+        Number(stamp.slice(6, 8))
+      );
+      const ageDays = (today - dt) / 86_400_000;
+      if (ageDays < 0 || ageDays > maxAgeDays) continue;
+      const p = path.join(paths.out, d, 'photo-1.png');
+      if (existsSync(p)) return p;
+    }
+  } catch {
+    /* out 디렉터리가 없을 수 있다 */
+  }
+  return null;
+}
+
+// 씬 이미지를 얻는다. key가 바뀌면 새로 만든다.
+export async function getKeyframe(
+  sceneName,
+  { phase = process.env.PERSONA_PHASE || 'before', key = publishKey() } = {}
+) {
   const scene = SCENES[sceneName];
   if (!scene) return null;
 
   await mkdir(CACHE_DIR, { recursive: true });
-  const file = path.join(CACHE_DIR, `${sceneName}-${phase}-${cacheKey(sceneName, phase)}.png`);
-  if (existsSync(file)) return file;
+  const h = createHash('sha1').update(`${sceneName}|${phase}|${key}`).digest('hex').slice(0, 10);
+  const file = path.join(CACHE_DIR, `${sceneName}-${phase}-${h}.png`);
+  if (existsSync(file)) return file; // 같은 발행 안에서는 재사용(재시도해도 그림이 안 튄다)
 
   try {
     // 앵커를 레퍼런스로 첨부해야 같은 사람이 유지된다.
-    // 첨부 없이 텍스트 묘사만으로 버티면 얼굴 묘사를 길게 써야 하고,
-    // 그러면 토큰이 얼굴로 쏠려 촬영 조건 지시가 묻혀 "AI 티"가 남는다.
     const anchor = anchorPath(phase);
     const prompt = scenePrompt(hana, {
       look: scene.look,
       angle: scene.angle,
-      scene: scene.action,
+      scene: pickAction(scene, `${sceneName}-${key}`),
       phase,
       framing: 'reel',
       withReference: Boolean(anchor),
-      seed: `${sceneName}-${phase}`,
+      seed: `${sceneName}-${key}`,
     });
     await generateImage(prompt, { outPath: file, refImages: anchor ? [anchor] : [] });
-    console.log(`[persona] 키프레임 생성 ${sceneName}/${phase}${anchor ? ' (앵커 첨부)' : ''}`);
+    console.log(`[persona] 키프레임 생성 ${sceneName} (${key})`);
     return file;
   } catch (e) {
     console.warn(`[persona] 키프레임 실패 (${sceneName}): ${e.message.slice(0, 120)}`);
+    // 생성이 막히면(할당량 등) 최근 브이로그 사진으로 대체한다.
+    const fallback = recentVlogPhoto();
+    if (fallback) {
+      console.log(`[persona] 최근 브이로그 사진으로 대체: ${path.basename(path.dirname(fallback))}`);
+      return fallback;
+    }
     return null;
   }
 }
