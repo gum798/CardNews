@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 import { claude } from '../config.js';
 import { getMeta, setMeta } from '../db/index.js';
 import { hana, placeForTheme, expressionForTheme } from '../persona/hana.js';
+import { getSeoulWeather, weatherBrief } from '../weather/seoul.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -95,6 +96,8 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
   const place = placeForTheme(theme);
   const expression = expressionForTheme(theme);
   const brief = hana.themeBriefs?.[theme] || '';
+  // 날씨를 모르면 8월에 「쌀쌀하네요」 같은 글이 나온다.
+  const weather = await getSeoulWeather();
   const s = SLOT_GUIDE[slot] || SLOT_GUIDE.day;
   const p = hana.profile;
   const v = hana.voice;
@@ -115,6 +118,8 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
     (place !== 'room' ? `- 장소: ${hana.setting.summaryFor?.[place] || PLACE_LABEL[place]} — 집이 아닙니다. 이 장소에서 할 법한 행동만 쓰세요.\n` : '') +
     `- ${s.guide}\n` +
     (brief ? `\n[이 소재의 상황 — 반드시 반영]\n${brief}\n` : '') +
+    `\n[오늘 날씨]\n${weatherBrief(weather)}\n` +
+    '날씨를 글 소재로 억지로 끌어들이지는 마세요. 다만 계절과 어긋나는 말은 절대 쓰지 마세요.\n' +
     '\n' +
     `[말투]\n${v.tone}\n${v.rules.map((r) => '- ' + r).join('\n')}\n\n` +
     `[⚠️ 인스타 글쓰기 규칙]\n` +
@@ -148,6 +153,7 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
     theme,
     place,
     expression,
+    weather,
     caption,
     hashtags: (parsed.hashtags || []).slice(0, 6).map(String),
     photos: photos.slice(0, 3).map((x) => ({ action: String(x.action), look: s.lookHint })),

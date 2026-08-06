@@ -318,6 +318,7 @@ export function scenePrompt(
     place = 'room', // setting.places 키. 방 밖에서 찍는 날에 쓴다.
     styling = '', // looks[look] 대신 쓸 구체 복장. 게시물 안에서 옷을 고정할 때.
     expression = '', // 표정 지정. 안 주면 imperfections가 만드는 무심한 얼굴.
+    seasonNote = '', // 계절 보정. 고정 배치 중 계절에 안 맞는 물건을 덮어쓴다.
   } = {}
 ) {
   const a = persona.appearance;
@@ -344,7 +345,9 @@ export function scenePrompt(
     //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
     withReference ? '' : fragment,
     `Styling: ${styling || a.looks[look]}`,
+    a.figurePrompt || '',
     persona.setting?.places?.[place] || persona.setting?.roomPrompt || '',
+    seasonNote,
     scene ? `Action: ${scene}` : '',
     FRAMING[framing] || FRAMING.reel,
     angleText,

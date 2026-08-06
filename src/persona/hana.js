@@ -39,6 +39,21 @@ export const hana = {
     // (취준하며 증명사진 때문에 점 빼는 이야기). 외모가 바뀌는 이유가 스토리 안에서 설명된다.
     marks: '왼쪽 눈 밑 눈물점 1개 (영구)',
     hair: '어깨에 닿는 단발, 가늘고 옅은 갈색, 자연스러운 c컬',
+
+    // 체형. 앵커 이미지는 상반신뿐이라 얼굴만 잡아주고 몸은 프롬프트가 정한다.
+    // 그래서 여기 안 써두면 컷마다 체형이 흔들린다.
+    figure: '글래머 체형 — 가슴이 있는 편, 허리는 들어가고 어깨는 좁은 편',
+    figurePrompt:
+      'Her build: a curvy hourglass figure — fuller bust, a clearly defined narrow waist, ' +
+      'soft rounded shoulders and hips, 164cm. Natural proportions, not exaggerated or drawn. ' +
+      // ⚠️ 계정은 뉴스·일상 브랜드다. 체형을 지정했다고 옷이 붙거나 노출되면
+      //    인스타·유튜브 정책상 도달이 깎이고 캐릭터 톤도 무너진다.
+      //    다만 「헐렁하게」로 못박으면 체형이 아예 안 드러난다(실제로 그랬다).
+      //    평범한 핏 — 실루엣은 보이되 몸을 보여주는 사진은 아니게.
+      'She wears exactly the everyday clothing described above in a normal regular fit that ' +
+      'follows her shape without clinging to it — not oversized, not tight, ' +
+      'nothing low-cut and no cleavage on show. ' +
+      'The framing stays on her face and on what she is doing, never on her body.',
     // ⚠️ 앵커 이미지 1장을 만들 때만 쓴다. 씬 프롬프트에는 identityLock을 쓴다.
     // 이 문자열을 바꾸면 다른 사람이 된다. 바꾸면 앵커 재생성 + 캐시 전량 삭제 필수.
     //
@@ -91,7 +106,11 @@ export const hana = {
       'same sizes, on the same side of her face. Do not move them, do not resize them, ' +
       // ⚠️ 손을 빼먹으면 손등·손가락에 없던 점이 생긴다(실제로 그랬다).
       //    얼굴만 잠그면 모델이 "점 있는 사람"으로 해석해 노출된 피부 아무 데나 찍는다.
-      'do not add any extra moles, freckles or blemishes anywhere — ' +
+      // ⚠️ 여기서 blemish(잡티)까지 금지하면 안 된다. 프롬프트 뒤쪽 IMPERFECTIONS가
+      //    일부러 잡티·트러블을 요구하는데, 앞에서 금지하면 정면 충돌이라
+      //    모델이 얼굴에 점을 잔뜩 찍는 쪽으로 해소해 버린다(실제로 그랬다).
+      //    잠글 것은 신원 표식(점·주근깨)뿐이다. 그날그날의 피부 상태는 IMPERFECTIONS 담당.
+      'do not add any extra moles or freckles anywhere — ' +
       'not on her face, neck, hands, fingers or arms. ' +
       'Do not mirror or flip the image. ' +
       'Do not restyle, beautify, slim or smooth her face.',
@@ -126,12 +145,43 @@ export const hana = {
     // ⚠️ looks.daily는 「맨투맨이나 후디」처럼 열려 있어서 한 게시물 안에서도 장마다
     //    옷이 바뀐다(같은 끼니인데 1장은 회색 후디, 2장은 남색 맨투맨으로 나온 적 있다).
     //    게시물 단위로 하나를 뽑아 고정한다. 날마다는 달라지고, 한 게시물 안에서는 같다.
-    dailyOutfits: [
-      '오버사이즈 회색 후디에 검정 트레이닝 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음',
-      '네이비 오버사이즈 맨투맨에 연청 데님, 민낯에 립밤만, 머리 반묶음',
-      '베이지 얇은 가디건에 흰 반팔 티, 민낯에 립밤만, 머리 귀 뒤로 넘김',
-      '검정 오버사이즈 맨투맨에 회색 조거 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음',
-    ],
+    //
+    // ⚠️ 계절을 무시하면 그 자체로 가짜 티가 난다. 8월에 후디를 입고 있으면
+    //    사람들은 이유를 설명 못 해도 어색함을 느낀다. 기온대별로 나눠 둔다.
+    //    (src/weather/seoul.js의 BANDS 키와 1:1로 맞춘다)
+    dailyOutfitsByBand: {
+      midsummer: [
+        '얇은 흰 반팔 티에 연청 데님 반바지, 민낯에 립밤만, 머리 하나로 대충 묶음',
+        '얇은 라이트그레이 반팔 티에 검정 코튼 반바지, 민낯에 립밤만, 머리 반묶음',
+        '얇은 소라색 반팔 티에 베이지 린넨 바지, 민낯에 립밤만, 머리 하나로 대충 묶음',
+        '얇은 검정 반팔 티에 연청 데님, 민낯에 립밤만, 목에 땀 식히는 손수건, 머리 하나로 대충 묶음',
+      ],
+      summer: [
+        '흰 반팔 티에 연청 데님, 민낯에 립밤만, 머리 하나로 대충 묶음',
+        '스트라이프 반팔 티에 검정 코튼 팬츠, 민낯에 립밤만, 머리 반묶음',
+        '연회색 반팔 티에 베이지 린넨 바지, 민낯에 립밤만, 머리 귀 뒤로 넘김',
+      ],
+      mild: [
+        '베이지 얇은 가디건에 흰 반팔 티, 민낯에 립밤만, 머리 귀 뒤로 넘김',
+        '얇은 네이비 맨투맨에 연청 데님, 민낯에 립밤만, 머리 반묶음',
+        '흰 셔츠에 검정 슬랙스, 민낯에 립밤만, 머리 하나로 대충 묶음',
+      ],
+      cool: [
+        '오버사이즈 회색 후디에 검정 트레이닝 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음',
+        '네이비 오버사이즈 맨투맨에 연청 데님, 민낯에 립밤만, 머리 반묶음',
+        '검정 오버사이즈 맨투맨에 회색 조거 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음',
+      ],
+      cold: [
+        '두꺼운 회색 니트에 검정 슬랙스, 민낯에 립밤만, 머리 하나로 대충 묶음',
+        '오트밀색 케이블 니트에 연청 데님, 민낯에 립밤만, 머리 반묶음',
+        '검정 후디 위에 카키 플리스, 민낯에 립밤만, 머리 하나로 대충 묶음',
+      ],
+      winter: [
+        '두꺼운 크림색 니트에 검정 기모 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음, 실내라 패딩은 의자에 걸어둠',
+        '진회색 터틀넥 니트에 검정 슬랙스, 민낯에 립밤만, 머리 반묶음',
+        '네이비 두꺼운 후디에 회색 기모 조거, 민낯에 립밤만, 머리 하나로 대충 묶음',
+      ],
+    },
   },
 
   // ── 촬영 공간 ───────────────────────────────────────────────
@@ -291,6 +341,11 @@ hana.setting.places.room = hana.setting.roomPrompt;
 // 소재 → 장소. 매핑이 없으면 방이다.
 export function placeForTheme(theme) {
   return hana.themePlaces?.[theme] || 'room';
+}
+
+// 기온대에 맞는 복장 풀. 알 수 없는 밴드면 선선한 봄가을로.
+export function outfitsForBand(band) {
+  return hana.appearance.dailyOutfitsByBand[band] || hana.appearance.dailyOutfitsByBand.mild;
 }
 
 // 소재 → 표정. 없으면 빈 문자열(기본 표정).

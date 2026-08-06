@@ -12,7 +12,8 @@ import { savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
 import { anchorPath } from '../persona/keyframe.js';
-import { hana } from '../persona/hana.js';
+import { hana, outfitsForBand } from '../persona/hana.js';
+import { seasonNoteFor } from '../weather/seoul.js';
 import { paths, telegram } from '../config.js';
 import { setMeta } from '../db/index.js';
 
@@ -65,6 +66,7 @@ async function main() {
   // VLOG_THEME으로 오늘 소재를 지정할 수 있다(수동 실행). 장소는 소재가 정한다.
   const post = await writeVlogPost(slot, { theme: process.env.VLOG_THEME || undefined });
   console.log(`[vlog] 소재: ${post.theme} / 장소: ${post.place} / 사진 ${post.photos.length}장`);
+  console.log(`[vlog] 날씨: ${post.weather.label} ${post.weather.tempC}도 (${post.weather.source})`);
 
   const outDir = path.join(paths.out, id);
   await mkdir(outDir, { recursive: true });
@@ -75,8 +77,9 @@ async function main() {
   const anchor = anchorPath();
   // 게시물 단위로 복장 하나를 고정한다. looks.daily는 열려 있어서 그대로 두면
   // 같은 끼니인데 장마다 다른 옷이 나온다.
-  const outfit =
-    hana.appearance.dailyOutfits[hashSeed(id) % hana.appearance.dailyOutfits.length];
+  // 기온대에 맞는 풀에서 하나를 뽑는다. 8월에 후디를 입고 있으면 그 자체로 가짜 티가 난다.
+  const pool = outfitsForBand(post.weather.band);
+  const outfit = pool[hashSeed(id) % pool.length];
   // 방에서는 세 번째 컷만 플래시(밤 감성). 밖에서는 전부 낮 혼합광 —
   // feedWindow/feedFlash가 「그녀의 방」·「밤」을 전제해서 장소 묘사와 싸운다.
   const framings =
@@ -103,6 +106,7 @@ async function main() {
           place: post.place,
           styling: ph.look === 'daily' ? outfit : '',
           expression: post.expression || '',
+          seasonNote: seasonNoteFor(post.weather.band),
           withReference: Boolean(anchor),
           seed: `${id}-${i}`,
         }),
