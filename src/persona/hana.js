@@ -89,7 +89,10 @@ export const hana = {
       'same shoulder-length light brown hair with darker roots at the part. ' +
       'Copy her moles exactly as they appear in the reference image — same count, same positions, ' +
       'same sizes, on the same side of her face. Do not move them, do not resize them, ' +
-      'do not add any extra moles, freckles or blemishes anywhere on her face or neck. ' +
+      // ⚠️ 손을 빼먹으면 손등·손가락에 없던 점이 생긴다(실제로 그랬다).
+      //    얼굴만 잠그면 모델이 "점 있는 사람"으로 해석해 노출된 피부 아무 데나 찍는다.
+      'do not add any extra moles, freckles or blemishes anywhere — ' +
+      'not on her face, neck, hands, fingers or arms. ' +
       'Do not mirror or flip the image. ' +
       'Do not restyle, beautify, slim or smooth her face.',
 
@@ -236,6 +239,27 @@ export const hana = {
     '편의점 도시락': 'convenienceStore',
   },
 
+  // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
+  // ⚠️ 영어로 쓴다 — 이미지 프롬프트에 그대로 들어간다.
+  //    "happy" 같은 단어는 활짝 웃는 스톡 사진으로 끌고 가므로 쓰지 않는다.
+  //    억누른 감정으로 서술해야 사람 얼굴이 나온다.
+  themeExpressions: {
+    '피부과 예약':
+      'a small private smile she is trying not to show, lips pressed together with one corner slightly up, ' +
+      'eyes a little brighter and more awake than usual, eyebrows raised just a fraction — ' +
+      'quietly pleased and a bit nervous at the same time, not grinning, not posing',
+  },
+
+  // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
+  themeBriefs: {
+    '피부과 예약':
+      '입가에 점 두 개가 있는데, 증명사진을 다시 찍을 때마다 그게 계속 신경 쓰였다. ' +
+      '공채 마감 전에 큰맘 먹고 오늘 드디어 피부과에 예약을 걸었다. ' +
+      '시술은 아직 안 받았다 — 예약만 잡은 날이다. ' +
+      '큰 결심이라기보다 계속 미루던 걸 드디어 눌렀다는 느낌. ' +
+      '설레는데 그걸 크게 티내진 않는다. 비용이나 아플까 하는 걱정도 살짝 있다.',
+  },
+
   dailyThemes: {
     day: [
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
@@ -244,6 +268,7 @@ export const hana = {
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
       '스터디원과 있었던 일', '탈락 통보 받은 날', '집 가는 길 생각', '내일 계획',
+      '피부과 예약', // storyArc: mole-removal 두 번째 비트
     ],
   },
 
@@ -266,6 +291,11 @@ hana.setting.places.room = hana.setting.roomPrompt;
 // 소재 → 장소. 매핑이 없으면 방이다.
 export function placeForTheme(theme) {
   return hana.themePlaces?.[theme] || 'room';
+}
+
+// 소재 → 표정. 없으면 빈 문자열(기본 표정).
+export function expressionForTheme(theme) {
+  return hana.themeExpressions?.[theme] || '';
 }
 
 export default hana;

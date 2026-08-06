@@ -169,7 +169,10 @@ const FRAMING = {
     'Vertical 4:5, taken at night in her room with the phone flash on. ' +
     'The flash is the only light: a hard specular highlight on her forehead, nose and cheekbones, ' +
     'a sharp dark shadow thrown onto the wall behind her, and the background falling off to near black. ' +
-    'Her eyes catch a small round flash reflection. Slight red-eye correction artifact. ' +
+    // ⚠️ 'red-eye artifact'를 요구하면 모델이 눈동자를 진짜 새빨갛게 칠한다(실제로 그랬다).
+    //    적목은 "달라고 하는 결함"이 아니다. 플래시 반사만 남기고 눈 색은 건드리지 않게 한다.
+    'Her eyes catch a small round flash reflection. Her irises stay their natural dark brown — ' +
+    'no red or coloured pupils, no glowing eyes. ' +
     'Colours look slightly washed out and cool the way direct phone flash renders skin. ' +
     'Handheld, framing casual and a little crooked.',
 
@@ -314,6 +317,7 @@ export function scenePrompt(
     composition = null, // COMPOSITIONS 키. 주면 angle 대신 이걸 쓴다.
     place = 'room', // setting.places 키. 방 밖에서 찍는 날에 쓴다.
     styling = '', // looks[look] 대신 쓸 구체 복장. 게시물 안에서 옷을 고정할 때.
+    expression = '', // 표정 지정. 안 주면 imperfections가 만드는 무심한 얼굴.
   } = {}
 ) {
   const a = persona.appearance;
@@ -344,9 +348,14 @@ export function scenePrompt(
     scene ? `Action: ${scene}` : '',
     FRAMING[framing] || FRAMING.reel,
     angleText,
+    expression ? `Her expression: ${expression}.` : '',
     `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`)}`,
     'Unedited camera roll photo. No filter, no retouching, no beauty app.',
     'No legible text or characters anywhere in the image, no watermark, no logo.',
+    // 화면은 글자를 부르는 가장 강한 유인이다. 따로 못박지 않으면 영문 UI를 그려 넣어
+    // (한국인 일상 사진에 영어 앱 화면) 단번에 AI 티가 난다.
+    'Any phone, laptop or monitor screen in frame shows only blurred, indistinct interface shapes — ' +
+    'no readable words, no numbers, no app names, and no visible brand logos on any device.',
   ]
     .filter(Boolean)
     .join('\n');

@@ -102,6 +102,7 @@ async function main() {
           framing: framings[i % framings.length],
           place: post.place,
           styling: ph.look === 'daily' ? outfit : '',
+          expression: post.expression || '',
           withReference: Boolean(anchor),
           seed: `${id}-${i}`,
         }),
