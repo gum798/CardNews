@@ -131,6 +131,7 @@ async function main() {
     theme: post.theme,
     caption,
     files,
+    outfit, // 나중에 컷을 더 붙일 때 같은 옷을 쓰려면 남겨둬야 한다
     selected: files.map(() => true),
     status: 'pending',
   });
