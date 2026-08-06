@@ -10,7 +10,7 @@ import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
 import { writeVlogPost } from '../curator/vlog.js';
-import { generateImage, scenePrompt, COMPOSITION_SETS } from '../persona/image.js';
+import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
 import { anchorPath } from '../persona/keyframe.js';
 import { hana } from '../persona/hana.js';
 import { paths, telegram } from '../config.js';
@@ -62,8 +62,9 @@ async function main() {
   const id = postId(slot);
   console.log(`[vlog] start slot=${slot} id=${id}`);
 
-  const post = await writeVlogPost(slot);
-  console.log(`[vlog] 소재: ${post.theme} / 사진 ${post.photos.length}장`);
+  // VLOG_THEME으로 오늘 소재를 지정할 수 있다(수동 실행). 장소는 소재가 정한다.
+  const post = await writeVlogPost(slot, { theme: process.env.VLOG_THEME || undefined });
+  console.log(`[vlog] 소재: ${post.theme} / 장소: ${post.place} / 사진 ${post.photos.length}장`);
 
   const outDir = path.join(paths.out, id);
   await mkdir(outDir, { recursive: true });
@@ -72,13 +73,22 @@ async function main() {
   // 매번 같은 "책상 앞 반신"이면 계정 전체가 한 장짜리처럼 보인다.
   // 슬롯마다 구도 세트를 다르게 두고, 그 안에서 날짜 시드로 섞는다.
   const anchor = anchorPath();
-  const framings = ['feedWindow', 'feedWindow', 'feedFlash']; // 세 번째 컷만 플래시
+  // 게시물 단위로 복장 하나를 고정한다. looks.daily는 열려 있어서 그대로 두면
+  // 같은 끼니인데 장마다 다른 옷이 나온다.
+  const outfit =
+    hana.appearance.dailyOutfits[hashSeed(id) % hana.appearance.dailyOutfits.length];
+  // 방에서는 세 번째 컷만 플래시(밤 감성). 밖에서는 전부 낮 혼합광 —
+  // feedWindow/feedFlash가 「그녀의 방」·「밤」을 전제해서 장소 묘사와 싸운다.
+  const framings =
+    post.place === 'room'
+      ? ['feedWindow', 'feedWindow', 'feedFlash']
+      : ['feedPublic', 'feedPublic', 'feedPublic'];
   // 첫 장은 반드시 셀카 — 피드 썸네일에 얼굴이 걸려야 한다.
   const set = COMPOSITION_SETS[slot] || COMPOSITION_SETS.day;
-  const compositions = [
-    shuffleWithSeed(set.first, id)[0],
-    ...shuffleWithSeed(set.rest, id),
-  ];
+  // 밖에서 찍는 날엔 방 전용 구도(전신거울·방 전경)를 뺀다.
+  const first = compositionsForPlace(set.first, post.place);
+  const rest = compositionsForPlace(set.rest, post.place);
+  const compositions = [shuffleWithSeed(first, id)[0], ...shuffleWithSeed(rest, id)];
   const files = [];
   for (let i = 0; i < post.photos.length; i++) {
     const ph = post.photos[i];
@@ -90,6 +100,8 @@ async function main() {
           composition: compositions[i % compositions.length],
           scene: ph.action,
           framing: framings[i % framings.length],
+          place: post.place,
+          styling: ph.look === 'daily' ? outfit : '',
           withReference: Boolean(anchor),
           seed: `${id}-${i}`,
         }),

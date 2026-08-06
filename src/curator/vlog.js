@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { claude } from '../config.js';
 import { getMeta, setMeta } from '../db/index.js';
-import { hana } from '../persona/hana.js';
+import { hana, placeForTheme } from '../persona/hana.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -70,6 +70,10 @@ function pickTheme(slot) {
   return chosen;
 }
 
+const PLACE_LABEL = {
+  convenienceStore: '편의점 (창가 취식 카운터에서 도시락)',
+};
+
 const SLOT_GUIDE = {
   day: {
     label: '낮 — 지금 하고 있는 일',
@@ -85,8 +89,10 @@ const SLOT_GUIDE = {
 
 // slot: 'day' | 'evening'
 // → { theme, caption, hashtags[], photos:[{ action, look }] }
-export async function writeVlogPost(slot = 'day') {
-  const theme = pickTheme(slot);
+export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
+  // 소재를 지정하면 풀에서 뽑지 않는다(수동 실행에서 오늘 소재를 바꿀 때).
+  const theme = forcedTheme || pickTheme(slot);
+  const place = placeForTheme(theme);
   const s = SLOT_GUIDE[slot] || SLOT_GUIDE.day;
   const p = hana.profile;
   const v = hana.voice;
@@ -104,6 +110,7 @@ export async function writeVlogPost(slot = 'day') {
     `[이번 게시물]\n` +
     `- 시간대: ${s.label}\n` +
     `- 소재: ${theme}\n` +
+    (place !== 'room' ? `- 장소: ${hana.setting.summaryFor?.[place] || PLACE_LABEL[place]} — 집이 아닙니다. 이 장소에서 할 법한 행동만 쓰세요.\n` : '') +
     `- ${s.guide}\n\n` +
     `[말투]\n${v.tone}\n${v.rules.map((r) => '- ' + r).join('\n')}\n\n` +
     `[⚠️ 인스타 글쓰기 규칙]\n` +
@@ -135,6 +142,7 @@ export async function writeVlogPost(slot = 'day') {
   return {
     slot,
     theme,
+    place,
     caption,
     hashtags: (parsed.hashtags || []).slice(0, 6).map(String),
     photos: photos.slice(0, 3).map((x) => ({ action: String(x.action), look: s.lookHint })),

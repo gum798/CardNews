@@ -177,6 +177,17 @@ const FRAMING = {
     'Vertical 9:16 with room above her head. Shot on a phone propped on the desk, 26mm equivalent, f/1.8. ' +
     'Window light from camera left only — one side of her face clearly darker, a shadow under the jaw. ' +
     'Focus on her face, the room behind still legible. Mild grain in the shadows, corners a touch darker.',
+
+  // 집 밖에서 낮에 찍은 컷. feedWindow/feedFlash는 「그녀의 방」·「밤」을 전제하므로
+  // 편의점·카페 같은 장소에서 쓰면 장소 묘사와 정면으로 싸운다.
+  feedPublic:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken in the middle of the day. ' +
+    'Two light sources fight each other: flat daylight through the big window beside her and ' +
+    'greenish fluorescent tubes overhead, so the white balance never fully resolves — ' +
+    'the daylight side of her face reads slightly blue, the shadow side slightly green. ' +
+    'The window side is about a stop and a half brighter and a little blown near the glass. ' +
+    'ISO 400: light grain, corners a touch dark and soft. ' +
+    'Handheld, the frame tilted a couple of degrees, framing casual and not quite level.',
 };
 
 // 사진 구도 풀. 인스타에 실제로 올라오는 형태들이다.
@@ -236,6 +247,17 @@ export const COMPOSITIONS = {
 
 // 슬롯별 구도 배분. 첫 장은 항상 셀카로 고정하고(피드 썸네일에 얼굴이 걸리게),
 // 나머지는 섞는다. 얼굴 없는 컷을 하나쯤 넣어야 피드에 리듬이 생긴다.
+// 방에서만 성립하는 구도. 밖에서 찍는 날엔 빼야 한다
+// (전신거울과 방 전경은 편의점·카페에 없다).
+export const ROOM_ONLY_COMPOSITIONS = ['mirrorSelfie', 'wideRoom'];
+
+// 장소에 맞는 구도만 남긴다. 전부 걸러지면 원본을 그대로 돌려준다(빈 배열 방지).
+export function compositionsForPlace(list, place) {
+  if (place === 'room') return list;
+  const kept = list.filter((c) => !ROOM_ONLY_COMPOSITIONS.includes(c));
+  return kept.length ? kept : list;
+}
+
 export const COMPOSITION_SETS = {
   day: {
     first: ['selfieOverhead', 'selfieHigh', 'selfieLow'],
@@ -290,6 +312,8 @@ export function scenePrompt(
     withReference = false,
     seed = '',
     composition = null, // COMPOSITIONS 키. 주면 angle 대신 이걸 쓴다.
+    place = 'room', // setting.places 키. 방 밖에서 찍는 날에 쓴다.
+    styling = '', // looks[look] 대신 쓸 구체 복장. 게시물 안에서 옷을 고정할 때.
   } = {}
 ) {
   const a = persona.appearance;
@@ -315,8 +339,8 @@ export function scenePrompt(
     //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
     //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
     withReference ? '' : fragment,
-    `Styling: ${a.looks[look]}`,
-    persona.setting?.roomPrompt || '',
+    `Styling: ${styling || a.looks[look]}`,
+    persona.setting?.places?.[place] || persona.setting?.roomPrompt || '',
     scene ? `Action: ${scene}` : '',
     FRAMING[framing] || FRAMING.reel,
     angleText,

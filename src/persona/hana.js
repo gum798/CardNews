@@ -119,6 +119,16 @@ export const hana = {
       daily: '오버사이즈 맨투맨이나 후디, 민낯에 립밤만, 머리 대충 묶음 (일상용)',
       dressed: '블랙 원피스, 또렷한 아이라인과 레드 립, 머리 웨이브 (꾸민 날)',
     },
+
+    // ⚠️ looks.daily는 「맨투맨이나 후디」처럼 열려 있어서 한 게시물 안에서도 장마다
+    //    옷이 바뀐다(같은 끼니인데 1장은 회색 후디, 2장은 남색 맨투맨으로 나온 적 있다).
+    //    게시물 단위로 하나를 뽑아 고정한다. 날마다는 달라지고, 한 게시물 안에서는 같다.
+    dailyOutfits: [
+      '오버사이즈 회색 후디에 검정 트레이닝 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음',
+      '네이비 오버사이즈 맨투맨에 연청 데님, 민낯에 립밤만, 머리 반묶음',
+      '베이지 얇은 가디건에 흰 반팔 티, 민낯에 립밤만, 머리 귀 뒤로 넘김',
+      '검정 오버사이즈 맨투맨에 회색 조거 팬츠, 민낯에 립밤만, 머리 하나로 대충 묶음',
+    ],
   },
 
   // ── 촬영 공간 ───────────────────────────────────────────────
@@ -145,6 +155,30 @@ export const hana = {
       'the window is the only light source, so one side of the room falls clearly darker; ' +
       'real clutter, not styled: a charging cable trailing across the floor, a crumpled tissue, ' +
       'a hoodie thrown over the chair back, a half-empty water bottle beside the desk leg.',
+
+    // 장소 풀. 방에서만 찍으면 계정이 한 장짜리처럼 보인다.
+    // 방과 마찬가지로 각 장소도 배치를 문장으로 고정해야 갈 때마다 다른 가게가 안 나온다.
+    places: {
+      // room은 아래에서 roomPrompt를 그대로 넣는다(중복 정의 방지).
+      convenienceStore:
+        'Setting: a small Korean convenience store, late morning, almost empty. ' +
+        'Fixed layout, keep identical in every image: ' +
+        'she sits at the narrow eat-in counter that runs along the full-height window facing the street; ' +
+        'a row of high wooden stools, she is on the second one from the left; ' +
+        'outside the window, an ordinary low-rise Korean side street with parked scooters, slightly overexposed daylight; ' +
+        'on the counter in front of her, an opened plastic lunchbox with rice and side dishes in separate compartments, ' +
+        'still faintly steaming, a pair of disposable wooden chopsticks, and a paper cup of water; ' +
+        'behind her, refrigerated drink cases with glass doors and shelves of snacks, slightly out of focus; ' +
+        'a microwave and hot water dispenser on a side counter in the background; ' +
+        'flat greenish fluorescent ceiling light mixed with daylight from the window — ' +
+        'this mix is what makes it read as a real convenience store, keep it; ' +
+        'lived-in details, not styled: a crumpled plastic film lid pushed to one side, ' +
+        'a receipt curled on the counter, her tote bag hooked on the back of the stool. ' +
+        // ⚠️ 편의점은 상품 라벨과 간판이 화면을 뒤덮는 곳이다. 글자를 요구하면 깨진 유사 한글이
+        //    잔뜩 나오고, 실제 브랜드가 나오면 상표 문제까지 생긴다. 양쪽 다 막는다.
+        'All product packaging, price tags, posters and signage must be plain, blurred or out of focus ' +
+        'with no readable characters and no real brand marks or logos anywhere.',
+    },
   },
 
   // ── 성격 ────────────────────────────────────────────────────
@@ -197,10 +231,15 @@ export const hana = {
 
   // ── 일상 브이로그 소재 풀 ───────────────────────────────────
   // 낮 = 지금 하는 일, 저녁 = 오늘 있었던 일. 소재가 겹치지 않게 분리.
+  // 소재별 촬영 장소. 여기 없으면 방(room)이다.
+  themePlaces: {
+    '편의점 도시락': 'convenienceStore',
+  },
+
   dailyThemes: {
     day: [
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
-      '망원동 카페에서 공부', '채용공고 훑기', '점심 도시락', '헬스장',
+      '망원동 카페에서 공부', '채용공고 훑기', '편의점 도시락', '헬스장',
     ],
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
@@ -220,5 +259,13 @@ export const hana = {
   // 실제 인물로 오인되면 더 큰 문제가 된다. 프로필·캡션에 명시할 문구.
   disclosure: 'AI로 만든 가상 인물입니다',
 };
+
+// room은 위 roomPrompt를 그대로 쓴다. 방 묘사를 한 곳에서만 고치면 되도록 여기서 연결한다.
+hana.setting.places.room = hana.setting.roomPrompt;
+
+// 소재 → 장소. 매핑이 없으면 방이다.
+export function placeForTheme(theme) {
+  return hana.themePlaces?.[theme] || 'room';
+}
 
 export default hana;
