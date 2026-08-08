@@ -160,7 +160,8 @@ export function activeBackend(wantRef = false) {
 const FRAMING = {
   feedWindow:
     'Vertical 4:5, a snapshot straight from her camera roll. ' +
-    'Late afternoon light comes only from the single window at camera left: the far side of her face is about two stops darker, ' +
+    'Late afternoon light comes only from the room\'s single window — whichever side of the frame it falls on: ' +
+    'the side of her face away from it is about two stops darker, ' +
     'a hard shadow falls under her jaw onto her neck, and a bright stripe lands on the wall beside her. ' +
     'The white balance is caught between the window and the ceiling LED, so the shadows carry a faint cool cast. ' +
     'ISO 800: grain in the shadows, a small blown highlight on her forehead, corners a little dark and soft. ' +
@@ -179,7 +180,7 @@ const FRAMING = {
 
   reel:
     'Vertical 9:16 with room above her head. Shot on a phone propped on the desk, 26mm equivalent, f/1.8. ' +
-    'Window light from camera left only — one side of her face clearly darker, a shadow under the jaw. ' +
+    'Lit only by the room\'s single window — one side of her face clearly darker, a shadow under the jaw. ' +
     'Focus on her face, the room behind still legible. Mild grain in the shadows, corners a touch darker.',
 
   // 집 밖에서 낮에 찍은 컷. feedWindow/feedFlash는 「그녀의 방」·「밤」을 전제하므로

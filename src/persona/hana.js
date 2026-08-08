@@ -226,22 +226,52 @@ export const hana = {
   //    같은 사람이어도 다른 채널처럼 보인다. 얼굴 일관성만큼 중요하다.
   setting: {
     summary: '망원동 원룸. 대충 정리했지만 사람 사는 티가 나는 방',
+
+    // ⚠️ 예전 버전은 「화면에서 그녀의 왼쪽에 책장」처럼 **카메라·인물 기준 상대 위치**로
+    //    가구를 적었다. 그래서 그녀가 돌아앉거나 구도가 바뀔 때마다 가구가 같이 움직여
+    //    매번 다른 방이 나왔다. 위치는 방에 고정된 절대 좌표여야 한다.
+    //
+    //    기준 시점을 「현관에 서서 방을 들여다본 상태」로 못박고, 네 벽에 이름을 붙인다.
+    //    카메라가 어디를 보든 가구는 그 벽에 그대로 있어야 한다.
+    //
+    //  현관에서 본 평면도 (약 4.5m × 3m)
+    //  ┌──────── 창문 벽 (정면) ────────┐
+    //  │  창 + 흰 리넨 커튼 / 책상       │
+    //  │                                │
+    //  책장 벽                        침대 벽
+    //  (왼쪽)                         (오른쪽)
+    //  │  책장·화분·벽 메모            침대·행거  │
+    //  └──────── 현관 벽 (등 뒤) ───────┘
     roomPrompt:
-      'Setting: a small Korean one-room studio apartment, tidied but clearly lived-in. ' +
-      'Fixed layout, keep identical in every image: ' +
-      'plain off-white wall directly behind her; ' +
+      'Setting: a small Korean one-room studio apartment, about 4.5m by 3m, tidied but clearly lived-in. ' +
+      '' +
+      'FIXED FLOOR PLAN — these positions belong to the room, not to the camera. ' +
+      'Describe them as seen by someone standing in the doorway looking in: ' +
+      'THE FAR WALL (opposite the doorway) has the only window, a wide low window with thin white linen ' +
+      'curtains half drawn; a light-wood folding desk stands against that wall directly under the window, ' +
+      'with a closed laptop, a white ceramic mug and a stack of printed cover-letter drafts with highlighter marks; ' +
+      'a single wooden chair at the desk. ' +
+      'THE LEFT WALL has a low light-wood bookshelf with books lying flat in a leaning stack and a small green ' +
       // ⚠️ 벽 메모에 읽히는 글자를 요구하면 깨진 유사 한글이 나온다. 프레임에서 가장 눈에 띄는
       //    위치라 AI 티의 큰 원인이 된다. 내용 대신 "읽히지 않는 손글씨"로만 지정한다.
-      'on that wall, three A4 sheets taped in a row at head height, slightly crooked, ' +
-      'covered in small handwriting that is too small and too blurred to read, no legible characters; ' +
-      'to her left in frame, a low light-wood bookshelf with books lying flat in a leaning stack and a small green plant on top; ' +
-      'to her right in frame, a window with thin white linen curtains half drawn, soft daylight coming through; ' +
-      'a beige fabric-covered bed edge visible at the bottom right corner; ' +
-      'a light-wood folding desk in front of her with a closed laptop, a white ceramic mug, and a stack of printed cover letter drafts with highlighter marks; ' +
-      'a clothing rack in the far left background with a navy interview suit jacket hanging on it; ' +
-      'the window is the only light source, so one side of the room falls clearly darker; ' +
-      'real clutter, not styled: a charging cable trailing across the floor, a crumpled tissue, ' +
-      'a hoodie thrown over the chair back, a half-empty water bottle beside the desk leg.',
+      'plant on top; above the bookshelf, three A4 sheets are taped in a row at head height, slightly crooked, ' +
+      'covered in handwriting too small and too blurred to read, with no legible characters. ' +
+      'THE RIGHT WALL has a low bed with a beige fabric cover along it, and a white clothing rack at the far ' +
+      'end of that wall with a navy interview suit jacket hanging on it. ' +
+      'THE DOORWAY WALL (behind the viewer) is plain off-white, with a full-length mirror leaning ' +
+      'against it beside the door — this is the only mirror in the room. ' +
+      'The floor is pale wood. ' +
+      '' +
+      'This layout never changes between photos. If the camera faces the window, the bookshelf is on the ' +
+      'left of the frame and the bed on the right. If the camera faces back toward the doorway, they swap ' +
+      'sides — the furniture stays where it is, only the viewpoint moves. ' +
+      'Never move the desk away from the window wall, never put the bed and the bookshelf on the same wall, ' +
+      'and never add a second window. ' +
+      '' +
+      'The window is the only light source, so the side of the room away from it falls clearly darker. ' +
+      'Real clutter, not styled, always in the same spots: a charging cable trailing across the floor ' +
+      'between the desk and the left wall, a crumpled tissue on the floor near the bookshelf, ' +
+      'and a half-empty water bottle standing beside the desk leg.',
 
     // 장소 풀. 방에서만 찍으면 계정이 한 장짜리처럼 보인다.
     // 방과 마찬가지로 각 장소도 배치를 문장으로 고정해야 갈 때마다 다른 가게가 안 나온다.
