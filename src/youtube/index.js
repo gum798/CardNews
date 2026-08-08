@@ -2,7 +2,30 @@
 // 베스트에포트: 자격증명 없음/실패해도 파이프라인은 계속 (IG가 주 채널). dryRun이면 합성 ID.
 import { youtube as makeYoutube, auth as gauth } from '@googleapis/youtube';
 import { createReadStream } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { getMeta, setMeta } from '../db/index.js';
 import { youtube as yt, dryRun } from '../config.js';
+
+// 토큰 지문. refresh_token 자체를 저장하지 않으려고 해시만 쓴다.
+// 재인증으로 토큰이 바뀌면 지문이 달라져 기록이 무효가 된다.
+function tokenFingerprint() {
+  return createHash('sha256').update(String(yt.refreshToken || '')).digest('hex').slice(0, 16);
+}
+
+// 이 토큰이 실제로 어느 채널에 묶여 있는지(관측된 값). 모르면 null.
+function boundChannel() {
+  try {
+    const rec = JSON.parse(getMeta('yt_bound_channel') || 'null');
+    return rec && rec.fp === tokenFingerprint() ? rec.channelId : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberChannel(channelId) {
+  if (!channelId) return;
+  setMeta('yt_bound_channel', JSON.stringify({ fp: tokenFingerprint(), channelId }));
+}
 
 function client() {
   const oauth2 = new gauth.OAuth2(yt.clientId, yt.clientSecret);
@@ -18,6 +41,18 @@ export async function uploadShort({ videoPath, title, description, tags = [], ca
   }
   if (!yt.refreshToken) {
     console.log('[youtube] 자격증명 없음 → 업로드 건너뜀');
+    return null;
+  }
+
+  // 사전 차단: 이 토큰이 엉뚱한 채널에 묶인 걸 이미 확인했다면 아예 올리지 않는다.
+  // 응답을 보고 잡는 것만으로는 늦다 — 그때는 이미 남의 채널에 올라간 뒤다.
+  // 토큰이 바뀌면(재인증) 지문이 달라져 자동으로 다시 시도한다.
+  const known = boundChannel();
+  if (yt.channelId && known && known !== yt.channelId) {
+    console.warn(
+      `[youtube] 토큰이 다른 채널(${known})에 묶여 있음 → 업로드 건너뜀. ` +
+        `재인증 필요: node scripts/youtube-auth-manual.mjs`
+    );
     return null;
   }
 
@@ -48,6 +83,8 @@ export async function uploadShort({ videoPath, title, description, tags = [], ca
     //    업로드는 계속 "성공"하면서 엉뚱한 채널에 쌓인다 — 실제로 9건을 그렇게 날렸다.
     //    로그만 봐서는 절대 안 보이므로 응답의 channelId를 매번 대조한다.
     //    (channels.list는 readonly 스코프가 필요하지만 이 값은 업로드 응답에 그냥 들어있다)
+    rememberChannel(channelId);
+
     if (yt.channelId && channelId && channelId !== yt.channelId) {
       throw Object.assign(
         new Error(
