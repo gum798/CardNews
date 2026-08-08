@@ -111,7 +111,7 @@ async function main() {
           place: post.place,
           styling: ph.look === 'daily' ? outfit : '',
           expression: post.expression || '',
-          seasonNote: seasonNoteFor(post.weather.band),
+          seasonNote: seasonNoteFor(post.weather.band, post.place),
           withReference: Boolean(anchor),
           seed: `${id}-${i}`,
         }),

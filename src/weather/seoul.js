@@ -107,27 +107,53 @@ export async function getSeoulWeather(date = new Date()) {
 
 // 장면에 붙일 계절 보정.
 //
-// ⚠️ roomPrompt는 배치를 고정하려고 「의자에 걸린 후디」 같은 물건을 못박아 뒀는데,
-//    한여름 사진에 후디가 걸려 있으면 그 하나로 전체가 어색해진다.
-//    배치는 유지하되 계절에 안 맞는 물건만 덮어쓴다.
-const SEASON_NOTES = {
+// ⚠️ 계절 신호를 「사람에게 나타나는 것」과 「그 공간에 놓인 물건」으로 갈라야 한다.
+//    처음엔 안 갈랐더니 방에 두려고 쓴 선풍기가 도서관·편의점까지 따라다녔다.
+//    소품은 방에서만 유효하다. 밖은 대개 에어컨이 도는 공공장소다.
+const SEASON_BODY = {
   midsummer:
-    'It is the middle of a hot Korean summer. The window is open, a small white electric fan ' +
-    'on the floor is pointed at her, and there is no hoodie, coat or knitwear anywhere in the room — ' +
-    'the chair back is bare. Her skin has a faint sheen from the heat and a few strands of hair stick to her temple.',
-  summer:
-    'It is summer. The window is open and there is no hoodie, coat or knitwear anywhere in the room.',
+    'It is the middle of a hot Korean summer. Her skin has a faint sheen from the heat, ' +
+    'a few strands of hair stick to her temple, and she wears no outer layer of any kind.',
+  summer: 'It is summer. She wears no outer layer of any kind.',
   mild: '',
   cool: '',
-  cold:
-    'It is cold outside. The window is shut and a thick outer jacket hangs on the clothing rack.',
-  winter:
-    'It is deep winter. The window is shut with condensation at the edges, a padded coat hangs on the ' +
-    'clothing rack, and a folded blanket sits on the bed.',
+  cold: 'It is cold outside. She has an outer layer with her.',
+  winter: 'It is deep winter. She has a heavy padded coat with her.',
 };
 
-export function seasonNoteFor(band) {
-  return SEASON_NOTES[band] || '';
+// 방(원룸)에만 붙는 소품. roomPrompt가 「의자에 걸린 후디」처럼 배치를 고정해 둬서,
+// 계절에 안 맞는 물건만 여기서 덮어쓴다.
+const SEASON_ROOM_PROPS = {
+  midsummer:
+    'The window is open and a small white electric fan on the floor is pointed at her. ' +
+    'There is no hoodie, coat or knitwear anywhere in the room — the chair back is bare.',
+  summer: 'The window is open and there is no hoodie, coat or knitwear anywhere in the room.',
+  mild: '',
+  cool: '',
+  cold: 'The window is shut and a thick outer jacket hangs on the clothing rack.',
+  winter:
+    'The window is shut with condensation at the edges, a padded coat hangs on the clothing rack, ' +
+    'and a folded blanket sits on the bed.',
+};
+
+// 실내 공공장소는 냉난방이 돌아간다. 개인 선풍기·난로가 있으면 안 된다.
+const INDOOR_PUBLIC = new Set(['library', 'libraryCafe', 'convenienceStore']);
+
+export function seasonNoteFor(band, place = 'room') {
+  const body = SEASON_BODY[band] || '';
+  if (place === 'room') return [body, SEASON_ROOM_PROPS[band] || ''].filter(Boolean).join(' ');
+  if (INDOOR_PUBLIC.has(place)) {
+    // 밖은 덥지만 안은 에어컨이다. 그 대비가 여름 장면을 설명한다.
+    const ac =
+      band === 'midsummer' || band === 'summer'
+        ? 'Inside it is air-conditioned and clearly cooler than outside. ' +
+          'There is no personal electric fan anywhere — this is a public indoor space.'
+        : band === 'cold' || band === 'winter'
+          ? 'Inside it is heated and warm. There is no personal heater anywhere — this is a public indoor space.'
+          : '';
+    return [body, ac].filter(Boolean).join(' ');
+  }
+  return body;
 }
 
 // 글 작성자에게 줄 한 줄 요약.
