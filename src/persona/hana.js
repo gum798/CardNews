@@ -225,7 +225,7 @@ export const hana = {
   // ⚠️ 가구·사물 배치를 문장으로 고정한다. 이걸 안 박아두면 생성할 때마다 다른 방이 나와
   //    같은 사람이어도 다른 채널처럼 보인다. 얼굴 일관성만큼 중요하다.
   setting: {
-    summary: '망원동 원룸. 대충 정리했지만 사람 사는 티가 나는 방',
+    summary: '망원동 원룸. 깨끗하게 정리정돈된 방',
 
     // ⚠️ 예전 버전은 「화면에서 그녀의 왼쪽에 책장」처럼 **카메라·인물 기준 상대 위치**로
     //    가구를 적었다. 그래서 그녀가 돌아앉거나 구도가 바뀔 때마다 가구가 같이 움직여
@@ -243,7 +243,7 @@ export const hana = {
     //  │  책장·화분·벽 메모            침대·행거  │
     //  └──────── 현관 벽 (등 뒤) ───────┘
     roomPrompt:
-      'Setting: a small Korean one-room studio apartment, about 4.5m by 3m, tidied but clearly lived-in. ' +
+      'Setting: a small Korean one-room studio apartment, about 4.5m by 3m, clean and neatly organised. ' +
       '' +
       'FIXED FLOOR PLAN — these positions belong to the room, not to the camera. ' +
       'Describe them as seen by someone standing in the doorway looking in: ' +
@@ -269,9 +269,14 @@ export const hana = {
       'and never add a second window. ' +
       '' +
       'The window is the only light source, so the side of the room away from it falls clearly darker. ' +
-      'Real clutter, not styled, always in the same spots: a charging cable trailing across the floor ' +
-      'between the desk and the left wall, a crumpled tissue on the floor near the bookshelf, ' +
-      'and a half-empty water bottle standing beside the desk leg.',
+      // ⚠️ 예전엔 「사람 사는 티」를 내려고 바닥 케이블·구겨진 휴지를 깔았는데,
+      //    깨끗한 방 설정으로 바꾸면서 걷어냈다. 다만 「완벽한 쇼룸」이 되면 그 자체가
+      //    AI 티가 되므로, 지저분함이 아니라 "쓰던 흔적"으로 사람 냄새를 남긴다.
+      'The room is tidy: the floor is clear, no litter and no trailing cables, ' +
+      'the bed is made with its cover pulled straight, and everything sits in its place. ' +
+      'It still looks lived-in rather than staged — the desk items sit naturally where a person ' +
+      'actually uses them, the notebook lies open mid-use, and the water bottle stands ' +
+      'neatly beside the laptop on the desk.',
 
     // 장소 풀. 방에서만 찍으면 계정이 한 장짜리처럼 보인다.
     // 방과 마찬가지로 각 장소도 배치를 문장으로 고정해야 갈 때마다 다른 가게가 안 나온다.

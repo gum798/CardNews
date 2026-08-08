@@ -228,7 +228,7 @@ export const COMPOSITIONS = {
   mirrorSelfie:
     'A mirror selfie taken in her room: she stands holding the phone up in front of her chest, ' +
     'the phone and her hand clearly visible in the reflection, her face partly behind it. ' +
-    'The mirror is a little smudged, the room behind her reflected including the unmade bed. ' +
+    'The mirror is a little smudged, the tidy room reflected behind her — made bed, clear floor. ' +
     'Shot on the rear camera through the mirror.',
 
   // ── 남이 찍어준 것 같은 계열 ──
