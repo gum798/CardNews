@@ -247,6 +247,24 @@ export const hana = {
         'The standing sign, any posters and the tumbler must be blank or blurred — ' +
         'no readable characters and no brand marks or logos anywhere in the frame.',
 
+      // 같은 도서관 건물 안의 카페. 열람실은 음식물 반입금지라 끼니는 여기서 해결한다.
+      // 실사 레퍼런스: assets/persona/places/library-cafe.jpg
+      libraryCafe:
+        'Setting: the cafe seating area inside a public library building, lunchtime, bright daylight. ' +
+        'Fixed layout, keep identical in every image: ' +
+        'round light-wood slatted tables with black metal frames, matching slatted chairs with black frames; ' +
+        'a large cream canvas parasol stands open indoors over the seating area, its pole passing through a table; ' +
+        'floor-to-ceiling windows along the far wall with a band of frosted wave-pattern film across the lower half; ' +
+        'outside the windows, tall green trees and a pale apartment tower against a bright summer sky; ' +
+        'a polished speckled terrazzo floor reflecting the windows; ' +
+        'a narrow counter-height ledge runs along the window with stools; ' +
+        'the room is lit entirely by daylight from those windows, so the foreground tables fall into soft shade ' +
+        'while the window wall is blown out and bright. ' +
+        // ⚠️ 레퍼런스 사진에 실제 이용객이 찍혀 있다. 재현하면 실존 인물 초상 문제가 된다.
+        'Other people in the background must be unidentifiable — seen from behind, cropped, or ' +
+        'far enough away and soft enough that no face is legible. Do not reproduce any recognisable face. ' +
+        'All posters, signs and packaging are blank or blurred: no readable characters, no brand marks, no logos.',
+
       convenienceStore:
         'Setting: a small Korean convenience store, late morning, almost empty. ' +
         'Fixed layout, keep identical in every image: ' +
@@ -322,12 +340,14 @@ export const hana = {
   // 글 묘사만으로는 "그럴듯한 도서관"이 나오지 "그 도서관"이 안 나온다.
   placeRefs: {
     library: 'assets/persona/places/library.jpg',
+    libraryCafe: 'assets/persona/places/library-cafe.jpg',
   },
 
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
   themePlaces: {
     '편의점 도시락': 'convenienceStore',
     '도서관 피서 공부': 'library',
+    '도서관 점심': 'libraryCafe',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -348,6 +368,16 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '도서관 점심':
+      '오전 내내 열람실에서 공부하다가 점심시간이 됐다. 열람실은 음식물 반입금지라 ' +
+      '같은 건물 안 카페 자리로 내려왔다. ' +
+      '나가서 사 먹으면 돈이 드니까 집에서 컵라면이랑 우유를 싸 왔다. ' +
+      '카페 온수기에서 물 받아 라면을 붓고, 익는 3분을 그냥 앉아서 기다리는 중이다. ' +
+      '창밖에 나무가 보이고 에어컨이 시원해서, 밥 먹는 시간이라기보다 잠깐 쉬는 시간에 가깝다. ' +
+      '오전에 뭘 했는지 잠깐 되짚고, 오후에 뭘 할지 아직 안 정했다. ' +
+      '⚠️ 궁상맞게 쓰지 마라. 아끼는 게 서럽다는 톤이 아니라 그냥 자기 방식이라는 담담한 톤이다. ' +
+      '⚠️ 절약 팁이나 조언으로 흐르지 마라. 그냥 오늘 점심 이야기다.',
+
     '도서관 피서 공부':
       '집이 너무 더워서 — 에어컨 없이 선풍기 하나로 버티는 원룸이다 — 오전에 짐 싸서 ' +
       '근처 도서관 열람실로 피신했다. 창가 자리를 잡았고 에어컨이 나와서 살 것 같다. ' +
@@ -384,7 +414,7 @@ export const hana = {
     day: [
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
       '망원동 카페에서 공부', '채용공고 훑기', '편의점 도시락', '헬스장',
-      '도서관 피서 공부',
+      '도서관 피서 공부', '도서관 점심',
     ],
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
