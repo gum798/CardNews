@@ -9,6 +9,7 @@ import { Bot, InputFile, InputMediaBuilder } from 'grammy';
 import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
+import { existsSync } from 'node:fs';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
 import { anchorPath } from '../persona/keyframe.js';
@@ -75,6 +76,10 @@ async function main() {
   // 매번 같은 "책상 앞 반신"이면 계정 전체가 한 장짜리처럼 보인다.
   // 슬롯마다 구도 세트를 다르게 두고, 그 안에서 날짜 시드로 섞는다.
   const anchor = anchorPath();
+  // 장소 레퍼런스 사진이 있으면 앵커와 함께 붙인다. 실제 공간을 재현하려면 글만으로는 안 된다.
+  const placeRef = hana.placeRefs?.[post.place];
+  const placeRefAbs = placeRef ? path.join(paths.root, placeRef) : null;
+  const refs = [anchor, placeRefAbs && existsSync(placeRefAbs) ? placeRefAbs : null].filter(Boolean);
   // 게시물 단위로 복장 하나를 고정한다. looks.daily는 열려 있어서 그대로 두면
   // 같은 끼니인데 장마다 다른 옷이 나온다.
   // 기온대에 맞는 풀에서 하나를 뽑는다. 8월에 후디를 입고 있으면 그 자체로 가짜 티가 난다.
@@ -110,7 +115,7 @@ async function main() {
           withReference: Boolean(anchor),
           seed: `${id}-${i}`,
         }),
-        { outPath: out, refImages: anchor ? [anchor] : [] }
+        { outPath: out, refImages: refs }
       );
       files.push(out);
       console.log(`[vlog] 사진 ${i + 1} 생성`);

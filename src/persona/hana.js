@@ -228,6 +228,25 @@ export const hana = {
     // 방과 마찬가지로 각 장소도 배치를 문장으로 고정해야 갈 때마다 다른 가게가 안 나온다.
     places: {
       // room은 아래에서 roomPrompt를 그대로 넣는다(중복 정의 방지).
+      // 실제로 찍은 열람실 사진(assets/persona/places/library.jpg)을 레퍼런스로 함께 붙인다.
+      // 배치를 글로 다시 쓰는 이유: 레퍼런스만 주면 모델이 사진을 그대로 베껴 인물을 못 넣는다.
+      library:
+        'Setting: a public study room (열람실) on an upper floor, quiet, mid-afternoon. ' +
+        'Fixed layout, keep identical in every image: ' +
+        'she sits at a long white individual study desk that faces a wall of large windows; ' +
+        'the windows look out over green treetops and mid-rise city buildings in bright summer daylight; ' +
+        'low black upholstered partitions separate the seats, and black chair backs are visible along the desk; ' +
+        'on the desk in front of her: an open notebook with handwriting, a pen, ' +
+        'a plain cream-coloured insulated tumbler with no logo, a small floral pouch, ' +
+        'a flat pencil case, and her phone face-down; ' +
+        'a small standing acrylic sign holder sits on the desk further along; ' +
+        'the room is lit almost entirely by the windows, so the desk surface is bright and her far side falls into soft shadow; ' +
+        'the air-conditioning makes it noticeably cooler than outside. ' +
+        // ⚠️ 열람실은 안내문·상표가 화면을 채우는 곳이다. 레퍼런스 사진에도 실제 로고와
+        //    읽히는 한글 안내문이 있으므로, 생성물에서는 반드시 지워야 한다.
+        'The standing sign, any posters and the tumbler must be blank or blurred — ' +
+        'no readable characters and no brand marks or logos anywhere in the frame.',
+
       convenienceStore:
         'Setting: a small Korean convenience store, late morning, almost empty. ' +
         'Fixed layout, keep identical in every image: ' +
@@ -299,9 +318,16 @@ export const hana = {
 
   // ── 일상 브이로그 소재 풀 ───────────────────────────────────
   // 낮 = 지금 하는 일, 저녁 = 오늘 있었던 일. 소재가 겹치지 않게 분리.
+  // 장소별 실사 레퍼런스 사진. 있으면 앵커와 함께 첨부해 실제 공간을 재현한다.
+  // 글 묘사만으로는 "그럴듯한 도서관"이 나오지 "그 도서관"이 안 나온다.
+  placeRefs: {
+    library: 'assets/persona/places/library.jpg',
+  },
+
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
   themePlaces: {
     '편의점 도시락': 'convenienceStore',
+    '도서관 피서 공부': 'library',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -322,6 +348,14 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '도서관 피서 공부':
+      '집이 너무 더워서 — 에어컨 없이 선풍기 하나로 버티는 원룸이다 — 오전에 짐 싸서 ' +
+      '근처 도서관 열람실로 피신했다. 창가 자리를 잡았고 에어컨이 나와서 살 것 같다. ' +
+      '오늘 하는 건 시사상식 정리다. 기준금리 「동결」과 「인하」가 뭐가 다른지 자꾸 헷갈려서 ' +
+      '노트에 화살표를 그려가며 다시 정리하는 중이다. 벌써 세 번째 화살표다. ' +
+      '⚠️ 더위를 피해 왔다는 것과 시사상식 정리를 하나의 흐름으로 쓴다. 두 이야기를 따로 쓰지 마라. ' +
+      '⚠️ 열람실은 음식물 반입금지다. 안에서 커피를 마시는 장면은 쓰지 마라.',
+
     // storyArc mole-removal 세 번째 비트. 이 글이 나간 뒤 외모가 바뀌는 근거가 된다.
     '점 뺀 날':
       '어제 피부과에 갔다. 원래는 입가 점 두 개만 뺄 생각이었는데, 상담하다가 ' +
@@ -350,6 +384,7 @@ export const hana = {
     day: [
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
       '망원동 카페에서 공부', '채용공고 훑기', '편의점 도시락', '헬스장',
+      '도서관 피서 공부',
     ],
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
@@ -399,8 +434,13 @@ export function identityLockFor(phase) {
         'Do not draw any mole, dot, freckle or blemish on her face, neck, hands, fingers or arms. ' +
         'If the reference image shows moles, ignore them: this is the same person after removal. '
     ) +
+    // ⚠️ 「분홍 자국」을 그리라고 하면 모델이 뺨에 붉은 발진 덩어리를 만든다(실제로 그랬다).
+    //    자국은 그리라고 할 게 아니라 "건드리지 말라"고 해야 한다. 앵커에 이미 들어있다.
     (phase === 'healing'
-      ? ' Keep the faint flat pink marks exactly where the reference shows them, nothing darker.'
+      ? ' Her skin is calm and clear: no redness, no rash, no blotch, no patch of pink or red ' +
+        'on her cheeks or anywhere else, no swelling, no scab, no bruise. ' +
+        'Any trace where the moles used to be is so faint it is barely perceptible — ' +
+        'do not draw attention to it, do not enlarge it, do not colour it in.'
       : '')
   );
 }
