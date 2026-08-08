@@ -98,6 +98,13 @@ export async function filterAndRank(newsItems, count = pipeline.perTopicPick, { 
     `[선정 기준]\n${criteria}\n\n` +
     `공통 원칙: 시청자가 보고 나서 "그래서 뭐?"가 되는 뉴스는 고르지 마세요. ` +
     `보고 나서 무언가 알게 되거나, 해볼 수 있거나, 남에게 공유하고 싶어지는 것이어야 합니다.\n` +
+    // 성과 분석에서 유일하게 살아남은 콘텐츠 신호. 「어느 회사가 AI 기능을 출시했다」류
+    // 12건 중 8건이 같은 슬롯 꼴찌였다(슬롯 내 순열검정 p=0.0096).
+    // 제목 문구 수준에서는 아무 신호도 없었고, 소재 수준에서만 유의했다.
+    `⚠️ 화면에 보여줄 장면이 있어야 합니다. 기사를 읽고 시청자가 볼 수 있는 장면 ` +
+    `(사물·행동·현장·사람) 하나를 지목할 수 있어야 합니다. 지목할 수 없으면 그 기사는 빼세요.\n` +
+    `「어느 회사가 무엇을 출시·도입·공개했다」가 기사의 전부인 항목은 고르지 마세요. ` +
+    `발표 자체는 장면이 아닙니다.\n` +
     `조건에 맞는 뉴스가 하나도 없으면 빈 배열 []을 출력하세요. 억지로 고르지 마세요.\n\n` +
     `최대 ${n}건을 rank 1부터 순서대로 고르고, 각 건마다 한 줄짜리 한국어 선정 사유를 다세요.\n\n` +
     `뉴스 목록(JSON):\n${JSON.stringify(list)}\n\n` +
@@ -120,6 +127,19 @@ export async function filterAndRank(newsItems, count = pipeline.perTopicPick, { 
 }
 
 // 저작권/독창성 규칙 — 카드 작성 프롬프트 시스템부에 고정.
+const HEADLINE_RULES =
+  // 성과 분석 결과를 반영한 헤드라인 지침.
+  // ⚠️ 제목 형식(길이·의문형·숫자·브랜드명)은 조회수와 상관이 없었다. 전부 소재 스트림의
+  //    그림자였다(길이 상관 -0.14, 스트림 내부에서는 -0.07 ≈ 0). 그래서 형식을 조이는
+  //    규칙은 넣지 않는다 — 노이즈를 규칙으로 굳히면 지금 되는 것까지 망가진다.
+  '[헤드라인]\n' +
+  '- 길이 목표치는 없습니다. 장면이 12자에 담기면 12자로, 24자가 필요하면 24자로 쓰세요. ' +
+  '짧게 만들려고 기사의 핵심 사실을 빼지 마세요.\n' +
+  '- 유명 기업·인물 이름은 그 이름이 만든 구체적 장면이 제목 안에 함께 있을 때만 쓰세요. ' +
+  '이름만 앞세우지 마세요.\n' +
+  '- 제목에 장면이 들어가야 합니다. 「출시했다」「도입한다」「공개했다」로 끝나는 제목은 ' +
+  '무엇이 달라지는지가 없어 화면과 겉돕니다.\n';
+
 const COPYRIGHT_RULES =
   `저작권/독창성 규칙(반드시 준수):\n` +
   `- 사실만 자기 표현으로 재작성한다.\n` +
@@ -293,6 +313,7 @@ export async function writeCards(newsItem, { hookType = '지목형', scriptStyle
     `카드 구성: 표지(cover) 1장 + 본문(body) 1~2장 + 마무리(last) 1장, 총 ${min}~${max}장.\n` +
     `각 카드 스키마:\n` +
     `- cover: {"type":"cover","card":{"category":"분류","headline":"후킹 헤드라인","sub":"부제"}}\n` +
+    HEADLINE_RULES +
     `- body:  {"type":"body","card":{"kicker":"소제목","title":"핵심 제목","text":"핵심 사실 본문","stat":{"value":"수치","label":"수치 설명"}}}  (stat은 수치가 있을 때만, 선택)\n` +
     `- last:  {"type":"last","card":{"summary":"한 줄 요약","insight":"자체 인사이트 한 줄"}}\n\n` +
     `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n` +
@@ -344,6 +365,7 @@ export async function generateEvergreen(topicKey, { hookType = '지목형' } = {
     `카드 구성: 표지(cover) 1장 + 본문(body) 1~2장 + 마무리(last) 1장, 총 ${min}~${max}장.\n` +
     `각 카드 스키마:\n` +
     `- cover: {"type":"cover","card":{"category":"분류","headline":"후킹 헤드라인","sub":"부제"}}\n` +
+    HEADLINE_RULES +
     `- body:  {"type":"body","card":{"kicker":"소제목","title":"핵심 제목","text":"본문","stat":{"value":"수치","label":"수치 설명"}}}  (stat은 수치가 있을 때만, 선택)\n` +
     `- last:  {"type":"last","card":{"summary":"한 줄 요약","insight":"자체 인사이트 한 줄"}}\n\n` +
     `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n` +

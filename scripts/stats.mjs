@@ -19,6 +19,30 @@ const rows = db.default
   .all();
 
 // ---------- 유튜브 ----------
+// ⚠️ publishedAt은 UTC다. 그대로 잘라 찍으면 KST와 9시간 어긋나 시간대 결론이 뒤집힌다.
+function kst(iso) {
+  const d = new Date(new Date(iso).getTime() + 9 * 3600 * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+
+// 같은 슬롯(30분 이내 연속 업로드)을 한 묶음으로 본다.
+// 조회수의 무작위 단위는 영상이 아니라 슬롯이다 — 영상 단위로 비교하면 잡음을 신호로 읽는다.
+function batches(videos) {
+  const sorted = [...videos].sort((a, b) => new Date(a.publishedAt) - new Date(b.publishedAt));
+  const out = [];
+  for (const v of sorted) {
+    const last = out[out.length - 1];
+    if (last && new Date(v.publishedAt) - new Date(last.at) <= 30 * 60 * 1000) {
+      last.items.push(v);
+      last.at = v.publishedAt;
+    } else out.push({ at: v.publishedAt, start: v.publishedAt, items: [v] });
+  }
+  return out;
+}
+
+const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)] ?? 0; };
+
 async function youtubeStats() {
   if (!ytCfg.refreshToken) return [];
   const oauth2 = new gauth.OAuth2(ytCfg.clientId, ytCfg.clientSecret);
@@ -145,7 +169,26 @@ if (asJson) {
     const zero = vs.filter((v) => v.views === 0).length;
     console.log(`  영상 ${vs.length}개 / 합계 ${total}뷰 / 0뷰 ${zero}개 (${vs.length ? Math.round((zero / vs.length) * 100) : 0}%)`);
     for (const v of vs.slice(0, 25)) {
-      console.log(`  ${String(v.views).padStart(5)}뷰 ♥${String(v.likes).padStart(3)} ${v.publishedAt.slice(5, 16)} [${v.privacy}] ${v.title.slice(0, 42)}`);
+      console.log(`  ${String(v.views).padStart(5)}뷰 ♥${String(v.likes).padStart(3)} ${kst(v.publishedAt)} [${v.privacy}] ${v.title.slice(0, 42)}`);
+    }
+
+    // 48시간 지났는데 10뷰 미만 = 저조회수가 아니라 배포가 안 된 것.
+    // 이걸 제목·주제 학습 데이터에 섞으면 엉뚱한 결론이 나온다.
+    const dead = vs.filter((v) => v.views < 10 && Date.now() - new Date(v.publishedAt) > 48 * 3600 * 1000);
+    if (dead.length) {
+      console.log(`\n  ⚠️ 배포 사고 의심 ${dead.length}건 (48시간 경과 · 10뷰 미만)`);
+      console.log('     저조회수가 아니라 노출이 안 된 것이다. 제목·주제 분석에서 제외할 것.');
+      for (const v of dead) console.log(`     ${String(v.views).padStart(3)}뷰 ${kst(v.publishedAt)} ${v.title.slice(0, 34)}`);
+    }
+
+    // 슬롯 단위 중앙값. 같은 슬롯이 통째로 죽었으면 제목·주제 규칙을 건드리면 안 된다.
+    const bs = batches(vs).filter((b) => b.items.length > 1);
+    if (bs.length) {
+      console.log('\n  [슬롯별 중앙값] 같은 슬롯이 통째로 낮으면 배포 문제다');
+      for (const bt of bs.slice(-8)) {
+        const v = bt.items.map((x) => x.views);
+        console.log(`     ${kst(bt.start)}  n=${v.length}  중앙 ${String(median(v)).padStart(4)}  [${v.join(', ')}]`);
+      }
     }
   } else console.log('[유튜브]', yt?.error || '데이터 없음');
 
@@ -153,7 +196,7 @@ if (asJson) {
     console.log(`\n[인스타] @${ig.account.username} · 팔로워 ${ig.account.followers_count} · 게시물 ${ig.account.media_count}`);
     for (const m of ig.media.slice(0, 25)) {
       console.log(
-        `  ${String(m.views ?? '-').padStart(5)}뷰 도달${String(m.reach ?? '-').padStart(5)} 저장${String(m.saved ?? '-').padStart(3)} 공유${String(m.shares ?? '-').padStart(3)} ♥${String(m.likes).padStart(3)} ${m.timestamp.slice(5, 16)} ${m.type.padEnd(6)} ${m.caption}`
+        `  ${String(m.views ?? '-').padStart(5)}뷰 | 도달 ${String(m.reach ?? '-').padStart(4)} | 저장 ${String(m.saved ?? '-').padStart(3)} | 공유 ${String(m.shares ?? '-').padStart(3)} | ♥ ${String(m.likes).padStart(2)} | ${kst(m.timestamp)} ${m.type.padEnd(6)} ${m.caption}`
       );
     }
   } else console.log('\n[인스타]', ig?.error || '데이터 없음');
