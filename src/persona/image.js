@@ -12,6 +12,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { identityLockFor } from './hana.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
@@ -335,7 +336,7 @@ export function scenePrompt(
     }[angle];
 
   const identity = withReference
-    ? a.identityLock
+    ? identityLockFor(ph)
     : a.referencePrompt.replace(/\s*Vertical 4:5, head and shoulders\.$/, '');
 
   return [

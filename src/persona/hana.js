@@ -127,12 +127,27 @@ export const hana = {
           'They sit close together, one slightly higher than the other. Natural and unretouched.',
         note: '초기 콘텐츠. 입가 점이 캐릭터의 콤플렉스로 언급된다.',
       },
-      after: {
-        label: '점 뺀 후',
+      // 입가 점만 빼러 갔다가 눈물점까지 전부 뺀 날 이후의 상태.
+      // 아직 자국이 남아 있어서 "방금 뺐다"가 화면에 보인다 — 서사가 그림으로 증명된다.
+      healing: {
+        label: '점 뺀 직후 (자국 남음)',
         promptFragment:
-          'Mole 2 and Mole 3 have been removed — no moles or marks anywhere around the mouth, ' +
-          'lips or chin. Only the mole under her left eye remains.',
-        note: '제거 에피소드 이후. 눈물점만 남는다.',
+          'All of her moles have been removed at a dermatology clinic yesterday. ' +
+          'Where each mole used to be there is now a small flat mark of pale pink new skin, ' +
+          'slightly lighter and pinker than the skin around it, completely flat with no scab and no swelling: ' +
+          'one in the tear trough below the inner corner of her left eye, ' +
+          'and two close together just above the right corner of her mouth. ' +
+          'The marks are subtle — visible up close, easy to miss from a distance. ' +
+          'No dark moles anywhere on her face.',
+        note: '시술 직후 ~ 2주. 옅은 분홍 자국만 남는다.',
+      },
+      after: {
+        label: '점 뺀 후 (자국도 사라짐)',
+        promptFragment:
+          'All of her moles were removed months ago and the skin has fully settled — ' +
+          'no dark moles and no visible marks anywhere on her face. ' +
+          'Her skin tone is even where the moles used to be.',
+        note: '자국까지 옅어진 뒤. healing에서 몇 주 지나면 여기로 넘어간다.',
       },
     },
     // 상황별 스타일링 — 얼굴은 고정, 옷·메이크업만 바꾼다
@@ -294,6 +309,11 @@ export const hana = {
   //    "happy" 같은 단어는 활짝 웃는 스톡 사진으로 끌고 가므로 쓰지 않는다.
   //    억누른 감정으로 서술해야 사람 얼굴이 나온다.
   themeExpressions: {
+    '점 뺀 날':
+      'quietly delighted with herself — a closed-lip smile with the corners pushed up, ' +
+      'cheeks slightly raised, eyes a little narrowed and bright, chin tilted up a fraction ' +
+      'as if checking her own face in a mirror. Pleased and a bit surprised at how easy it was. ' +
+      'Not grinning at the camera, not posing',
     '피부과 예약':
       'a small private smile she is trying not to show, lips pressed together with one corner slightly up, ' +
       'eyes a little brighter and more awake than usual, eyebrows raised just a fraction — ' +
@@ -302,6 +322,22 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    // storyArc mole-removal 세 번째 비트. 이 글이 나간 뒤 외모가 바뀌는 근거가 된다.
+    '점 뺀 날':
+      '어제 피부과에 갔다. 원래는 입가 점 두 개만 뺄 생각이었는데, 상담하다가 ' +
+      '"이왕 온 김에" 하고 눈 밑 눈물점까지 전부 뺐다. ' +
+      '겁먹은 것에 비해 시술은 허무할 만큼 금방 끝났다. 마취 크림 바르고 기다린 시간이 더 길었다. ' +
+      '지금은 점이 있던 자리에 옅은 분홍색 자국만 남았다. 딱지도 안 잡혔고 아프지도 않다. ' +
+      '몇 년을 신경 쓰면서 미뤄온 일이 하루 만에 끝났다는 게 좀 허탈하고 동시에 후련하다. ' +
+      '"진작 올걸"이 이 글의 핵심 감정이다. ' +
+      '이 일로 피부과라는 곳에 대한 인식이 완전히 바뀌었다. 겁낼 곳이 아니라 그냥 가면 되는 곳이었다. ' +
+      '앞으로도 주기적으로 다니게 될 것 같다 — 이 깨달음이 글의 마지막에 반드시 들어가야 한다. ' +
+      // 기본 규칙이 「다짐으로 끝내지 마라」인데 이 소재는 인식 변화가 핵심이다.
+      // 규칙과 부딪히므로, 다짐이 아니라 감각으로 쓰라고 방향을 지정한다.
+      '단 「앞으로 열심히 관리하겠습니다」 같은 다짐투는 쓰지 말고, ' +
+      '「이제 여기 종종 오게 될 것 같아요」처럼 담담한 예감으로 쓴다. ' +
+      '⚠️ 자랑이나 시술 권유로 읽히면 안 된다. 병원 이름·비용·효과를 단정적으로 말하지 말고, ' +
+      '전문가처럼 조언하지 마라. 그냥 자기 하루 이야기로 쓴다.',
     '피부과 예약':
       '입가에 점 두 개가 있는데, 증명사진을 다시 찍을 때마다 그게 계속 신경 쓰였다. ' +
       '공채 마감 전에 큰맘 먹고 오늘 드디어 피부과에 예약을 걸었다. ' +
@@ -319,6 +355,7 @@ export const hana = {
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
       '스터디원과 있었던 일', '탈락 통보 받은 날', '집 가는 길 생각', '내일 계획',
       '피부과 예약', // storyArc: mole-removal 두 번째 비트
+      '점 뺀 날', // storyArc: mole-removal 세 번째 비트 — 이후 phase가 healing으로 바뀐다
     ],
   },
 
@@ -346,6 +383,26 @@ export function placeForTheme(theme) {
 // 기온대에 맞는 복장 풀. 알 수 없는 밴드면 선선한 봄가을로.
 export function outfitsForBand(band) {
   return hana.appearance.dailyOutfitsByBand[band] || hana.appearance.dailyOutfitsByBand.mild;
+}
+
+// 시기별 신원 고정 문구.
+// ⚠️ 기본 identityLock은 「점을 그대로 베껴라」로 되어 있다. 점을 다 뺀 뒤에 그대로 쓰면
+//    모델이 "이 사람은 점이 있는 사람"이라는 학습된 prior로 점을 다시 그려 넣는다.
+//    점이 없는 시기에는 "점이 없다"를 명시적으로 못박아야 한다.
+export function identityLockFor(phase) {
+  const base = hana.appearance.identityLock;
+  if (phase === 'before') return base;
+  return (
+    base.replace(
+      /Copy her moles exactly[\s\S]*?not on her face, neck, hands, fingers or arms\. /,
+      'She has no dark moles on her face at all — they were removed. ' +
+        'Do not draw any mole, dot, freckle or blemish on her face, neck, hands, fingers or arms. ' +
+        'If the reference image shows moles, ignore them: this is the same person after removal. '
+    ) +
+    (phase === 'healing'
+      ? ' Keep the faint flat pink marks exactly where the reference shows them, nothing darker.'
+      : '')
+  );
 }
 
 // 소재 → 표정. 없으면 빈 문자열(기본 표정).
