@@ -289,10 +289,17 @@ const IMPERFECTIONS = [
 ];
 
 // 결정적 선택 — 같은 씬은 항상 같은 결점을 갖고, 씬이 바뀌면 조합이 바뀐다.
-function pickImperfections(seed, n = 3) {
+// 피부가 좋아진 시기(glow)에는 「붉은기」·「트러블」을 빼야 한다.
+// 안 빼면 phases.glow의 "붉은기가 가라앉았다"와 정면 충돌해서 모델이
+// 한쪽으로 몰아버린다 — 지금까지 이 프로젝트에서 사고가 난 패턴이 전부 이 형태였다.
+// 다만 질감·피곤함·잔머리는 남긴다. 그게 사라지면 AI 티가 돌아온다.
+const SKIN_CONFLICTS = ['slight redness at the sides of her nose', 'one small healing blemish near her chin'];
+
+function pickImperfections(seed, n = 3, phase = 'before') {
   let h = 0;
   for (const c of String(seed)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const pool = [...IMPERFECTIONS];
+  const pool =
+    phase === 'glow' ? IMPERFECTIONS.filter((x) => !SKIN_CONFLICTS.includes(x)) : [...IMPERFECTIONS];
   const out = [];
   for (let i = 0; i < n && pool.length; i++) {
     h = (h * 1103515245 + 12345) >>> 0;
@@ -353,7 +360,7 @@ export function scenePrompt(
     FRAMING[framing] || FRAMING.reel,
     angleText,
     expression ? `Her expression: ${expression}.` : '',
-    `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`)}`,
+    `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
     'Unedited camera roll photo. No filter, no retouching, no beauty app.',
     'No legible text or characters anywhere in the image, no watermark, no logo.',
     // 화면은 글자를 부르는 가장 강한 유인이다. 따로 못박지 않으면 영문 UI를 그려 넣어
