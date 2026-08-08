@@ -106,6 +106,9 @@ export const youtube = {
   clientId: envFor('YOUTUBE_CLIENT_ID'),
   clientSecret: envFor('YOUTUBE_CLIENT_SECRET'),
   refreshToken: envFor('YOUTUBE_REFRESH_TOKEN'),
+  // 올라가야 할 채널. 토큰은 동의 화면에서 고른 채널에 묶이므로, 재인증 때 다른 채널을
+  // 고르면 업로드가 계속 성공하면서 엉뚱한 채널에 쌓인다. 매 업로드마다 대조한다.
+  channelId: envFor('YOUTUBE_CHANNEL_ID'),
 };
 
 // R2는 계정 공용 버킷을 쓰되, 객체 키에 프로필 접두사를 붙여 파일이 섞이지 않게 한다.

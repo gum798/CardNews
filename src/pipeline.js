@@ -214,7 +214,21 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
             '🔴 유튜브 인증 만료 (invalid_grant)\n\n' +
             '업로드가 계속 실패합니다. 재발급이 필요합니다:\n' +
             '1) Cloud Console → Google Auth Platform → 대상 → 앱 게시\n' +
-            '2) node scripts/youtube-auth.mjs 실행 후 .env의 YOUTUBE_REFRESH_TOKEN 교체',
+            '2) node scripts/youtube-auth.mjs 실행 후 .env의 YOUTUBE_REFRESH_TOKEN 교체\n' +
+            '⚠️ 동의 화면의 채널 선택에서 반드시 「뉴스하나」를 고를 것',
+        }).catch(() => {});
+      } else if (e.wrongChannel) {
+        // 업로드는 이미 됐다 — 되돌릴 수 없으므로 즉시 알려 지우게 한다.
+        // 이걸 조용히 넘겨서 9건이 개인 채널에 쌓인 적이 있다.
+        await report({
+          text:
+            '🔴 유튜브 업로드가 다른 채널로 갔습니다\n\n' +
+            `${e.message}\n\n` +
+            '토큰이 엉뚱한 채널에 묶여 있습니다. 고치는 법:\n' +
+            '1) 위 영상을 해당 채널에서 삭제\n' +
+            '2) node scripts/youtube-auth.mjs 실행\n' +
+            '3) 채널 선택 화면에서 반드시 「뉴스하나」 선택\n' +
+            '4) .env의 YOUTUBE_REFRESH_TOKEN 교체',
         }).catch(() => {});
       }
     }

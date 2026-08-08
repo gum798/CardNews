@@ -41,9 +41,32 @@ export async function uploadShort({ videoPath, title, description, tags = [], ca
       media: { body: createReadStream(videoPath) },
     });
     const id = res.data.id;
-    console.log('[youtube] 업로드 완료:', id);
+    const channelId = res.data.snippet?.channelId;
+    const privacy = res.data.status?.privacyStatus;
+
+    // ⚠️ 토큰은 동의 화면에서 고른 채널에 묶인다. 재인증 때 다른 채널을 고르면
+    //    업로드는 계속 "성공"하면서 엉뚱한 채널에 쌓인다 — 실제로 9건을 그렇게 날렸다.
+    //    로그만 봐서는 절대 안 보이므로 응답의 channelId를 매번 대조한다.
+    //    (channels.list는 readonly 스코프가 필요하지만 이 값은 업로드 응답에 그냥 들어있다)
+    if (yt.channelId && channelId && channelId !== yt.channelId) {
+      throw Object.assign(
+        new Error(
+          `업로드가 엉뚱한 채널로 갔습니다.\n` +
+            `기대: ${yt.channelId}\n실제: ${channelId}\n` +
+            `영상: https://youtu.be/${id} (삭제 후 재인증 필요)`
+        ),
+        { wrongChannel: true, videoId: id, channelId }
+      );
+    }
+
+    console.log(
+      `[youtube] 업로드 완료: ${id}` +
+        `${channelId ? ` (채널 ${channelId})` : ''}${privacy ? ` ${privacy}` : ''}`
+    );
     return id;
   } catch (err) {
+    // 채널 불일치는 우리가 던진 것 — 삼키면 안 된다. 그대로 올려 알림을 띄운다.
+    if (err?.wrongChannel) throw err;
     const msg = String(err?.message || err);
     console.error('[youtube] 업로드 실패(계속 진행):', msg);
     // invalid_grant는 재시도해도 절대 낫지 않는다(토큰 만료·취소). 조용히 넘기면

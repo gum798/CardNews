@@ -1,7 +1,7 @@
 // 유튜브 업로드용 refresh_token을 1회 발급받는 헬퍼.
 // 사전: .env에 YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET 입력 (Google Cloud OAuth "데스크톱 앱" 자격증명).
 // 실행: node scripts/youtube-auth.mjs → 출력된 URL 열어 승인 → refresh_token이 터미널에 출력됨 → .env에 붙여넣기.
-import { auth as gauth } from '@googleapis/youtube';
+import { auth as gauth, youtube as makeYoutube } from '@googleapis/youtube';
 import http from 'node:http';
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
@@ -45,7 +45,34 @@ const server = http.createServer(async (req, res) => {
   try {
     const { tokens } = await oauth2.getToken(code);
     res.end('✅ 인증 완료! 터미널로 돌아가세요.');
-    console.log('\n=== .env에 아래 줄을 추가/수정하세요 ===');
+
+    // ⚠️ 토큰은 동의 화면에서 고른 채널에 묶인다. 잘못 고르면 업로드가 계속 "성공"하면서
+    //    엉뚱한 채널에 쌓인다(실제로 9건을 개인 채널로 보냈다). 여기서 바로 확인시킨다.
+    oauth2.setCredentials(tokens);
+    let bound = null;
+    try {
+      const api = makeYoutube({ version: 'v3', auth: oauth2 });
+      const r = await api.channels.list({ part: ['snippet'], mine: true });
+      const c = r.data.items?.[0];
+      if (c) bound = { id: c.id, title: c.snippet.title };
+    } catch (e) {
+      console.log('⚠️ 채널 확인 실패(readonly 스코프 미승인?):', String(e.message).slice(0, 100));
+    }
+
+    if (bound) {
+      const want = process.env.YOUTUBE_CHANNEL_ID;
+      console.log(`\n이 토큰이 묶인 채널: 【${bound.title}】  ${bound.id}`);
+      if (want && bound.id !== want) {
+        console.log(`\n❌ 기대한 채널이 아닙니다 (기대: ${want})`);
+        console.log('   이 토큰을 쓰면 영상이 엉뚱한 채널로 올라갑니다.');
+        console.log('   Google 계정 → 보안 → 서드파티 액세스에서 이 앱을 제거하고,');
+        console.log('   다시 실행해 채널 선택 화면에서 올바른 채널을 고르세요.\n');
+      } else {
+        console.log('✅ 채널이 맞습니다.\n');
+      }
+    }
+
+    console.log('=== .env에 아래 줄을 추가/수정하세요 ===');
     console.log('YOUTUBE_REFRESH_TOKEN=' + tokens.refresh_token);
     console.log('=====================================\n');
     if (!tokens.refresh_token) {
