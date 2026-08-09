@@ -42,19 +42,21 @@ export const hana = {
 
     // 체형. 앵커 이미지는 상반신뿐이라 얼굴만 잡아주고 몸은 프롬프트가 정한다.
     // 그래서 여기 안 써두면 컷마다 체형이 흔들린다.
-    figure: '글래머 체형 — D컵, 허리는 들어가고 어깨는 좁은 편',
+    figure: '글래머 체형 — C~D컵, 허리는 들어가고 어깨는 좁은 편',
+    // 점 빼고 자신감이 붙으면서 옷 입는 방식이 바뀌었다는 설정 —
+    // 예전엔 오버사이즈로 가리고 다녔는데 요즘은 몸에 맞는 티를 입는다.
+    // 외모 변화(glow 아크)와 같은 줄기의 이야기라 서사적으로도 근거가 있다.
     figurePrompt:
-      'Her build: a curvy hourglass figure — a full D-cup bust, a clearly defined narrow waist, ' +
-      'soft rounded shoulders and hips, 164cm. Natural proportions for a real 25-year-old woman, ' +
-      'not exaggerated, not stylised, not drawn. ' +
-      // ⚠️ 계정은 뉴스·일상 브랜드다. 체형을 지정했다고 옷이 붙거나 노출되면
-      //    인스타·유튜브 정책상 도달이 깎이고 캐릭터 톤도 무너진다.
-      //    다만 「헐렁하게」로 못박으면 체형이 아예 안 드러난다(실제로 그랬다).
-      //    평범한 핏 — 실루엣은 보이되 몸을 보여주는 사진은 아니게.
-      'She wears exactly the everyday clothing described above in a normal regular fit that ' +
-      'follows her shape without clinging to it — not oversized, not tight, ' +
-      'nothing low-cut and no cleavage on show. ' +
-      'The framing stays on her face and on what she is doing, never on her body.',
+      'Her build: a curvy hourglass figure — a full C-to-D-cup bust that is clearly visible ' +
+      'in how her top fits, a defined narrow waist, soft rounded shoulders and hips, 164cm. ' +
+      'Natural proportions for a real 25-year-old woman, not exaggerated, not stylised, not drawn. ' +
+      // ⚠️ 계정은 뉴스·일상 브랜드다. 노출로 가면 인스타·유튜브 정책상 도달이 깎이고
+      //    캐릭터 톤도 무너진다. 핏은 살리되 노출은 없다 — 이 선은 유지한다.
+      'These days she wears fitted tops: her t-shirt sits close to her body and visibly follows ' +
+      'the shape of her bust and waist rather than hanging loose. ' +
+      'Still nothing low-cut, no cleavage on show, shoulders and neckline ordinary — ' +
+      'a normal fitted everyday t-shirt, not clubwear. ' +
+      'The framing stays on her face and on what she is doing.',
     // ⚠️ 앵커 이미지 1장을 만들 때만 쓴다. 씬 프롬프트에는 identityLock을 쓴다.
     // 이 문자열을 바꾸면 다른 사람이 된다. 바꾸면 앵커 재생성 + 캐시 전량 삭제 필수.
     //
@@ -429,7 +431,11 @@ export const hana = {
     '서류 합격':
       'caught between disbelief and joy — eyes wide and bright, eyebrows up, ' +
       'a smile she is failing to hold back breaking through, one hand near her mouth ' +
-      'as if she just gasped. Genuinely startled-happy, not posed, not a calm smile',
+      'as if she just gasped. Genuinely startled-happy, not posed, not a calm smile. ' +
+      // 세수 직후 설정: 화장기 없이 물기만. 「젖었다」로 쓰면 샤워 장면으로 흘러가므로 선을 긋는다.
+      'She has just washed her face: bare skin still slightly damp at the hairline and jaw, ' +
+      'a few wet strands at her temples, a towel around her neck or in one hand — ' +
+      'fully dressed in her everyday clothes, hair loosely tied, nothing more than a just-washed face',
     '점 뺀 날':
       'quietly delighted with herself — a closed-lip smile with the corners pushed up, ' +
       'cheeks slightly raised, eyes a little narrowed and bright, chin tilted up a fraction ' +
@@ -445,8 +451,9 @@ export const hana = {
   themeBriefs: {
     // ── 취준 서사의 큰 비트: 첫 서류 합격 ────────────────────────
     '서류 합격':
-      '아침에 폰을 보다가 서류 전형 합격 문자를 받았다. 졸업 후 2년, 수십 번 낸 서류 중에서 ' +
-      '이번에 처음으로 다음 단계로 넘어갔다. 문자를 세 번 다시 읽었다. ' +
+      '아침에 세수하고 막 나온 참이었다. 수건으로 얼굴 닦으면서 무심코 폰을 집었는데 ' +
+      '서류 전형 합격 문자가 와 있었다. 얼굴에 물기도 안 마른 채로 그 자리에 서서 ' +
+      '문자를 세 번 다시 읽었다. 졸업 후 2년, 수십 번 낸 서류 중에서 처음으로 다음 단계로 넘어갔다. ' +
       '1차 면접은 다음 주다. 기쁜 것도 잠깐이고 바로 면접 걱정이 시작됐다 — ' +
       '자소서에 뭐라고 썼는지부터 다시 읽어봐야 하고, 예상 질문도 뽑아야 하고, ' +
       '면접 정장도 오랜만에 꺼내봐야 한다. ' +
