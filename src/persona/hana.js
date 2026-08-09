@@ -426,6 +426,10 @@ export const hana = {
   //    "happy" 같은 단어는 활짝 웃는 스톡 사진으로 끌고 가므로 쓰지 않는다.
   //    억누른 감정으로 서술해야 사람 얼굴이 나온다.
   themeExpressions: {
+    '서류 합격':
+      'caught between disbelief and joy — eyes wide and bright, eyebrows up, ' +
+      'a smile she is failing to hold back breaking through, one hand near her mouth ' +
+      'as if she just gasped. Genuinely startled-happy, not posed, not a calm smile',
     '점 뺀 날':
       'quietly delighted with herself — a closed-lip smile with the corners pushed up, ' +
       'cheeks slightly raised, eyes a little narrowed and bright, chin tilted up a fraction ' +
@@ -439,6 +443,26 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    // ── 취준 서사의 큰 비트: 첫 서류 합격 ────────────────────────
+    '서류 합격':
+      '아침에 폰을 보다가 서류 전형 합격 문자를 받았다. 졸업 후 2년, 수십 번 낸 서류 중에서 ' +
+      '이번에 처음으로 다음 단계로 넘어갔다. 문자를 세 번 다시 읽었다. ' +
+      '1차 면접은 다음 주다. 기쁜 것도 잠깐이고 바로 면접 걱정이 시작됐다 — ' +
+      '자소서에 뭐라고 썼는지부터 다시 읽어봐야 하고, 예상 질문도 뽑아야 하고, ' +
+      '면접 정장도 오랜만에 꺼내봐야 한다. ' +
+      '탈락 통보에 익숙해진 사람이 처음 받아본 합격이라, 기쁨과 얼떨떨함이 반반이다. ' +
+      '⚠️ 회사 이름·직무를 특정하지 마라. 「어디」인지는 끝까지 안 밝힌다. ' +
+      '⚠️ 「드디어 해냈다」식 성취 서사로 쓰지 마라. 이제 시작이라는 걸 본인이 제일 잘 안다.',
+
+    '1차 면접 준비':
+      '서류 합격한 회사의 1차 면접이 다음 주다. 오늘부터 준비를 시작했다. ' +
+      '내가 낸 자소서를 다시 읽는데 남이 쓴 글 같았다. 여기서 뭘 물어볼지 예상 질문을 뽑고, ' +
+      '1분 자기소개를 소리 내서 연습해봤는데 30초 만에 막혔다. ' +
+      '행거에 걸어둔 면접 정장을 꺼내 상태를 확인했다. ' +
+      '매일 뉴스 정리한 게 이럴 때 쓸모가 있길 바라는 중이다. ' +
+      '⚠️ 회사 이름·직무를 특정하지 마라. ' +
+      '⚠️ 면접 팁·노하우로 흐르지 마라. 잘하는 사람이 아니라 처음 해보는 사람이다.',
+
     // ── storyArc: skin-routine ────────────────────────────────
     // ⚠️ 셋 다 결론이 「덜 신경 쓰게 됐다」여야 한다. 「예뻐졌다」로 끝나면
     //    캐릭터의 위치(전문가가 아니라 같이 준비하는 사람)가 무너지고,

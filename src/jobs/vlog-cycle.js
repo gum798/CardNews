@@ -8,7 +8,7 @@
 import { Bot, InputFile, InputMediaBuilder } from 'grammy';
 import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
-import { savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
+import { loadPost, savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
 import { existsSync } from 'node:fs';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
@@ -63,6 +63,17 @@ async function main() {
   const slot = process.env.VLOG_SLOT === 'evening' ? 'evening' : 'day';
   const id = postId(slot);
   console.log(`[vlog] start slot=${slot} id=${id}`);
+
+  // 같은 슬롯에 검토 대기 중인 게시물이 이미 있으면 자동 실행은 건너뛴다.
+  // 수동으로 만들어 둔 브이로그(소재 지정)를 20시 크론이 덮어쓰는 사고 방지.
+  // 소재를 명시(VLOG_THEME)한 수동 실행은 의도적 재생성이므로 통과시킨다.
+  if (!process.env.VLOG_THEME) {
+    const existing = loadPost(id);
+    if (existing && existing.status === 'pending') {
+      console.log('[vlog] 이미 검토 대기 중인 게시물이 있음 → 건너뜀 (' + existing.theme + ')');
+      return;
+    }
+  }
 
   // VLOG_THEME으로 오늘 소재를 지정할 수 있다(수동 실행). 장소는 소재가 정한다.
   const post = await writeVlogPost(slot, { theme: process.env.VLOG_THEME || undefined });
