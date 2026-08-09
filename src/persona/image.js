@@ -205,7 +205,9 @@ export const COMPOSITIONS = {
     'A front-camera selfie held at arm\'s length, about 45cm from her face, raised slightly above eye level ' +
     'and angled down, so her face is a little larger than the rest of the frame and the ceiling shows behind her. ' +
     'Wide front-camera lens, about 23mm equivalent: mild barrel distortion, her nose and the near cheek slightly enlarged. ' +
-    'Her extended arm is cut off at the bottom corner of the frame. She looks straight into the lens.',
+    'Her extended arm is cut off at the bottom corner of the frame. ' +
+    'Whatever activity the scene describes, at this moment she has paused it to take the selfie: ' +
+    'her eyes are open and looking straight into the lens, aware of the camera.',
 
   // 머리 위에서 내려찍는 각도. 한국 셀카에서 가장 흔한 구도다.
   // ⚠️ 전면카메라 셀카는 폰이 곧 카메라라 화면에 폰이 보이면 안 된다.
@@ -216,12 +218,14 @@ export const COMPOSITIONS = {
     'The camera looks steeply down on her from about 40cm above her head, tilted down roughly 40 degrees. ' +
     'Because of the high angle: the top of her head and her forehead are closest to the lens and largest, ' +
     'her chin and shoulders recede and look small, and the background behind her is the floor and her lap, ' +
-    'not the wall. She tilts her chin up and looks up into the lens. ' +
+    'not the wall. Whatever the scene describes her doing, she has paused to take this selfie — ' +
+    'she tilts her chin up and looks up directly into the lens. ' +
     'Wide front-camera lens at 23mm equivalent with the mild distortion that angle produces.',
 
   selfieLow:
     'This photo IS taken by the phone she is holding — the phone must not appear in the frame. ' +
-    'A front-camera selfie held at chest height and tilted up slightly, shot in a hurry — ' +
+    'A front-camera selfie held at chest height and tilted up slightly, about 40cm from her face, shot in a hurry — ' +
+    'her face fills a third of the frame and part of her extended arm shows at the bottom edge; ' +
     'the frame is crooked, part of her shoulder fills the lower left corner, and she is looking at the screen ' +
     'rather than the lens so her eyes are a fraction off-axis. Wide front-camera lens, mild distortion.',
 
