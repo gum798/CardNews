@@ -94,8 +94,12 @@ async function main() {
   // 게시물 단위로 복장 하나를 고정한다. looks.daily는 열려 있어서 그대로 두면
   // 같은 끼니인데 장마다 다른 옷이 나온다.
   // 기온대에 맞는 풀에서 하나를 뽑는다. 8월에 후디를 입고 있으면 그 자체로 가짜 티가 난다.
+  // 밤 방 소재는 잠자리 차림, 그 외엔 낮 외출복 풀에서 뽑는다.
+  const nightHome = hana.themeTimes?.[post.theme] === 'night' && post.place === 'room';
   const pool = outfitsForBand(post.weather.band);
-  const outfit = pool[hashSeed(id) % pool.length];
+  const outfit = nightHome
+    ? hana.appearance.sleepwearByBand[post.weather.band] || pool[0]
+    : pool[hashSeed(id) % pool.length];
   // 방에서는 세 번째 컷만 플래시(밤 감성). 밖에서는 전부 낮 혼합광 —
   // feedWindow/feedFlash가 「그녀의 방」·「밤」을 전제해서 장소 묘사와 싸운다.
   // 밤 소재면 방 컷도 밤 프레이밍으로. 마지막 컷만 플래시로 변주를 준다.
