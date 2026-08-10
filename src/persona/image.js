@@ -183,6 +183,16 @@ const FRAMING = {
     'Lit only by the room\'s single window — one side of her face clearly darker, a shadow under the jaw. ' +
     'Focus on her face, the room behind still legible. Mild grain in the shadows, corners a touch darker.',
 
+  // 밤의 방. 플래시 없이 실내등만 — feedFlash(플래시 직광)와 다른 부드러운 밤 룩.
+  // 밤 소재(열대야·새벽 공부)에서 창밖이 대낮이면 글과 그림이 어긋난다.
+  feedNight:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken at night in her room. ' +
+    'The windows are dark — just faint reflections of the room in the glass, no daylight at all. ' +
+    'The room is lit by the warm ceiling light and a small desk lamp: soft, slightly yellow, ' +
+    'uneven light with gentle shadows, dimmer toward the corners of the room. ' +
+    'ISO 1600: visible grain, especially in the shadows, and slightly muted colours. ' +
+    'Handheld, the frame tilted a couple of degrees.',
+
   // 집 밖에서 낮에 찍은 컷. feedWindow/feedFlash는 「그녀의 방」·「밤」을 전제하므로
   // 편의점·카페 같은 장소에서 쓰면 장소 묘사와 정면으로 싸운다.
   feedPublic:

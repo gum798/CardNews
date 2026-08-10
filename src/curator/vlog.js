@@ -138,7 +138,7 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
     `- 셀카처럼 자연스러운 순간이어야 합니다. 화보처럼 꾸미지 마세요.\n` +
     `- 첫 장은 인물이 보이는 사진, 나머지는 손·사물 클로즈업도 좋습니다.\n\n` +
     `아래 형식의 JSON만 출력하세요(다른 텍스트 금지):\n` +
-    `{"caption":"게시물 본문(줄바꿈 포함)","hashtags":["#아나운서준비","#취준일기"],` +
+    `{"caption":"게시물 본문(줄바꿈 포함)","hashtags":["#취준일기","#공채준비"],` +
     `"photos":[{"action":"영어 한 문장"}]}`;
 
   const parsed = await askClaudeJson(prompt);
