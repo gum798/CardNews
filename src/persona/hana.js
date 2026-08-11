@@ -332,17 +332,19 @@ export const hana = {
         'far enough away and soft enough that no face is legible. Do not reproduce any recognisable face. ' +
         'All posters, signs and packaging are blank or blurred: no readable characters, no brand marks, no logos.',
 
-      // 인천 차이나타운 — 중국집 안 + 거리. 나들이 소재용.
+      // 인천 차이나타운 — 실제 방문한 가게의 사진 2장을 레퍼런스로 붙인다
+      // (assets/persona/places/chinatown-restaurant.jpg, chinatown-food.jpg).
       // ⚠️ 간판·메뉴판이 한자로 뒤덮인 동네다. 글자 차단을 특히 세게 건다.
       chinatown:
-        'Setting: an old-style Chinese restaurant in Incheon Chinatown, lunchtime. ' +
+        'Setting: a modern upscale Chinese restaurant in Incheon Chinatown, lunchtime — ' +
+        'match the reference photos of the actual restaurant. ' +
         'Fixed look, keep consistent in every image: ' +
-        'a round dark-wood table with a worn red-and-gold accent somewhere nearby, ' +
-        'simple metal chopsticks and a stainless water cup on the table, ' +
-        'a big bowl of jjajangmyeon (black bean noodles) with a side of yellow pickled radish; ' +
-        'through the window, a steep Chinatown street with red paper lanterns strung overhead, ' +
-        'red-and-gold shopfronts and a hint of an ornamental gate further up the hill, bright summer daylight; ' +
-        'the interior is a little dim compared to the street, lit by warm tungsten bulbs. ' +
+        'a long bright interior with rows of red silk lanterns hanging from the ceiling down the aisle, ' +
+        'red-and-gold lattice panels on the walls, dark red wooden chairs with tall backs, ' +
+        'glass partitions with gold trim between sections, warm sunlight streaming through tall windows; ' +
+        'on the brown wooden table: a blue-and-white patterned porcelain bowl of jjajangmyeon topped with ' +
+        'two pieces of crispy fried shrimp, an oval white plate of japchae-rice, a small bowl of red soup, ' +
+        'white side dishes of yellow pickled radish and onions, and metal chopsticks. ' +
         // 친구는 있되 신원이 없어야 한다 — 두 번째 인물의 얼굴 일관성은 담보할 수 없다.
         'Her friend is present but never identifiable: seen only as a forearm and hand across the table, ' +
         'a shoulder at the edge of the frame, or a soft out-of-focus back of a head — ' +
@@ -443,6 +445,7 @@ export const hana = {
   placeRefs: {
     library: 'assets/persona/places/library.jpg',
     libraryCafe: 'assets/persona/places/library-cafe.jpg',
+    chinatown: ['assets/persona/places/chinatown-restaurant.jpg', 'assets/persona/places/chinatown-food.jpg'],
   },
 
   // 소재별 촬영 시간대. 'night'면 밤 프레이밍(어두운 창, 실내등)을 쓴다.
