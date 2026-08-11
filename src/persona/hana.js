@@ -332,6 +332,24 @@ export const hana = {
         'far enough away and soft enough that no face is legible. Do not reproduce any recognisable face. ' +
         'All posters, signs and packaging are blank or blurred: no readable characters, no brand marks, no logos.',
 
+      // 인천 차이나타운 — 중국집 안 + 거리. 나들이 소재용.
+      // ⚠️ 간판·메뉴판이 한자로 뒤덮인 동네다. 글자 차단을 특히 세게 건다.
+      chinatown:
+        'Setting: an old-style Chinese restaurant in Incheon Chinatown, lunchtime. ' +
+        'Fixed look, keep consistent in every image: ' +
+        'a round dark-wood table with a worn red-and-gold accent somewhere nearby, ' +
+        'simple metal chopsticks and a stainless water cup on the table, ' +
+        'a big bowl of jjajangmyeon (black bean noodles) with a side of yellow pickled radish; ' +
+        'through the window, a steep Chinatown street with red paper lanterns strung overhead, ' +
+        'red-and-gold shopfronts and a hint of an ornamental gate further up the hill, bright summer daylight; ' +
+        'the interior is a little dim compared to the street, lit by warm tungsten bulbs. ' +
+        // 친구는 있되 신원이 없어야 한다 — 두 번째 인물의 얼굴 일관성은 담보할 수 없다.
+        'Her friend is present but never identifiable: seen only as a forearm and hand across the table, ' +
+        'a shoulder at the edge of the frame, or a soft out-of-focus back of a head — ' +
+        'never a legible face, never looking at the camera. ' +
+        'All signs, menus and lanterns carry no readable characters of any language — ' +
+        'shapes and colours only, blurred or out of focus. No brand marks, no logos.',
+
       convenienceStore:
         'Setting: a small Korean convenience store, late morning, almost empty. ' +
         'Fixed layout, keep identical in every image: ' +
@@ -438,6 +456,7 @@ export const hana = {
     '편의점 도시락': 'convenienceStore',
     '도서관 피서 공부': 'library',
     '도서관 점심': 'libraryCafe',
+    '차이나타운 짜장면': 'chinatown',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -466,6 +485,15 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '차이나타운 짜장면':
+      '인천 사는 친구가 서류 합격 축하한다고 불러서 전철 타고 차이나타운에 왔다. ' +
+      '친구가 짜장면을 사줬다. 「합격 턱은 네가 붙고 나서 내」라고 했다. ' +
+      '면접 준비하느라 며칠 방에만 있었는데 오랜만에 멀리 나오니까 좋다. ' +
+      '언덕길에 홍등이 줄줄이 걸려 있고, 날은 덥지만 그늘은 견딜 만하다. ' +
+      '먹으면서도 머릿속 한구석엔 면접 생각이 있는데, 오늘은 그냥 놀기로 했다. ' +
+      '⚠️ 친구는 글에 등장하되 이름·신상은 없다. 사진에도 얼굴이 안 나온다는 전제로 쓴다. ' +
+      '⚠️ 맛집 리뷰 톤 금지. 가게 이름도 없다. 친구와의 시간이 중심이다.',
+
     '열대야':
       '며칠 살짝 시원해져서 이제 여름 고비는 넘겼나 했는데, 다시 열대야가 왔다. ' +
       '밤인데도 방이 식지를 않는다. 창문을 열어도 들어오는 바람이 미지근하다. ' +
