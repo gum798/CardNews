@@ -91,6 +91,12 @@ async function fetchKma(date) {
 // 오늘(또는 지정일) 서울 날씨. 실패해도 절대 throw하지 않는다 —
 // 날씨 때문에 브이로그 생성이 멈추면 안 된다.
 export async function getSeoulWeather(date = new Date()) {
+  // 평년값이 실제와 어긋나는 날의 수동 보정 (예: 8월인데 선선). BANDS 키를 넣는다.
+  const forced = process.env.WEATHER_BAND_OVERRIDE;
+  if (forced && BANDS.some((x) => x.key === forced)) {
+    const band = BANDS.find((x) => x.key === forced);
+    return { tempC: band.min + 3, band: band.key, label: band.label, raining: false, snowing: false, source: 'manual', month: date.getMonth() + 1 };
+  }
   const live = await fetchKma(date);
   const tempC = live ? live.tempC : dayHigh(normalTemp(date));
   const band = bandFor(tempC);

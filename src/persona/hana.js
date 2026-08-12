@@ -185,6 +185,10 @@ export const hana = {
     // ⚠️ 계절을 무시하면 그 자체로 가짜 티가 난다. 8월에 후디를 입고 있으면
     //    사람들은 이유를 설명 못 해도 어색함을 느낀다. 기온대별로 나눠 둔다.
     //    (src/weather/seoul.js의 BANDS 키와 1:1로 맞춘다)
+    // 운동복. 헬스장은 실내 냉방이라 계절 무관 동일. 핏은 살리되 노출 없음 원칙 유지.
+    gymwear:
+      '피트되는 검정 반팔 운동 티에 검정 레깅스, 러닝화, 머리 높이 하나로 묶음, 손목에 헤어밴드, 민낯',
+
     // 밤에 방에서 자기 전 차림. 밤 소재(열대야 등)에서 낮 외출복을 입고 있으면 어색하다.
     // 노출 선은 유지 — 실제 여름 자취방 잠옷 수준(나시+돌핀팬츠)이고 그 이상은 안 간다.
     sleepwearByBand: {
@@ -352,6 +356,19 @@ export const hana = {
         'All signs, menus and lanterns carry no readable characters of any language — ' +
         'shapes and colours only, blurred or out of focus. No brand marks, no logos.',
 
+      // 헬스장 — 실제 다니는 곳의 사진을 레퍼런스로 붙인다 (assets/persona/places/gym.jpg).
+      gym:
+        'Setting: a large modern commercial gym, evening — match the reference photo. ' +
+        'Fixed look, keep consistent in every image: ' +
+        'a long bright hall with white ceiling and rows of recessed strip lights; ' +
+        'on one side a long row of black treadmills facing tall windows, ' +
+        'on the other side rows of black elliptical machines and weight machines with mirrored pillars; ' +
+        'a blue rubber walking lane runs down the middle of the pale grey floor with light wood strips at the edges; ' +
+        'clean, spacious, air-conditioned. ' +
+        // 레퍼런스에 실제 이용객이 있다 + 기구에 브랜드·모델명이 크게 적혀 있다.
+        'Other gym-goers appear only far away, from behind, or soft out of focus — no legible face. ' +
+        'All machine branding, model numbers and signs are blank or unreadable — no brand marks, no logos, no readable characters.',
+
       convenienceStore:
         'Setting: a small Korean convenience store, late morning, almost empty. ' +
         'Fixed layout, keep identical in every image: ' +
@@ -446,6 +463,7 @@ export const hana = {
     library: 'assets/persona/places/library.jpg',
     libraryCafe: 'assets/persona/places/library-cafe.jpg',
     chinatown: ['assets/persona/places/chinatown-restaurant.jpg', 'assets/persona/places/chinatown-food.jpg'],
+    gym: 'assets/persona/places/gym.jpg',
   },
 
   // 소재별 촬영 시간대. 'night'면 밤 프레이밍(어두운 창, 실내등)을 쓴다.
@@ -460,6 +478,7 @@ export const hana = {
     '도서관 피서 공부': 'library',
     '도서관 점심': 'libraryCafe',
     '차이나타운 짜장면': 'chinatown',
+    '헬스장': 'gym',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -488,6 +507,15 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '헬스장':
+      '날이 드디어 선선해졌다. 며칠 전까지 열대야로 잠도 설쳤는데 오늘은 바람이 다르다. ' +
+      '면접 준비로 계속 앉아만 있어서 몸이 굳은 것 같아 저녁에 헬스장에 왔다. ' +
+      '날은 선선해졌는데 러닝머신 30분 뛰니까 결국 땀은 똑같이 난다 — 이 아이러니가 글의 훅이다. ' +
+      '그래도 뛰고 나면 머리가 비워져서, 면접 걱정도 잠깐은 잊는다. ' +
+      '운동 끝나고 머리 식히면서 오늘 정리한 예상 질문을 속으로 되뇌어봤다. ' +
+      '⚠️ 운동 루틴·팁으로 흐르지 마라. 헬스 전문가가 아니라 가끔 와서 뛰는 사람이다. ' +
+      '⚠️ 몸매 자랑 톤 금지. 운동은 면접 준비 체력 관리이자 스트레스 해소다.',
+
     '차이나타운 짜장면':
       '인천 사는 친구가 서류 합격 축하한다고 불러서 전철 타고 차이나타운에 왔다. ' +
       '친구가 짜장면을 사줬다. 「합격 턱은 네가 붙고 나서 내」라고 했다. ' +
