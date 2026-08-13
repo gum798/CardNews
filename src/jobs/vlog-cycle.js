@@ -54,6 +54,9 @@ function shuffleWithSeed(arr, seed) {
 }
 
 function postId(slot) {
+  // VLOG_DATE=YYYYMMDD로 다른 날짜의 게시물을 미리 만들 수 있다.
+  // (검토 대기 게시물이 있으면 그날 자동 실행이 건너뛰므로 충돌하지 않는다)
+  if (/^\d{8}$/.test(process.env.VLOG_DATE || '')) return `vlog-${process.env.VLOG_DATE}-${slot}`;
   const d = new Date();
   const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
   return `vlog-${stamp}-${slot}`;

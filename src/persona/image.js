@@ -118,16 +118,25 @@ async function viaCloudflare(prompt, refImages, size) {
     const cropped = await headCropForRef(refImages[i]);
     form.append(`input_image_${i}`, new Blob([readFileSync(cropped)], { type: 'image/jpeg' }), `ref${i}.jpg`);
   }
-  const url = `https://api.cloudflare.com/client/v4/accounts/${cloudflare.accountId}/ai/run/${cloudflare.imageModel}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${cloudflare.aiToken}` },
-    body: form,
-    signal: AbortSignal.timeout(300_000),
-  });
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (!res.ok) {
-    // 429(뉴런 소진)는 다음 백엔드(gemini)로 넘어가게 non-fatal로 둔다.
+  // 계정별 무료 풀(일 10,000뉴런)을 순서대로 소진한다. 1번 429면 2번 시도.
+  let res, buf;
+  const accounts = cloudflare.accounts.length ? cloudflare.accounts : [{ accountId: cloudflare.accountId, token: cloudflare.aiToken }];
+  for (let ai = 0; ai < accounts.length; ai++) {
+    const acct = accounts[ai];
+    res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/ai/run/${cloudflare.imageModel}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${acct.token}` },
+      body: form,
+      signal: AbortSignal.timeout(300_000),
+    });
+    buf = Buffer.from(await res.arrayBuffer());
+    if (res.ok) break;
+    const last = ai === accounts.length - 1;
+    if (res.status === 429 && !last) {
+      console.warn(`[persona] cf 계정 ${ai + 1} 뉴런 소진 → 계정 ${ai + 2} 시도`);
+      continue;
+    }
+    // 429(전 계정 소진)는 다음 백엔드(gemini)로 넘어가게 non-fatal로 둔다.
     throw Object.assign(new Error(`cf image ${res.status}: ${buf.toString().slice(0, 200)}`), {
       fatal: res.status === 401 || res.status === 403,
     });

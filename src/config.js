@@ -115,9 +115,15 @@ export const youtube = {
 // flux-2-klein-4b: 레퍼런스 최대 4장(multipart input_image_0..3, 서버가 512px 미만으로 축소),
 // 768x1376 세로 실측 통과. PoC(2026-08-13, 30장): 같음14/경계13/다름3.
 export const cloudflare = {
-  accountId: process.env.R2_ACCOUNT_ID, // R2와 같은 계정
+  accountId: process.env.R2_ACCOUNT_ID, // R2와 같은 계정 (1번)
   aiToken: process.env.CF_WORKERS_AI_TOKEN,
   imageModel: process.env.CF_IMAGE_MODEL || '@cf/black-forest-labs/flux-2-klein-4b',
+  // 무료 뉴런 풀은 계정 단위(일 10,000)라 계정을 늘리면 한도가 늘어난다.
+  // 1번(gum, R2와 동일) 소진 시 2번(kon)으로 넘어간다. 순서대로 시도.
+  accounts: [
+    { accountId: process.env.R2_ACCOUNT_ID, token: process.env.CF_WORKERS_AI_TOKEN },
+    { accountId: process.env.CF_ACCOUNT_ID_2, token: process.env.CF_WORKERS_AI_TOKEN_BACKUP },
+  ].filter((a) => a.accountId && a.token),
 };
 
 // R2는 계정 공용 버킷을 쓰되, 객체 키에 프로필 접두사를 붙여 파일이 섞이지 않게 한다.
