@@ -225,15 +225,16 @@ const personaDriftY = `12*sin(2*PI*t/7.1)+3*sin(2*PI*t/0.67)`;
 
 // 하나 키프레임 → 오려낸 레이어 정보. 인트로는 첫 구간, 아웃트로는 마지막 구간에만 보인다.
 // 매트가 실패하거나 못 믿을 수준이면 그 컷은 조용히 빠진다(영상은 그대로 나간다).
-export async function personaLayersFor(persona, durations) {
+export async function personaLayersFor(persona, durations, { skipIntro = false } = {}) {
   if (!persona) return [];
   const total = durations.reduce((a, b) => a + b, 0);
   const lastStart = total - durations[durations.length - 1];
 
   const wanted = [
-    { image: persona.intro, start: 0, end: durations[0] },
+    // 인트로가 실사 영상으로 대체되면 인트로 컷아웃은 뺀다(이중 등장 방지).
+    skipIntro ? null : { image: persona.intro, start: 0, end: durations[0] },
     { image: persona.outro, start: lastStart, end: total },
-  ].filter((w) => w.image);
+  ].filter((w) => w && w.image);
 
   const layers = [];
   for (const w of wanted) {
@@ -255,7 +256,7 @@ export async function personaLayersFor(persona, durations) {
 //
 // personaLayers: [{ image, mask, place, start, end }] — 오려낸 하나를 자막 위에 세운다.
 // 자막 안전영역이 이미 위로 비켜나 있어(.safe.with-persona) 겹치지 않는다.
-async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, personaLayers = []) {
+async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, personaLayers = [], introVideo = null) {
   const durations = segments.map((s) => s.duration);
   const total = durations.reduce((a, b) => a + b, 0);
 
@@ -268,6 +269,9 @@ async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, per
     args.push('-loop', '1', '-t', total.toFixed(3), '-i', p.image);
     args.push('-loop', '1', '-t', total.toFixed(3), '-i', p.mask);
   }
+  // 인트로 실사 영상 (훅 구간의 전체 화면 배경) — 항상 마지막 입력
+  const introIdx = introVideo ? 1 + framePaths.length + segments.length + 1 + personaLayers.length * 2 : -1;
+  if (introVideo) args.push('-i', introVideo);
 
   const nOv = framePaths.length;
   const aStart = 1 + nOv;
@@ -275,6 +279,27 @@ async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, per
   const pStart = bgmIdx + 1;
 
   const g = [];
+  const d0 = durations[0];
+  if (introVideo) {
+    // 훅 구간: 하나 실사 영상이 전체 화면. 이후: 스톡 영상.
+    // 하나 영상이 훅보다 짧으면 마지막 프레임을 늘려(tpad clone) 채운다.
+    // eq(어둡게)는 스톡에만 — 하나 얼굴은 오버레이의 스크림이 이미 덮으므로 이중으로 어둡게 하지 않는다.
+    g.push(
+      `[${introIdx}:v]scale=${BG_OVERSCAN_W}:${BG_OVERSCAN_H}:force_original_aspect_ratio=increase,` +
+        `crop=${BG_OVERSCAN_W}:${BG_OVERSCAN_H},fps=${FPS},` +
+        `tpad=stop_mode=clone:stop_duration=${Math.max(0, d0 - 5.5).toFixed(3)},` +
+        `trim=duration=${d0.toFixed(3)},setpts=PTS-STARTPTS[iv]`
+    );
+    g.push(
+      `[0:v]scale=${BG_OVERSCAN_W}:${BG_OVERSCAN_H}:force_original_aspect_ratio=increase:in_range=full:out_range=tv,` +
+        `crop=${BG_OVERSCAN_W}:${BG_OVERSCAN_H},fps=${FPS},eq=brightness=-0.06:saturation=1.05,` +
+        `trim=duration=${(total - d0).toFixed(3)},setpts=PTS-STARTPTS[bgrest]`
+    );
+    g.push(`[iv][bgrest]concat=n=2:v=1:a=0[bgcat]`);
+    g.push(
+      `[bgcat]crop=1080:1920:x='(iw-ow)/2+${bgDriftX}':y='(ih-oh)/2+${bgDriftY}',setsar=1[bgv]`
+    );
+  } else {
   // 배경: 세로를 채우도록 확대 → 오버스캔 크롭 → 살짝 어둡게(자막 대비 확보)
   //       → 시간가변 크롭으로 느린 드리프트. setpts 뒤에 둬야 t가 0부터 시작한다.
   g.push(
@@ -283,6 +308,7 @@ async function buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, per
       `trim=duration=${total.toFixed(3)},setpts=PTS-STARTPTS,` +
       `crop=1080:1920:x='(iw-ow)/2+${bgDriftX}':y='(ih-oh)/2+${bgDriftY}',setsar=1[bgv]`
   );
+  }
   // 각 오버레이를 자기 구간에만 표시
   let prev = '[bgv]';
   let t = 0;
@@ -346,7 +372,8 @@ export async function makeNarratedReel(
   framePaths,
   segments,
   // personaLayers를 미리 계산해 넘기면 그대로 쓴다(호출부가 렌더 전에 매트 성공 여부를 알아야 하므로).
-  { bgVideo = null, persona = null, personaLayers = null } = {}
+  // introVideo: 훅 구간의 전체 화면 배경이 될 하나 실사 영상(Hailuo). 있으면 인트로 컷아웃은 생략된다.
+  { bgVideo = null, persona = null, personaLayers = null, introVideo = null } = {}
 ) {
   if (framePaths.length !== segments.length) {
     throw new Error(`프레임(${framePaths.length})과 오디오 세그먼트(${segments.length}) 수가 같아야 함`);
@@ -363,7 +390,7 @@ export async function makeNarratedReel(
   // 실사 영상 배경이 있으면 오버레이 방식으로.
   if (bgVideo) {
     const layers = personaLayers ?? (await personaLayersFor(persona, durations));
-    await buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, layers);
+    await buildVideoBgReel(framePaths, segments, bgVideo, bgm, outPath, layers, introVideo);
     const d = await validate(outPath);
     console.log(
       `[video] 나레이션 릴스(실사배경) ${d.toFixed(1)}초 (라인 ${segments.length}개` +

@@ -64,6 +64,8 @@ export const reel = {
   stockVideo: process.env.REEL_STOCK_VIDEO !== '0',
   // 진행자 하나를 인트로/아웃트로에 합성한다. 실패해도 발행은 계속(베스트에포트).
   persona: process.env.REEL_PERSONA !== '0',
+  // 인트로를 정지 사진 대신 실사 영상(Hailuo i2v, 크레딧 결제)으로. 실패 시 정지 사진 폴백.
+  introVideo: process.env.REEL_INTRO_VIDEO !== '0',
 };
 
 // 발행 슬롯 + 실패 시 재시도 창. launchd가 target~retryUntilHour 매 정시에 잡을 실행하면,
@@ -109,6 +111,13 @@ export const youtube = {
   // 올라가야 할 채널. 토큰은 동의 화면에서 고른 채널에 묶이므로, 재인증 때 다른 채널을
   // 고르면 업로드가 계속 성공하면서 엉뚱한 채널에 쌓인다. 매 업로드마다 대조한다.
   channelId: envFor('YOUTUBE_CHANNEL_ID'),
+};
+
+// MiniMax 영상 API. subKey(크레딧 지갑)는 Hailuo 레거시 모델용,
+// apiKey(PAYG 지갑)는 H3용 — 크레딧은 H3를 거부한다(실측 2013 에러).
+export const minimax = {
+  subKey: process.env.MINIMAX_SUB_KEY,
+  apiKey: process.env.MINIMAX_API_KEY,
 };
 
 // Cloudflare Workers AI — 이미지 생성 무료 경로 (일 10,000뉴런 ≈ 59장).

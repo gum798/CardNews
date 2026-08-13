@@ -11,6 +11,7 @@ import { writeCards, pickBackgroundImages } from './curator/index.js';
 import { searchTopicImages, downloadImage, searchTopicVideos, downloadVideo } from './images/index.js';
 import { renderCandidate, renderReelLines } from './renderer/index.js';
 import { makeReel, makeNarratedReel, grabPoster, personaLayersFor } from './video/index.js';
+import { animatePersona } from './video/hailuo.js';
 import { synthesizeLines } from './tts/index.js';
 import { scriptViolations, ADVICE_GUARD_PROMPT } from './guards/policy.js';
 import { getReelKeyframes, publishKey } from './persona/keyframe.js';
@@ -142,9 +143,19 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
         // 훅도 낭독한다 → 0초부터 소리가 나고, 프레임과 오디오가 1:1로 맞는다.
         const narrationLines = [cardData.script.hook, ...cardData.script.lines];
         const segments = await synthesizeLines(narrationLines, path.join(outDir, 'audio'));
+        // 인트로: 정지 사진 대신 실사 영상(Hailuo, 크레딧). 실패 시 null → 기존 컷아웃 방식.
+        let introVideo = null;
+        if (bgVideo && reelCfg.introVideo && personaFrames?.intro) {
+          introVideo = await animatePersona(
+            personaFrames.intro,
+            path.join(outDir, 'intro-hana.mp4'),
+            { duration: 6 }
+          );
+        }
+
         // 하나를 오려낼 수 있는지 렌더 전에 판정한다. 실패한 컷은 HTML이 기존 방식대로 그린다.
         const personaLayers = bgVideo
-          ? await personaLayersFor(personaFrames, segments.map((s) => s.duration))
+          ? await personaLayersFor(personaFrames, segments.map((s) => s.duration), { skipIntro: Boolean(introVideo) })
           : [];
 
         const lineFrames = await renderReelLines(candidateId, cardData.script, {
@@ -153,12 +164,16 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
           account: account.name,
           aiNotice: 'AI 생성 콘텐츠',
           persona: personaFrames,
-          personaLayerImages: personaLayers.map((l) => l.image), // 이건 ffmpeg가 얹는다
+          // ffmpeg가 얹는 컷 + 인트로 영상으로 대체된 컷 — HTML은 둘 다 그리지 않는다.
+          personaLayerImages: [
+            ...personaLayers.map((l) => l.image),
+            ...(introVideo ? [personaFrames.intro] : []),
+          ],
           transparent: Boolean(bgVideo), // 영상 위에 얹으려면 투명 PNG
         });
         // 투명 오버레이(실사영상 배경)일 때는 배경이 없는 PNG라 표지로 못 쓴다 → 영상 첫 프레임을 뽑아 쓴다.
         hookFrame = bgVideo ? null : lineFrames[0];
-        reelPath = await makeNarratedReel(candidateId, lineFrames, segments, { bgVideo, personaLayers });
+        reelPath = await makeNarratedReel(candidateId, lineFrames, segments, { bgVideo, personaLayers, introVideo });
         console.log(
           `[pipeline] 나레이션 릴스 생성 (훅=${cardData.script.hookType}, 라인 ${segments.length}, ` +
             `배경=${bgVideo ? '실사영상' : reelBgs.length + '장 사진'})`
