@@ -22,6 +22,7 @@ function parse(line) {
   const m = line.match(
     /ok instances=(\d+) mask=(\d+)x(\d+) bbox=(\d+),(\d+),(\d+),(\d+) cover=([\d.]+)/
   );
+  const fm = line.match(/face=(\d+),(\d+),(\d+),(\d+)/);
   if (!m) return null;
   const [, inst, mw, mh, bx, by, bw, bh, cover] = m;
   return {
@@ -30,6 +31,7 @@ function parse(line) {
     height: Number(mh),
     bbox: { x: Number(bx), y: Number(by), w: Number(bw), h: Number(bh) },
     cover: Number(cover),
+    face: fm ? { x: Number(fm[1]), y: Number(fm[2]), w: Number(fm[3]), h: Number(fm[4]) } : null,
   };
 }
 

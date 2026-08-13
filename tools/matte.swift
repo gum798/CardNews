@@ -76,6 +76,22 @@ let bw = maxX - minX + 1
 let bh = maxY - minY + 1
 let coverPct = Double(covered) / Double(mw * mh) * 100.0
 
+// ── 얼굴 박스 ────────────────────────────────────────────────────────────────
+// 인물 전체 박스로 레퍼런스를 자르면 셀카의 「폰 든 팔」과 옷이 같이 들어가,
+// 생성물이 그 포즈·복장을 그대로 베낀다(뉴스 세트에 나시티+폰이 나왔다).
+// 얼굴만 따로 내주면 신원만 가져가고 나머지는 프롬프트가 정한다.
+var faceBox = ""
+let faceReq = VNDetectFaceRectanglesRequest()
+if (try? handler.perform([faceReq])) != nil, let f = (faceReq.results ?? []).first {
+    // Vision 좌표는 정규화 + 좌하단 원점 → 픽셀 + 좌상단 원점으로 변환
+    let r = f.boundingBox
+    let fx = Int(r.minX * CGFloat(mw))
+    let fy = Int((1 - r.maxY) * CGFloat(mh))
+    let fw = Int(r.width * CGFloat(mw))
+    let fh = Int(r.height * CGFloat(mh))
+    faceBox = String(format: " face=%d,%d,%d,%d", fx, fy, fw, fh)
+}
+
 // ── 마스크 PNG 저장 (그레이스케일 L8) ────────────────────────────────────────
 let maskCI = CIImage(cvPixelBuffer: pb)
 let ctx = CIContext()
@@ -86,4 +102,4 @@ guard let png = ctx.pngRepresentation(of: maskCI, format: .L8, colorSpace: cs) e
 do { try png.write(to: outURL) } catch { print("write failed: \(error)"); exit(1) }
 
 print(String(format: "ok instances=%d mask=%dx%d bbox=%d,%d,%d,%d cover=%.1f time=%.3fs",
-             obs.allInstances.count, mw, mh, minX, minY, bw, bh, coverPct, elapsed))
+             obs.allInstances.count, mw, mh, minX, minY, bw, bh, coverPct, elapsed) + faceBox)

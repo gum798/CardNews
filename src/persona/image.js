@@ -90,15 +90,33 @@ async function viaOmniroute(prompt, size) {
 const execFileAsync = promisify(execFile);
 const FFMPEG_BIN = '/opt/homebrew/bin/ffmpeg';
 
+// ⚠️ 레퍼런스는 두 종류다: 신원(하나 얼굴)과 장소(도서관·헬스장 실사 사진).
+//    신원 레퍼런스만 얼굴로 자른다 — 장소 사진을 자르면 그 공간이 안 나온다.
+//    구분은 얼굴 크기로 한다: 신원 사진의 얼굴은 세로 15~20%, 장소 사진 배경 인물은 2% 미만.
+const IDENTITY_FACE_RATIO = 0.1;
+
 async function headCropForRef(imgPath) {
   const out = path.join(os.tmpdir(), 'cfref-' + path.basename(imgPath).replace(/[^w.]/g, '_') + '.jpg');
   try {
     const info = await foregroundMatte(imgPath);
+    const isIdentity = info?.face && info.face.h / info.height >= IDENTITY_FACE_RATIO;
+    if (info && !isIdentity) {
+      // 장소 레퍼런스: 통째로 넘긴다(긴 변 480). CF가 어차피 512 미만으로 줄인다.
+      await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf','scale=480:480:force_original_aspect_ratio=decrease','-q:v','3',out,'-y']);
+      return out;
+    }
     if (info) {
-      // 인물 bbox의 위쪽 정사각형 = 머리 영역. 폭의 1.15배로 여유를 준다.
-      const side = Math.min(Math.round(info.bbox.w * 1.15), info.width);
-      const x = Math.max(0, Math.min(info.width - side, Math.round(info.bbox.x + info.bbox.w / 2 - side / 2)));
-      const y = Math.max(0, Math.min(info.height - side, info.bbox.y));
+      // ⚠️ 인물 bbox로 자르면 셀카의 「폰 든 팔」과 옷이 같이 들어가고, 생성물이 그
+      //    포즈·복장을 그대로 베낀다(뉴스 세트에 나시티+폰이 나온 실측 사례).
+      //    얼굴 박스가 있으면 그 주변만 잘라 신원만 넘긴다 — 나머지는 프롬프트가 정한다.
+      const f = info.face;
+      const side = f
+        ? Math.min(Math.round(f.h * 2.1), info.width, info.height)
+        : Math.min(Math.round(info.bbox.w * 1.15), info.width);
+      const cx = f ? f.x + f.w / 2 : info.bbox.x + info.bbox.w / 2;
+      const cy = f ? f.y + f.h / 2 : info.bbox.y + side / 2;
+      const x = Math.max(0, Math.min(info.width - side, Math.round(cx - side / 2)));
+      const y = Math.max(0, Math.min(info.height - side, Math.round(cy - side / 2)));
       await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf',`crop=${side}:${side}:${x}:${y},scale=480:480`,'-q:v','3',out,'-y']);
       return out;
     }
@@ -258,6 +276,21 @@ const FRAMING = {
     'Vertical 9:16 with room above her head. Shot on a phone propped on the desk, 26mm equivalent, f/1.8. ' +
     'Lit only by the room\'s single window — one side of her face clearly darker, a shadow under the jaw. ' +
     'Focus on her face, the room behind still legible. Mild grain in the shadows, corners a touch darker.',
+
+  // 뉴스 세트용. reel은 「방 창문 조명」을 전제하므로 링라이트 세트와 싸운다.
+  // 정면 링라이트지만 값싼 장비라 균일하지 않다 — 그 어설픔이 세트 컨셉과 맞는다.
+  reelSet:
+    'Vertical 9:16 with room above her head, framed chest-up so the paper backdrop fills the frame behind her. ' +
+    'Shot on a phone propped on a small tripod at eye level, 26mm equivalent, f/1.8. ' +
+    'A cheap clip-on ring light is the key light, slightly off to one side rather than dead centre, ' +
+    'so one cheek is brighter and a soft double shadow falls on the paper behind her. ' +
+    'A small ring-shaped catchlight sits in each eye. The room lamp adds a warmer tint on the shadow side. ' +
+    'Mild grain, corners a touch darker, the frame very slightly off level. ' +
+    // ⚠️ 레퍼런스가 셀카라 옷차림과 폰 든 손이 그대로 따라온다(실측). 여기서 덮어쓴다.
+    'This is NOT a selfie: the phone is on a tripod and must not appear in the frame, ' +
+    'and neither of her hands holds a phone — they rest on the desk or hold the script pages. ' +
+    'She is dressed for filming in the navy interview blazer over a white blouse, ' +
+    'regardless of what she wears in the reference images.',
 
   // 밤의 방. 플래시 없이 실내등만 — feedFlash(플래시 직광)와 다른 부드러운 밤 룩.
   // 밤 소재(열대야·새벽 공부)에서 창밖이 대낮이면 글과 그림이 어긋난다.

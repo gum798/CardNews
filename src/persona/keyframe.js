@@ -26,24 +26,28 @@ export function anchorPath(phase = process.env.PERSONA_PHASE || 'before') {
 }
 
 // 릴스 씬. 행동을 여러 개 두고 날짜로 골라 매번 다른 그림이 나오게 한다.
+// 장소는 뉴스룸(방 한쪽에 종이로 만든 세트)이므로 행동도 그 앞에서 성립해야 한다 —
+// 바닥에 앉거나 침대 옆 같은 방 전용 동작은 여기 넣지 않는다.
 export const SCENES = {
   intro: {
     look: 'news',
     angle: 'front',
+    place: 'newsroom',
     actions: [
-      'sitting at the desk with the laptop open, mid-sentence, one hand on a printed page',
-      'leaning back in the chair with a mug in both hands, about to say something',
-      'sitting cross-legged on the floor by the bed with the laptop on her lap',
-      'perched on the edge of the desk chair, turned toward the camera, pen still in hand',
-      'sitting at the desk with the notebook open, glancing up from it',
+      'sitting upright at the desk facing the camera, a printed script page in one hand, about to speak',
+      'leaning slightly toward the camera mid-sentence, one hand resting flat on the script',
+      'sitting straight with both hands loosely clasped on the desk, mouth open mid-word',
+      'glancing up from the script page to the camera as she starts talking',
+      'sitting at the desk with a mug beside her hand, gesturing small with the other hand as she speaks',
     ],
   },
   outro: {
     look: 'news',
     angle: 'right',
+    place: 'newsroom',
     actions: [
       'sitting at the desk, a small tired smile, wrapping up',
-      'closing the laptop lid with one hand, looking slightly off camera',
+      'squaring the script pages against the desk with both hands, finishing',
       'stretching her shoulders back after finishing, half smiling',
       'resting her chin on her hand, looking past the camera, thinking',
       'reaching for the mug at the edge of the desk, mid-motion',
@@ -124,7 +128,8 @@ export async function getKeyframe(
       angle: scene.angle,
       scene: pickAction(scene, `${sceneName}-${key}`),
       phase,
-      framing: 'reel',
+      framing: scene.place === 'newsroom' ? 'reelSet' : 'reel',
+      place: scene.place || 'room',
       withReference: Boolean(anchor),
       seed: `${sceneName}-${key}`,
     });

@@ -336,6 +336,27 @@ export const hana = {
         'far enough away and soft enough that no face is legible. Do not reproduce any recognisable face. ' +
         'All posters, signs and packaging are blank or blurred: no readable characters, no brand marks, no logos.',
 
+      // 뉴스 촬영용 세트. 스튜디오가 아니라 자기 방 한쪽에 종이로 만든 조악한 배경이다.
+      // 돈 없는 취준생이 유튜브 찍겠다고 직접 만든 것 — 그 어설픔이 이 채널의 정체성이고,
+      // 방 안이라 브이로그 사진(신원 레퍼런스)과도 충돌하지 않는다.
+      // ⚠️ 레퍼런스 사진(그녀의 방)이 프롬프트를 이기는 경향이 강하다. 첫 시도에서
+      //    「방 한쪽」으로 시작했더니 모델이 그냥 평소 방을 그렸다. 종이 배경을
+      //    맨 앞에 세우고 방 언급을 최소화해야 세트가 실제로 나온다.
+      newsroom:
+        'IMPORTANT — the wall behind her is COMPLETELY COVERED by a hand-made paper backdrop. ' +
+        'The usual bedroom wall, the taped A4 notes, the bookshelf, the window and the curtain are ' +
+        'all hidden behind it and must not be visible. ' +
+        'The backdrop: large sheets of deep navy poster paper taped edge to edge across the whole wall, ' +
+        'with two mustard-yellow paper strips running horizontally as accent bands; ' +
+        'a simple globe silhouette cut out of pale grey paper by hand, its scissor edges visibly uneven, ' +
+        'taped slightly off-centre behind her shoulder. ' +
+        'Strips of masking tape show at every seam and one bottom corner has come loose and curls forward. ' +
+        'The paper is a little wrinkled and reflects the light unevenly. ' +
+        'In front of her, a light-wood desk with a small stack of printed script pages and a white ceramic mug. ' +
+        'This is a broke YouTuber\'s bedroom news set, not a professional studio and not a virtual background — ' +
+        'the hand-made cheapness is the whole point. ' +
+        'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
+
       // 인천 차이나타운 — 실제 방문한 가게의 사진 2장을 레퍼런스로 붙인다
       // (assets/persona/places/chinatown-restaurant.jpg, chinatown-food.jpg).
       // ⚠️ 간판·메뉴판이 한자로 뒤덮인 동네다. 글자 차단을 특히 세게 건다.
