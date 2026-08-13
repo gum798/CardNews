@@ -12,6 +12,11 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { cloudflare } from '../config.js';
+import { foregroundMatte } from '../video/matte.js';
 import { identityLockFor } from './hana.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -25,13 +30,15 @@ const OMNI_MODEL = process.env.OMNIROUTE_IMAGE_MODEL || 'antigravity/gemini-3.1-
 function backendChain(wantRef) {
   const hasOmni = Boolean(process.env.OMNIROUTE_URL && process.env.OMNIROUTE_API_KEY);
   const hasGemini = Boolean(process.env.GEMINI_API_KEY);
+  const hasCF = Boolean(cloudflare.accountId && cloudflare.aiToken);
 
   let chain = [];
   if (hasGemini) chain.push('gemini');
+  if (hasCF) chain.push('cf'); // 무료(일 10,000뉴런). IMAGE_BACKEND=cf로 선두 지정.
   if (hasOmni) chain.push('omniroute');
 
-  // 레퍼런스 첨부는 OpenAI 형식(/v1/images/generations)이 지원하지 않는다 → gemini만.
-  if (wantRef) chain = chain.filter((b) => b === 'gemini');
+  // 레퍼런스 첨부: cf(input_image_0..3 네이티브)와 gemini만 지원.
+  if (wantRef) chain = chain.filter((b) => b === 'gemini' || b === 'cf');
 
   const explicit = process.env.IMAGE_BACKEND;
   if (explicit && chain.includes(explicit)) {
@@ -74,6 +81,64 @@ async function viaOmniroute(prompt, size) {
   const b64 = body?.data?.[0]?.b64_json;
   if (!b64) throw new Error(`이미지 없음: ${JSON.stringify(body).slice(0, 200)}`);
   return Buffer.from(b64, 'base64'); // 확장자 관례와 달리 JPEG가 온다
+}
+
+// ── Cloudflare Workers AI (flux-2-klein-4b, 무료) ─────────────
+// multipart 필수(JSON은 400). 레퍼런스는 input_image_0..3 — 서버가 512px 미만으로
+// 축소하므로 큰 사진을 그대로 넣으면 얼굴이 뭉개진다. 넣기 전에 인물 머리 위주로
+// 크롭해 480px로 만든다(matte의 bbox 이용, 실패 시 중앙 상단 크롭).
+const execFileAsync = promisify(execFile);
+const FFMPEG_BIN = '/opt/homebrew/bin/ffmpeg';
+
+async function headCropForRef(imgPath) {
+  const out = path.join(os.tmpdir(), 'cfref-' + path.basename(imgPath).replace(/[^w.]/g, '_') + '.jpg');
+  try {
+    const info = await foregroundMatte(imgPath);
+    if (info) {
+      // 인물 bbox의 위쪽 정사각형 = 머리 영역. 폭의 1.15배로 여유를 준다.
+      const side = Math.min(Math.round(info.bbox.w * 1.15), info.width);
+      const x = Math.max(0, Math.min(info.width - side, Math.round(info.bbox.x + info.bbox.w / 2 - side / 2)));
+      const y = Math.max(0, Math.min(info.height - side, info.bbox.y));
+      await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf',`crop=${side}:${side}:${x}:${y},scale=480:480`,'-q:v','3',out,'-y']);
+      return out;
+    }
+  } catch { /* 폴백으로 */ }
+  // 매트 실패: 중앙 상단 정사각 크롭 (인물 사진 관례상 얼굴은 상단 중앙에 있다)
+  await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf',"crop='min(iw,ih)':'min(iw,ih)':(iw-min(iw,ih))/2:0,scale=480:480",'-q:v','3',out,'-y']);
+  return out;
+}
+
+async function viaCloudflare(prompt, refImages, size) {
+  const [w, h] = (size || '768x1376').split('x').map(Number);
+  const form = new FormData();
+  form.append('prompt', prompt);
+  form.append('width', String(w || 768));
+  form.append('height', String(h || 1376));
+  for (let i = 0; i < Math.min(refImages.length, 4); i++) {
+    const cropped = await headCropForRef(refImages[i]);
+    form.append(`input_image_${i}`, new Blob([readFileSync(cropped)], { type: 'image/jpeg' }), `ref${i}.jpg`);
+  }
+  const url = `https://api.cloudflare.com/client/v4/accounts/${cloudflare.accountId}/ai/run/${cloudflare.imageModel}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${cloudflare.aiToken}` },
+    body: form,
+    signal: AbortSignal.timeout(300_000),
+  });
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (!res.ok) {
+    // 429(뉴런 소진)는 다음 백엔드(gemini)로 넘어가게 non-fatal로 둔다.
+    throw Object.assign(new Error(`cf image ${res.status}: ${buf.toString().slice(0, 200)}`), {
+      fatal: res.status === 401 || res.status === 403,
+    });
+  }
+  if (buf[0] === 0x7b) { // JSON {result:{image:b64}}
+    const j = JSON.parse(buf.toString());
+    const b64 = j?.result?.image;
+    if (!b64) throw new Error(`cf 이미지 없음: ${JSON.stringify(j).slice(0, 200)}`);
+    return Buffer.from(b64, 'base64');
+  }
+  return buf; // 바이너리 응답
 }
 
 // ── Gemini 직결 (레퍼런스 이미지 첨부 지원) ──────────────────
@@ -122,7 +187,9 @@ export async function generateImage(prompt, { refImages = [], outPath, size } = 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const buf =
-          which === 'omniroute' ? await viaOmniroute(prompt, size) : await viaGemini(prompt, refImages);
+          which === 'omniroute' ? await viaOmniroute(prompt, size)
+          : which === 'cf' ? await viaCloudflare(prompt, refImages, size)
+          : await viaGemini(prompt, refImages);
         if (buf.length < 1000) throw new Error('빈 이미지 응답');
         if (outPath) {
           await mkdir(path.dirname(outPath), { recursive: true });

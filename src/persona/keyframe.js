@@ -115,7 +115,10 @@ export async function getKeyframe(
 
   try {
     // 앵커를 레퍼런스로 첨부해야 같은 사람이 유지된다.
+    // 최근 브이로그 사진(사람 검수를 거친 얼굴)을 두 번째 레퍼런스로 추가한다 —
+    // 검수된 신원이 뉴스로 이어지고, CF 무료 백엔드의 드리프트를 줄인다.
     const anchor = anchorPath(phase);
+    const vlogRef = recentVlogPhoto();
     const prompt = scenePrompt(hana, {
       look: scene.look,
       angle: scene.angle,
@@ -125,7 +128,7 @@ export async function getKeyframe(
       withReference: Boolean(anchor),
       seed: `${sceneName}-${key}`,
     });
-    await generateImage(prompt, { outPath: file, refImages: anchor ? [anchor] : [] });
+    await generateImage(prompt, { outPath: file, refImages: [anchor, vlogRef].filter(Boolean) });
     console.log(`[persona] 키프레임 생성 ${sceneName} (${key})`);
     return file;
   } catch (e) {

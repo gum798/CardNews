@@ -111,6 +111,15 @@ export const youtube = {
   channelId: envFor('YOUTUBE_CHANNEL_ID'),
 };
 
+// Cloudflare Workers AI — 이미지 생성 무료 경로 (일 10,000뉴런 ≈ 59장).
+// flux-2-klein-4b: 레퍼런스 최대 4장(multipart input_image_0..3, 서버가 512px 미만으로 축소),
+// 768x1376 세로 실측 통과. PoC(2026-08-13, 30장): 같음14/경계13/다름3.
+export const cloudflare = {
+  accountId: process.env.R2_ACCOUNT_ID, // R2와 같은 계정
+  aiToken: process.env.CF_WORKERS_AI_TOKEN,
+  imageModel: process.env.CF_IMAGE_MODEL || '@cf/black-forest-labs/flux-2-klein-4b',
+};
+
 // R2는 계정 공용 버킷을 쓰되, 객체 키에 프로필 접두사를 붙여 파일이 섞이지 않게 한다.
 export const r2 = {
   accountId: process.env.R2_ACCOUNT_ID,
