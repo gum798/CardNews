@@ -357,6 +357,21 @@ export const hana = {
         'the hand-made cheapness is the whole point. ' +
         'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
 
+      // 새벽 전철 — 실제로 찍은 1호선 객차 사진을 레퍼런스로 붙인다.
+      earlyTrain:
+        'Setting: the inside of an empty Korean commuter train carriage at dawn — match the reference photo. ' +
+        'Fixed look, keep consistent in every image: ' +
+        'a long bright white carriage with navy-blue bench seats down both sides, completely empty; ' +
+        'rows of grey triangular hand straps hanging from bars along the ceiling; ' +
+        'stainless steel poles and grab rails, a pale grey-blue floor with a slight sheen; ' +
+        'an information display hangs from the ceiling near the doors; ' +
+        'through the windows it is still dark outside — the first blue-grey light before sunrise, ' +
+        'so the cold carriage lighting reflects on the glass and the interior reads brighter than the outside. ' +
+        'The emptiness is the point: not a single other passenger, no bags left on seats. ' +
+        // ⚠️ 전철 안은 안내문·노선도·광고가 화면을 뒤덮는다. 실제 상표(코레일 등)도 걸린다.
+        'All signage, route maps, notices and the ceiling display carry no readable characters ' +
+        'and no brand marks or logos — shapes and colour blocks only, blurred or out of focus.',
+
       // 인천 차이나타운 — 실제 방문한 가게의 사진 2장을 레퍼런스로 붙인다
       // (assets/persona/places/chinatown-restaurant.jpg, chinatown-food.jpg).
       // ⚠️ 간판·메뉴판이 한자로 뒤덮인 동네다. 글자 차단을 특히 세게 건다.
@@ -481,6 +496,7 @@ export const hana = {
   // 장소별 실사 레퍼런스 사진. 있으면 앵커와 함께 첨부해 실제 공간을 재현한다.
   // 글 묘사만으로는 "그럴듯한 도서관"이 나오지 "그 도서관"이 안 나온다.
   placeRefs: {
+    earlyTrain: 'assets/persona/places/train.jpg',
     library: 'assets/persona/places/library.jpg',
     libraryCafe: 'assets/persona/places/library-cafe.jpg',
     chinatown: ['assets/persona/places/chinatown-restaurant.jpg', 'assets/persona/places/chinatown-food.jpg'],
@@ -491,6 +507,7 @@ export const hana = {
   // 안 적으면 슬롯 기본(낮 창광)이다. 밤 소재인데 창밖이 대낮이면 글과 그림이 어긋난다.
   themeTimes: {
     '열대야': 'night',
+    '새벽 알바 가는 길': 'night', // 해뜨기 전 — 창밖이 어둡다
   },
 
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
@@ -500,6 +517,7 @@ export const hana = {
     '도서관 점심': 'libraryCafe',
     '차이나타운 짜장면': 'chinatown',
     '헬스장': 'gym',
+    '새벽 알바 가는 길': 'earlyTrain',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -528,6 +546,15 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '새벽 알바 가는 길':
+      '오늘 하루짜리 단기 알바를 하러 간다. 첫차를 타야 해서 새벽에 일어났다. ' +
+      '객차에 사람이 한 명도 없다. 이 시간에 이 칸을 통째로 혼자 쓰는 게 좀 이상하고 좀 좋다. ' +
+      '면접은 다음 주고, 그 전에 생활비를 조금이라도 벌어두려고 잡은 일이다. ' +
+      '창밖은 아직 어둡고 유리에 객차 안이 비친다. 잠은 덜 깼는데 정신은 묘하게 맑다. ' +
+      '⚠️ 「고생」이나 「서럽다」로 쓰지 마라. 텅 빈 새벽 객차의 고요함이 중심이고, ' +
+      '취준 중에 일당 벌러 가는 건 그냥 오늘 할 일이다. 담담하게. ' +
+      '⚠️ 무슨 알바인지, 어디로 가는지는 밝히지 않는다.',
+
     '헬스장':
       '날이 드디어 선선해졌다. 며칠 전까지 열대야로 잠도 설쳤는데 오늘은 바람이 다르다. ' +
       '면접 준비로 계속 앉아만 있어서 몸이 굳은 것 같아 저녁에 헬스장에 왔다. ' +
@@ -643,7 +670,7 @@ export const hana = {
     day: [
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
       '망원동 카페에서 공부', '채용공고 훑기', '편의점 도시락', '헬스장',
-      '도서관 피서 공부', '도서관 점심',
+      '도서관 피서 공부', '도서관 점심', '새벽 알바 가는 길',
     ],
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',

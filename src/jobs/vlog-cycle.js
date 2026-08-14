@@ -118,7 +118,9 @@ async function main() {
       ? isNight
         ? ['feedNight', 'feedNight', 'feedFlash']
         : ['feedWindow', 'feedWindow', 'feedFlash']
-      : ['feedPublic', 'feedPublic', 'feedPublic'];
+      : isNight
+        ? ['feedPublicNight', 'feedPublicNight', 'feedPublicNight']
+        : ['feedPublic', 'feedPublic', 'feedPublic'];
   // 첫 장은 반드시 셀카 — 피드 썸네일에 얼굴이 걸려야 한다.
   const set = COMPOSITION_SETS[slot] || COMPOSITION_SETS.day;
   // 밖에서 찍는 날엔 방 전용 구도(전신거울·방 전경)를 뺀다.

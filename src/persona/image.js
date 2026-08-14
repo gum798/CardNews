@@ -302,6 +302,16 @@ const FRAMING = {
     'ISO 1600: visible grain, especially in the shadows, and slightly muted colours. ' +
     'Handheld, the frame tilted a couple of degrees.',
 
+  // 집 밖 + 밤/새벽. feedPublic은 「대낮」을 전제해서 새벽 장면과 싸운다.
+  feedPublicNight:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken before sunrise. ' +
+    'Outside is still dark — only the first blue-grey light in the sky — so the interior lighting ' +
+    'dominates and the windows act as mirrors, reflecting the room back. ' +
+    'The overhead fluorescent light is flat, slightly green and cold, and it comes from directly above, ' +
+    'so there are small shadows under her eyes and nose. ' +
+    'ISO 1600: visible grain, slightly muted colours, corners a touch darker. ' +
+    'Handheld, the frame tilted a couple of degrees.',
+
   // 집 밖에서 낮에 찍은 컷. feedWindow/feedFlash는 「그녀의 방」·「밤」을 전제하므로
   // 편의점·카페 같은 장소에서 쓰면 장소 묘사와 정면으로 싸운다.
   feedPublic:
