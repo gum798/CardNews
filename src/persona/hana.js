@@ -289,6 +289,9 @@ export const hana = {
       // ⚠️ 예전엔 「사람 사는 티」를 내려고 바닥 케이블·구겨진 휴지를 깔았는데,
       //    깨끗한 방 설정으로 바꾸면서 걷어냈다. 다만 「완벽한 쇼룸」이 되면 그 자체가
       //    AI 티가 되므로, 지저분함이 아니라 "쓰던 흔적"으로 사람 냄새를 남긴다.
+      'WHERE SHE IS: she sits at the desk chair facing the window wall, or on the edge of the bed, ' +
+      'or cross-legged on the floor with the bed or bookshelf directly behind her — ' +
+      'her back is always against or near a piece of furniture, never floating in empty floor. ' +
       'The room is tidy: the floor is clear, no litter and no trailing cables, ' +
       'the bed is made with its cover pulled straight, and everything sits in its place. ' +
       'It still looks lived-in rather than staged — the desk items sit naturally where a person ' +
@@ -329,6 +332,8 @@ export const hana = {
         'outside the windows, tall green trees and a pale apartment tower against a bright summer sky; ' +
         'a polished speckled terrazzo floor reflecting the windows; ' +
         'a narrow counter-height ledge runs along the window with stools; ' +
+        'WHERE SHE IS: she sits on one of the slatted chairs at a round table, her back against the chair back, ' +
+        'the parasol pole and other empty tables visible past her shoulder — never floating in open floor. ' +
         'the room is lit entirely by daylight from those windows, so the foreground tables fall into soft shade ' +
         'while the window wall is blown out and bright. ' +
         // ⚠️ 레퍼런스 사진에 실제 이용객이 찍혀 있다. 재현하면 실존 인물 초상 문제가 된다.
@@ -352,7 +357,9 @@ export const hana = {
         'taped slightly off-centre behind her shoulder. ' +
         'Strips of masking tape show at every seam and one bottom corner has come loose and curls forward. ' +
         'The paper is a little wrinkled and reflects the light unevenly. ' +
-        'In front of her, a light-wood desk with a small stack of printed script pages and a white ceramic mug. ' +
+        'WHERE SHE IS: she sits on a chair at a light-wood desk, framed from the chest up, ' +
+        'her back and shoulders squarely in front of the paper backdrop which fills the frame behind her. ' +
+        'On the desk in front of her, a small stack of printed script pages and a white ceramic mug. ' +
         'This is a broke YouTuber\'s bedroom news set, not a professional studio and not a virtual background — ' +
         'the hand-made cheapness is the whole point. ' +
         'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
@@ -368,6 +375,14 @@ export const hana = {
         'through the windows it is still dark outside — the first blue-grey light before sunrise, ' +
         'so the cold carriage lighting reflects on the glass and the interior reads brighter than the outside. ' +
         'The emptiness is the point: not a single other passenger, no bags left on seats. ' +
+        // ⚠️ 장소만 주고 몸 위치를 안 주면 통로 한가운데 의자 없이 떠 있는 그림이 나온다(실측).
+        //    객차 구조상 사람이 있을 수 있는 자리는 둘뿐이다 — 그걸 못박는다.
+        'WHERE SHE IS: she is either (a) seated on one of the navy bench seats along the side wall, ' +
+        'her back and shoulders against the seat back with the window directly behind her head, ' +
+        'the empty aisle running away to one side of the frame — or (b) standing in the aisle ' +
+        'holding one of the hanging straps, one arm raised, a stainless pole beside her. ' +
+        'She is never floating in the middle of the aisle with empty floor behind her: ' +
+        'a seat back, a window or a pole must be directly behind her body. ' +
         // ⚠️ 전철 안은 안내문·노선도·광고가 화면을 뒤덮는다. 실제 상표(코레일 등)도 걸린다.
         'All signage, route maps, notices and the ceiling display carry no readable characters ' +
         'and no brand marks or logos — shapes and colour blocks only, blurred or out of focus.',
@@ -386,6 +401,8 @@ export const hana = {
         'two pieces of crispy fried shrimp, an oval white plate of japchae-rice, a small bowl of red soup, ' +
         'white side dishes of yellow pickled radish and onions, and metal chopsticks. ' +
         // 친구는 있되 신원이 없어야 한다 — 두 번째 인물의 얼굴 일관성은 담보할 수 없다.
+        'WHERE SHE IS: she sits on one of the tall dark-red wooden chairs at the table, ' +
+        'the food in front of her and the lantern-lined aisle running away past her shoulder. ' +
         'Her friend is present but never identifiable: seen only as a forearm and hand across the table, ' +
         'a shoulder at the edge of the frame, or a soft out-of-focus back of a head — ' +
         'never a legible face, never looking at the camera. ' +
@@ -402,6 +419,8 @@ export const hana = {
         'a blue rubber walking lane runs down the middle of the pale grey floor with light wood strips at the edges; ' +
         'clean, spacious, air-conditioned. ' +
         // 레퍼런스에 실제 이용객이 있다 + 기구에 브랜드·모델명이 크게 적혀 있다.
+        'WHERE SHE IS: she is either standing in the blue walking lane with the machine rows behind her, ' +
+        'or seated on one of the machines — never floating in open floor with nothing behind her. ' +
         'Other gym-goers appear only far away, from behind, or soft out of focus — no legible face. ' +
         'All machine branding, model numbers and signs are blank or unreadable — no brand marks, no logos, no readable characters.',
 
@@ -417,6 +436,8 @@ export const hana = {
         'a microwave and hot water dispenser on a side counter in the background; ' +
         'flat greenish fluorescent ceiling light mixed with daylight from the window — ' +
         'this mix is what makes it read as a real convenience store, keep it; ' +
+        'WHERE SHE IS: she sits on one of the slatted chairs at a round table, her back to the chair back, ' +
+        'the parasol pole and other empty tables visible past her shoulder — never floating in open floor. ' +
         'lived-in details, not styled: a crumpled plastic film lid pushed to one side, ' +
         'a receipt curled on the counter, her tote bag hooked on the back of the stool. ' +
         // ⚠️ 편의점은 상품 라벨과 간판이 화면을 뒤덮는 곳이다. 글자를 요구하면 깨진 유사 한글이

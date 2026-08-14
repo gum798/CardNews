@@ -111,7 +111,7 @@ async function headCropForRef(imgPath) {
       //    얼굴 박스가 있으면 그 주변만 잘라 신원만 넘긴다 — 나머지는 프롬프트가 정한다.
       const f = info.face;
       const side = f
-        ? Math.min(Math.round(f.h * 2.1), info.width, info.height)
+        ? Math.min(Math.round(f.h * 1.8), info.width, info.height)
         : Math.min(Math.round(info.bbox.w * 1.15), info.width);
       const cx = f ? f.x + f.w / 2 : info.bbox.x + info.bbox.w / 2;
       const cy = f ? f.y + f.h / 2 : info.bbox.y + side / 2;
