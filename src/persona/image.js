@@ -399,11 +399,12 @@ export function compositionsForPlace(list, place) {
 export const COMPOSITION_SETS = {
   day: {
     first: ['selfieOverhead', 'selfieHigh', 'selfieLow'],
-    rest: ['handsOnly', 'candidSide', 'overShoulder'],
+    rest: ['handsOnly', 'candidSide', 'overShoulder', 'selfieHigh', 'selfieLow', 'wideRoom', 'selfieOverhead'],
   },
   evening: {
     first: ['selfieOverhead', 'selfieLow', 'mirrorSelfie', 'selfieHigh'],
-    rest: ['wideRoom', 'overShoulder', 'handsOnly', 'candidSide'],
+    // 10장 체제라 rest가 순환한다. 셀카 계열도 섞어 같은 구도가 연달아 나오지 않게 한다.
+    rest: ['wideRoom', 'overShoulder', 'handsOnly', 'candidSide', 'selfieHigh', 'selfieLow', 'selfieOverhead'],
   },
 };
 

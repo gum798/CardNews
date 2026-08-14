@@ -364,6 +364,26 @@ export const hana = {
         'the hand-made cheapness is the whole point. ' +
         'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
 
+      // 목욕탕에서 나와 집으로 걷는 밤 골목.
+      // ⚠️ 목욕탕 「안」은 절대 만들지 않는다 — 탈의·노출은 인스타·유튜브 정책 위반이고
+      //    AI 생성 인물이면 더 위험하다. 장면은 항상 옷 다 입고 밖으로 나온 뒤다.
+      bathhouseStreet:
+        'Setting: a quiet residential back street in Mangwon-dong at night, just after she has ' +
+        'left a neighbourhood bathhouse — she is fully dressed and already outside on the street. ' +
+        'Fixed look, keep consistent in every image: ' +
+        'a narrow sloping alley lined with low brick and painted-concrete houses, ' +
+        'parked cars and a few scooters along one side, air-conditioner units and tangled wires on the walls; ' +
+        'behind her up the alley, the lit entrance of a small old bathhouse with a warm yellow glow ' +
+        'spilling onto the pavement and a red-and-blue barber-style light, its sign unreadable; ' +
+        'a convenience store further down casts cool white light on the road; ' +
+        'the street is empty, the asphalt slightly damp and reflecting the lights. ' +
+        'WHERE SHE IS: she stands or walks on the pavement, the alley wall or a parked car directly ' +
+        'behind her — never floating in the middle of an empty road. ' +
+        'She carries a small plastic bath basket or a rolled towel under one arm. ' +
+        'CRITICAL: never show the inside of the bathhouse, never any changing room, never any state ' +
+        'of undress — she is fully clothed in ordinary clothes outdoors at all times. ' +
+        'All signs, shop fronts and notices carry no readable characters and no brand marks or logos.',
+
       // 새벽 전철 — 실제로 찍은 1호선 객차 사진을 레퍼런스로 붙인다.
       earlyTrain:
         'Setting: the inside of an empty Korean commuter train carriage at dawn — match the reference photo. ' +
@@ -529,6 +549,7 @@ export const hana = {
   themeTimes: {
     '열대야': 'night',
     '새벽 알바 가는 길': 'night', // 해뜨기 전 — 창밖이 어둡다
+    '목욕탕 다녀오는 길': 'night',
   },
 
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
@@ -539,6 +560,7 @@ export const hana = {
     '차이나타운 짜장면': 'chinatown',
     '헬스장': 'gym',
     '새벽 알바 가는 길': 'earlyTrain',
+    '목욕탕 다녀오는 길': 'bathhouseStreet',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -567,6 +589,17 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    // 오늘 아침 '새벽 알바 가는 길'의 짝. 같은 하루의 끝이다.
+    '목욕탕 다녀오는 길':
+      '새벽에 첫차 타고 나가서 하루짜리 알바를 하고 저녁에 돌아왔다. ' +
+      '온몸이 뻐근해서 집에 가기 전에 동네 목욕탕에 들렀다. ' +
+      '뜨거운 물에 한참 있다가 나오니 다리에 힘이 풀리는데 기분은 개운하다. ' +
+      '머리는 아직 덜 말랐고 얼굴은 벌겋게 익었다. 밤공기가 유난히 시원하게 느껴진다. ' +
+      '집까지 골목을 천천히 걸어 올라가는 중이다. 오늘 일당은 통장에 며칠 뒤 들어온다. ' +
+      '⚠️ 목욕탕 안 이야기는 쓰지 마라. 나와서 걷는 길만 쓴다. ' +
+      '⚠️ 고생담으로 흐르지 마라. 하루 끝의 개운함과 밤공기가 중심이다. ' +
+      '⚠️ 무슨 알바였는지는 밝히지 않는다.',
+
     '새벽 알바 가는 길':
       '오늘 하루짜리 단기 알바를 하러 간다. 첫차를 타야 해서 새벽에 일어났다. ' +
       '객차에 사람이 한 명도 없다. 이 시간에 이 칸을 통째로 혼자 쓰는 게 좀 이상하고 좀 좋다. ' +
@@ -696,6 +729,7 @@ export const hana = {
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
       '스터디원과 있었던 일', '탈락 통보 받은 날', '집 가는 길 생각', '내일 계획',
+      '목욕탕 다녀오는 길',
       '피부과 예약', // storyArc: mole-removal 두 번째 비트
       // storyArc: skin-routine — 외모 변화가 자신감으로 이어지는 후속 아크
       '피부과 첫 관리', '붉은기가 가라앉았다', '민낯으로 나가는 날',
