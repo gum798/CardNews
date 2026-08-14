@@ -132,7 +132,7 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
     `- 과장 금지. 「대박」, 「충격」, 「인생이 바뀐」 금지.\n` +
     `- 길이: ${slot === 'day' ? '3~5줄' : '5~8줄'}. 줄바꿈으로 호흡을 주세요.\n\n` +
     `[사진]\n` +
-    `- 이 글에 어울리는 사진 ${slot === 'day' ? '1~2' : '2~3'}장을 정합니다.\n` +
+    `- 이 글에 어울리는 사진 4장을 정합니다. 서로 다른 순간·다른 각도여야 합니다.\n` +
     `- photos[].action: 사진에 담길 장면을 **영어로** 한 문장. 인물이 뭘 하고 있는지.\n` +
     `  예: 'sitting cross-legged on the floor, marking a printed script with a highlighter'\n` +
     `- 셀카처럼 자연스러운 순간이어야 합니다. 화보처럼 꾸미지 마세요.\n` +
@@ -156,6 +156,6 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
     weather,
     caption,
     hashtags: (parsed.hashtags || []).slice(0, 6).map(String),
-    photos: photos.slice(0, 3).map((x) => ({ action: String(x.action), look: s.lookHint })),
+    photos: photos.slice(0, 4).map((x) => ({ action: String(x.action), look: s.lookHint })),
   };
 }
