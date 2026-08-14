@@ -13,6 +13,7 @@ import { existsSync } from 'node:fs';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
 import { anchorPath } from '../persona/keyframe.js';
+import { inspectImage } from '../persona/qc.js';
 import { hana, outfitsForBand } from '../persona/hana.js';
 import { seasonNoteFor } from '../weather/seoul.js';
 import { paths, telegram } from '../config.js';
@@ -128,27 +129,40 @@ async function main() {
   const rest = compositionsForPlace(set.rest, post.place);
   const compositions = [shuffleWithSeed(first, id)[0], ...shuffleWithSeed(rest, id)];
   const files = [];
+  const flagged = []; // 검수에 걸린 컷 — 파일은 남기되 기본 미선택으로 보낸다
   for (let i = 0; i < post.photos.length; i++) {
     const ph = post.photos[i];
     const out = path.join(outDir, `photo-${i + 1}.png`);
+    const build = (attempt) =>
+      scenePrompt(hana, {
+        look: ph.look,
+        composition: compositions[i % compositions.length],
+        scene: ph.action,
+        framing: framings[i % framings.length],
+        place: post.place,
+        styling: ph.look === 'daily' ? outfit : '',
+        expression: post.expression || '',
+        seasonNote: seasonNoteFor(post.weather.band, post.place),
+        withReference: Boolean(anchor),
+        // 재시도는 시드를 바꿔야 같은 결함이 그대로 재현되지 않는다.
+        seed: attempt ? `${id}-${i}-r${attempt}` : `${id}-${i}`,
+      });
     try {
-      await generateImage(
-        scenePrompt(hana, {
-          look: ph.look,
-          composition: compositions[i % compositions.length],
-          scene: ph.action,
-          framing: framings[i % framings.length],
-          place: post.place,
-          styling: ph.look === 'daily' ? outfit : '',
-          expression: post.expression || '',
-          seasonNote: seasonNoteFor(post.weather.band, post.place),
-          withReference: Boolean(anchor),
-          seed: `${id}-${i}`,
-        }),
-        { outPath: out, refImages: refs }
-      );
+      let verdict;
+      // 해부학 결함(팔 3개 등)은 시드를 바꾸면 대개 사라진다 → 1회만 다시 뽑는다.
+      for (let attempt = 0; attempt <= 1; attempt++) {
+        await generateImage(build(attempt), { outPath: out, refImages: refs });
+        verdict = await inspectImage(out);
+        if (verdict.ok) break;
+        if (attempt === 0) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
+      }
       files.push(out);
-      console.log(`[vlog] 사진 ${i + 1} 생성`);
+      if (verdict && !verdict.ok) {
+        flagged.push(i);
+        console.warn(`[vlog] 사진 ${i + 1} 재생성 후에도 ${verdict.reason} → 미선택으로 표시`);
+      } else {
+        console.log(`[vlog] 사진 ${i + 1} 생성`);
+      }
     } catch (e) {
       console.warn(`[vlog] 사진 ${i + 1} 실패: ${e.message.slice(0, 120)}`);
     }
@@ -171,7 +185,8 @@ async function main() {
     caption,
     files,
     outfit, // 나중에 컷을 더 붙일 때 같은 옷을 쓰려면 남겨둬야 한다
-    selected: files.map(() => true),
+    // 검수에 걸린 컷은 기본 미선택 — 사람이 보고 살릴 수도 있게 파일은 남긴다.
+    selected: files.map((_, i) => !flagged.includes(i)),
     status: 'pending',
   });
 

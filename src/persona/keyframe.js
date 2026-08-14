@@ -16,6 +16,7 @@ import path from 'node:path';
 import { paths } from '../config.js';
 import { hana } from './hana.js';
 import { generateImage, scenePrompt } from './image.js';
+import { inspectImage } from './qc.js';
 
 const CACHE_DIR = path.join(paths.root, 'assets', 'persona', 'cache');
 
@@ -133,8 +134,19 @@ export async function getKeyframe(
       withReference: Boolean(anchor),
       seed: `${sceneName}-${key}`,
     });
-    await generateImage(prompt, { outPath: file, refImages: [anchor, vlogRef].filter(Boolean) });
-    console.log(`[persona] 키프레임 생성 ${sceneName} (${key})`);
+    // 해부학 검수 — 팔 3개 같은 컷이 뉴스 인트로로 나가면 안 된다. 실패하면 1회 재생성.
+    const refs = [anchor, vlogRef].filter(Boolean);
+    let verdict;
+    for (let attempt = 0; attempt <= 1; attempt++) {
+      await generateImage(prompt, { outPath: file, refImages: refs });
+      verdict = await inspectImage(file);
+      if (verdict.ok) break;
+      if (attempt === 0) console.warn(`[persona] ${sceneName} 검수 실패(${verdict.reason}) → 재생성`);
+    }
+    console.log(
+      `[persona] 키프레임 생성 ${sceneName} (${key})` +
+        (verdict && !verdict.ok ? ` ⚠️ ${verdict.reason}` : '')
+    );
     return file;
   } catch (e) {
     console.warn(`[persona] 키프레임 실패 (${sceneName}): ${e.message.slice(0, 120)}`);

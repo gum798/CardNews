@@ -29,3 +29,6 @@ tools/matte
 # 페르소나 키프레임 캐시 — 발행마다 새로 생기므로 리포에 넣지 않는다
 # (얼굴 일관성의 원천인 앵커는 assets/persona/hana/ 에 커밋되어 있다)
 assets/persona/cache/
+
+# 컴파일된 검수 바이너리 (tools/qc.swift에서 빌드)
+tools/qc
