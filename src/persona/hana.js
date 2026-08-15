@@ -364,6 +364,25 @@ export const hana = {
         'the hand-made cheapness is the whole point. ' +
         'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
 
+      // 동해 바닷가. 해질녘 — 한여름 한낮의 백사장은 사람도 빛도 너무 세다.
+      beach:
+        'Setting: a wide east-coast beach in Gangneung in late afternoon, close to sunset. ' +
+        'Fixed look, keep consistent in every image: ' +
+        'pale fine sand stretching wide, gentle low waves rolling in and leaving a wet mirror-like ' +
+        'sheen on the sand that reflects the sky; deep blue-green sea meeting a clear horizon line; ' +
+        'a dense row of dark pine trees along the back of the beach — the east-coast pine belt; ' +
+        'the low sun is behind and to one side of her, so the sea sparkles, her hair is rim-lit, ' +
+        'and a long shadow falls across the sand toward the camera; ' +
+        'the sky is warm near the horizon and still blue overhead. ' +
+        'A few parasols and beachgoers exist far down the beach, small and unidentifiable. ' +
+        'WHERE SHE IS: she stands barefoot at the waterline with the sea and horizon behind her, ' +
+        'or sits on the dry sand with the pine treeline behind her — never floating with empty sky ' +
+        'and no ground reference. Her shoes are in one hand or set on the sand beside her. ' +
+        // 계정 톤·정책 유지. 해변이라고 수영복으로 가면 안 된다.
+        'She is dressed in ordinary summer day clothes with the trouser legs rolled up — ' +
+        'never a swimsuit, never beachwear, no bare midriff. ' +
+        'All signage carries no readable characters and no brand marks or logos.',
+
       // 목욕탕에서 나와 집으로 걷는 밤 골목.
       // ⚠️ 목욕탕 「안」은 절대 만들지 않는다 — 탈의·노출은 인스타·유튜브 정책 위반이고
       //    AI 생성 인물이면 더 위험하다. 장면은 항상 옷 다 입고 밖으로 나온 뒤다.
@@ -544,6 +563,12 @@ export const hana = {
     gym: 'assets/persona/places/gym.jpg',
   },
 
+  // 장소별 프레이밍 오버라이드. feedPublic은 「실내 공공장소 + 형광등」을 전제하므로
+  // 야외(바닷가)에는 안 맞는다. 장소가 조명 조건을 아는 게 맞다.
+  placeFramings: {
+    beach: 'feedOutdoorGolden',
+  },
+
   // 소재별 촬영 시간대. 'night'면 밤 프레이밍(어두운 창, 실내등)을 쓴다.
   // 안 적으면 슬롯 기본(낮 창광)이다. 밤 소재인데 창밖이 대낮이면 글과 그림이 어긋난다.
   themeTimes: {
@@ -561,6 +586,7 @@ export const hana = {
     '헬스장': 'gym',
     '새벽 알바 가는 길': 'earlyTrain',
     '목욕탕 다녀오는 길': 'bathhouseStreet',
+    '바다 보러 간 날': 'beach',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -589,6 +615,16 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '바다 보러 간 날':
+      '면접이 며칠 앞인데 방에만 있으니 머리가 굳는 것 같아서, 아침에 충동적으로 기차표를 끊고 ' +
+      '강릉에 당일치기로 왔다. 큰맘 먹은 지출이라 오는 내내 좀 아까웠는데 바다 보니까 잊었다. ' +
+      '신발 벗고 물가를 걷는 중이다. 발은 시원한데 모래는 아직 뜨겁다. ' +
+      '해가 낮아져서 바다가 반짝이고, 서울에서 며칠째 붙들고 있던 예상 질문들이 여기선 좀 멀게 느껴진다. ' +
+      '막차 시간을 확인해두고 그때까지는 아무 생각 없이 있기로 했다. ' +
+      '⚠️ 여행 정보·맛집 소개로 흐르지 마라. 오늘 하루 자기 기분만 쓴다. ' +
+      '⚠️ 「힐링」·「인생샷」 같은 말은 쓰지 마라. ' +
+      '⚠️ 취준 걱정을 길게 늘어놓지도 마라 — 잠깐 내려놓으러 온 날이다.',
+
     // 오늘 아침 '새벽 알바 가는 길'의 짝. 같은 하루의 끝이다.
     '목욕탕 다녀오는 길':
       '새벽에 첫차 타고 나가서 하루짜리 알바를 하고 저녁에 돌아왔다. ' +
@@ -729,7 +765,7 @@ export const hana = {
     evening: [
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
       '스터디원과 있었던 일', '탈락 통보 받은 날', '집 가는 길 생각', '내일 계획',
-      '목욕탕 다녀오는 길',
+      '목욕탕 다녀오는 길', '바다 보러 간 날',
       '피부과 예약', // storyArc: mole-removal 두 번째 비트
       // storyArc: skin-routine — 외모 변화가 자신감으로 이어지는 후속 아크
       '피부과 첫 관리', '붉은기가 가라앉았다', '민낯으로 나가는 날',

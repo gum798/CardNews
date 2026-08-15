@@ -302,6 +302,16 @@ const FRAMING = {
     'ISO 1600: visible grain, especially in the shadows, and slightly muted colours. ' +
     'Handheld, the frame tilted a couple of degrees.',
 
+  // 야외 해질녘. feedPublic은 실내 형광등을 전제하므로 바닷가·공원에는 못 쓴다.
+  feedOutdoorGolden:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken outdoors in the last hour before sunset. ' +
+    'The low sun is behind her at an angle: a warm rim of light runs along her hair and one shoulder, ' +
+    'her face sits in soft open shade and is a stop darker than the bright background, ' +
+    'and a lens flare streaks across one corner. ' +
+    'The sky and water are blown out slightly near the horizon. ' +
+    'Warm colour cast overall, deep contrast, ISO 100: clean but with visible sensor noise in the shadows. ' +
+    'Handheld, the frame tilted a couple of degrees, framing casual and not quite level.',
+
   // 집 밖 + 밤/새벽. feedPublic은 「대낮」을 전제해서 새벽 장면과 싸운다.
   feedPublicNight:
     'Vertical 4:5, a snapshot straight from her camera roll, taken before sunrise. ' +

@@ -114,8 +114,10 @@ async function main() {
   // feedWindow/feedFlash가 「그녀의 방」·「밤」을 전제해서 장소 묘사와 싸운다.
   // 밤 소재면 방 컷도 밤 프레이밍으로. 마지막 컷만 플래시로 변주를 준다.
   const isNight = hana.themeTimes?.[post.theme] === 'night';
-  const framings =
-    post.place === 'room'
+  const forced = hana.placeFramings?.[post.place];
+  const framings = forced
+    ? [forced, forced, forced]
+    : post.place === 'room'
       ? isNight
         ? ['feedNight', 'feedNight', 'feedFlash']
         : ['feedWindow', 'feedWindow', 'feedFlash']
