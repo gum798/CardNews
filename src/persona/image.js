@@ -312,6 +312,17 @@ const FRAMING = {
     'Warm colour cast overall, deep contrast, ISO 100: clean but with visible sensor noise in the shadows. ' +
     'Handheld, the frame tilted a couple of degrees, framing casual and not quite level.',
 
+  // 야외 흐림·비. 구름이 거대한 디퓨저라 그림자가 거의 없고 색이 빠진다 —
+  // 골든아워와 정반대 조건이라 같은 프레이밍으로 못 덮는다.
+  feedOutdoorOvercast:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken outdoors under a heavy overcast sky. ' +
+    'The cloud layer acts as one huge softbox: the light is flat and comes from straight above, ' +
+    'so there are almost no shadows, only a soft darkening under her chin and brow. ' +
+    'Colours are desaturated and slightly cool-blue; the sea and sky are grey and the horizon is hazy. ' +
+    'It has been raining on and off — the sand is damp and darker where it is wet, ' +
+    'a few raindrops sit on the lens edge, and her hair is slightly damp with a few strands stuck to her cheek. ' +
+    'ISO 400, mild grain, corners a touch darker. Handheld, the frame tilted a couple of degrees.',
+
   // 집 밖 + 밤/새벽. feedPublic은 「대낮」을 전제해서 새벽 장면과 싸운다.
   feedPublicNight:
     'Vertical 4:5, a snapshot straight from her camera roll, taken before sunrise. ' +

@@ -114,7 +114,11 @@ async function main() {
   // feedWindow/feedFlash가 「그녀의 방」·「밤」을 전제해서 장소 묘사와 싸운다.
   // 밤 소재면 방 컷도 밤 프레이밍으로. 마지막 컷만 플래시로 변주를 준다.
   const isNight = hana.themeTimes?.[post.theme] === 'night';
-  const forced = hana.placeFramings?.[post.place];
+  // 야외 장소는 하늘 상태가 조명을 정한다. 흐림·비면 골든아워 프레이밍을 쓸 수 없다.
+  let forced = hana.placeFramings?.[post.place];
+  if (forced === 'feedOutdoorGolden' && (post.weather.sky === 'overcast' || post.weather.sky === 'rain')) {
+    forced = 'feedOutdoorOvercast';
+  }
   const framings = forced
     ? [forced, forced, forced]
     : post.place === 'room'

@@ -364,23 +364,25 @@ export const hana = {
         'the hand-made cheapness is the whole point. ' +
         'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
 
-      // 동해 바닷가. 해질녘 — 한여름 한낮의 백사장은 사람도 빛도 너무 세다.
+      // 동해 바닷가.
+      // ⚠️ 빛(맑음/흐림/비)은 여기 적지 않는다 — FRAMING 담당이다. 장소는 지형과 배치만.
+      //    처음엔 「해질녘」을 여기 박았다가 날씨를 바꿀 수 없게 됐다.
       beach:
-        'Setting: a wide east-coast beach in Gangneung in late afternoon, close to sunset. ' +
+        'Setting: a wide east-coast beach in Gangneung. ' +
         'Fixed look, keep consistent in every image: ' +
-        'pale fine sand stretching wide, gentle low waves rolling in and leaving a wet mirror-like ' +
-        'sheen on the sand that reflects the sky; deep blue-green sea meeting a clear horizon line; ' +
+        'pale fine sand stretching wide, low waves rolling in and leaving a wet mirror-like ' +
+        'sheen on the sand; the sea meeting a flat horizon line; ' +
         'a dense row of dark pine trees along the back of the beach — the east-coast pine belt; ' +
-        'the low sun is behind and to one side of her, so the sea sparkles, her hair is rim-lit, ' +
-        'and a long shadow falls across the sand toward the camera; ' +
-        'the sky is warm near the horizon and still blue overhead. ' +
-        'A few parasols and beachgoers exist far down the beach, small and unidentifiable. ' +
+        'a few parasols and beachgoers far down the beach, small and unidentifiable. ' +
         'WHERE SHE IS: she stands barefoot at the waterline with the sea and horizon behind her, ' +
         'or sits on the dry sand with the pine treeline behind her — never floating with empty sky ' +
         'and no ground reference. Her shoes are in one hand or set on the sand beside her. ' +
         // 계정 톤·정책 유지. 해변이라고 수영복으로 가면 안 된다.
-        'She is dressed in ordinary summer day clothes with the trouser legs rolled up — ' +
-        'never a swimsuit, never beachwear, no bare midriff. ' +
+        'Summer travel clothes: short denim hot pants and a fitted V-neck short-sleeve top ' +
+        'with an open neckline, barefoot on the sand. ' +
+        // 옷은 파여도 사진의 주인공은 얼굴이다. 이 선이 무너지면 계정 톤도 도달도 같이 무너진다.
+        'Still an ordinary everyday outfit, not a swimsuit and not beachwear, midriff covered; ' +
+        'the framing stays on her face and what she is doing, never on her body. ' +
         'All signage carries no readable characters and no brand marks or logos.',
 
       // 목욕탕에서 나와 집으로 걷는 밤 골목.
@@ -594,6 +596,11 @@ export const hana = {
   //    "happy" 같은 단어는 활짝 웃는 스톡 사진으로 끌고 가므로 쓰지 않는다.
   //    억누른 감정으로 서술해야 사람 얼굴이 나온다.
   themeExpressions: {
+    '바다 보러 간 날':
+      'a wide open genuine smile with her teeth showing, eyes crinkled almost shut at the corners, ' +
+      'cheeks pushed high, caught mid-laugh — the kind of grin someone makes when the wind hits ' +
+      'them at the water. Delighted and a bit silly, not a posed camera smile',
+
     '서류 합격':
       'caught between disbelief and joy — eyes wide and bright, eyebrows up, ' +
       'a smile she is failing to hold back breaking through, one hand near her mouth ' +
@@ -619,7 +626,8 @@ export const hana = {
       '면접이 며칠 앞인데 방에만 있으니 머리가 굳는 것 같아서, 아침에 충동적으로 기차표를 끊고 ' +
       '강릉에 당일치기로 왔다. 큰맘 먹은 지출이라 오는 내내 좀 아까웠는데 바다 보니까 잊었다. ' +
       '신발 벗고 물가를 걷는 중이다. 발은 시원한데 모래는 아직 뜨겁다. ' +
-      '해가 낮아져서 바다가 반짝이고, 서울에서 며칠째 붙들고 있던 예상 질문들이 여기선 좀 멀게 느껴진다. ' +
+      '하필 날이 흐리다. 회색 바다에 비가 오다 말다 하는데, 오히려 사람이 없어서 이게 더 좋다. ' +
+      '머리가 좀 젖었지만 그냥 뒀다. 서울에서 며칠째 붙들고 있던 예상 질문들이 여기선 좀 멀게 느껴진다. ' +
       '막차 시간을 확인해두고 그때까지는 아무 생각 없이 있기로 했다. ' +
       '⚠️ 여행 정보·맛집 소개로 흐르지 마라. 오늘 하루 자기 기분만 쓴다. ' +
       '⚠️ 「힐링」·「인생샷」 같은 말은 쓰지 마라. ' +

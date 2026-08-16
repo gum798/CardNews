@@ -92,10 +92,12 @@ async function fetchKma(date) {
 // 날씨 때문에 브이로그 생성이 멈추면 안 된다.
 export async function getSeoulWeather(date = new Date()) {
   // 평년값이 실제와 어긋나는 날의 수동 보정 (예: 8월인데 선선). BANDS 키를 넣는다.
+  // 하늘 상태 수동 지정: clear | overcast | rain (평년값은 이걸 못 맞춘다)
+  const sky = ['clear','overcast','rain'].includes(process.env.WEATHER_SKY) ? process.env.WEATHER_SKY : null;
   const forced = process.env.WEATHER_BAND_OVERRIDE;
   if (forced && BANDS.some((x) => x.key === forced)) {
     const band = BANDS.find((x) => x.key === forced);
-    return { tempC: band.min + 3, band: band.key, label: band.label, raining: false, snowing: false, source: 'manual', month: date.getMonth() + 1 };
+    return { tempC: band.min + 3, band: band.key, label: band.label, raining: sky === 'rain', snowing: false, sky: sky || 'clear', source: 'manual', month: date.getMonth() + 1 };
   }
   const live = await fetchKma(date);
   const tempC = live ? live.tempC : dayHigh(normalTemp(date));
@@ -104,7 +106,8 @@ export async function getSeoulWeather(date = new Date()) {
     tempC: Math.round(tempC * 10) / 10,
     band: band.key,
     label: band.label,
-    raining: live?.raining ?? false,
+    raining: sky ? sky === 'rain' : (live?.raining ?? false),
+    sky: sky || (live?.raining ? 'rain' : 'clear'),
     snowing: live?.snowing ?? false,
     source: live ? 'kma' : 'normals',
     month: date.getMonth() + 1,
@@ -165,7 +168,8 @@ export function seasonNoteFor(band, place = 'room') {
 // 글 작성자에게 줄 한 줄 요약.
 export function weatherBrief(w) {
   const parts = [`서울 ${w.month}월, ${w.label} (체감 ${w.tempC}도쯤)`];
-  if (w.raining) parts.push('비가 온다');
+  if (w.sky === 'overcast') parts.push('하늘이 흐리다');
+  if (w.raining) parts.push('비가 오다 말다 한다');
   if (w.snowing) parts.push('눈이 온다');
   if (w.source === 'normals') parts.push('※ 평년값 기준');
   return parts.join(' · ');
