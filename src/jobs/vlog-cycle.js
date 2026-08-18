@@ -12,7 +12,7 @@ import { loadPost, savePost, reviewText, reviewKeyboard } from '../vlog/review.j
 import { existsSync } from 'node:fs';
 import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
-import { anchorPath } from '../persona/keyframe.js';
+import { anchorPath, recentVlogPhoto } from '../persona/keyframe.js';
 import { inspectImage } from '../persona/qc.js';
 import { hana, outfitsForBand } from '../persona/hana.js';
 import { seasonNoteFor } from '../weather/seoul.js';
@@ -94,6 +94,9 @@ async function main() {
   // 장소 레퍼런스 사진이 있으면 앵커와 함께 붙인다. 실제 공간을 재현하려면 글만으로는 안 된다.
   // 장소 레퍼런스는 1장(문자열) 또는 여러 장(배열). Gemini 첨부 한도(4장) 안에서 앵커와 함께 붙인다.
   const placeRefList = [hana.placeRefs?.[post.place] || []].flat();
+  // ⚠️ 신원 레퍼런스를 둘 주면 얼굴이 나아지는 게 아니라 두 번째 사진의 배경·의상이
+  //    통째로 끌려온다(실측: 바닷가 소재인데 방 안 수건 차림이 나왔다).
+  //    얼굴 흔들림은 레퍼런스를 늘려서가 아니라 표정 지시로 잡는다.
   const refs = [
     anchor,
     ...placeRefList.map((p) => path.join(paths.root, p)).filter((p) => existsSync(p)),
@@ -156,11 +159,11 @@ async function main() {
     try {
       let verdict;
       // 해부학 결함(팔 3개 등)은 시드를 바꾸면 대개 사라진다 → 1회만 다시 뽑는다.
-      for (let attempt = 0; attempt <= 1; attempt++) {
+      for (let attempt = 0; attempt <= 3; attempt++) {
         await generateImage(build(attempt), { outPath: out, refImages: refs });
         verdict = await inspectImage(out);
         if (verdict.ok) break;
-        if (attempt === 0) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
+        if (attempt < 3) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
       }
       files.push(out);
       if (verdict && !verdict.ok) {

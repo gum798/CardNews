@@ -17,7 +17,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cloudflare } from '../config.js';
 import { foregroundMatte } from '../video/matte.js';
-import { identityLockFor } from './hana.js';
+import { identityLockFor, currentStage } from './hana.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
@@ -96,7 +96,7 @@ const FFMPEG_BIN = '/opt/homebrew/bin/ffmpeg';
 const IDENTITY_FACE_RATIO = 0.1;
 
 async function headCropForRef(imgPath) {
-  const out = path.join(os.tmpdir(), 'cfref-' + path.basename(imgPath).replace(/[^w.]/g, '_') + '.jpg');
+  const out = path.join(os.tmpdir(), 'cfref-' + path.basename(imgPath).replace(/[^\w.]/g, '_') + '.jpg');
   try {
     const info = await foregroundMatte(imgPath);
     const isIdentity = info?.face && info.face.h / info.height >= IDENTITY_FACE_RATIO;
@@ -122,7 +122,8 @@ async function headCropForRef(imgPath) {
     }
   } catch { /* 폴백으로 */ }
   // 매트 실패: 중앙 상단 정사각 크롭 (인물 사진 관례상 얼굴은 상단 중앙에 있다)
-  await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf',"crop='min(iw,ih)':'min(iw,ih)':(iw-min(iw,ih))/2:0,scale=480:480",'-q:v','3',out,'-y']);
+  await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf',// ⚠️ ffmpeg 필터에서 min(iw,ih)의 쉼표는 필터 구분자로 파싱된다. 반드시 이스케이프.
+      'crop=w=min(iw\\,ih):h=min(iw\\,ih):x=(iw-min(iw\\,ih))/2:y=0,scale=480:480','-q:v','3',out,'-y']);
   return out;
 }
 
@@ -320,7 +321,7 @@ const FRAMING = {
     'so there are almost no shadows, only a soft darkening under her chin and brow. ' +
     'Colours are desaturated and slightly cool-blue; the sea and sky are grey and the horizon is hazy. ' +
     'It has been raining on and off — the sand is damp and darker where it is wet, ' +
-    'a few raindrops sit on the lens edge, and her hair is slightly damp with a few strands stuck to her cheek. ' +
+    'and a few raindrops sit on the lens edge. Her hair is dry apart from a couple of stray strands. ' +
     'ISO 400, mild grain, corners a touch darker. Handheld, the frame tilted a couple of degrees.',
 
   // 집 밖 + 밤/새벽. feedPublic은 「대낮」을 전제해서 새벽 장면과 싸운다.
@@ -486,6 +487,7 @@ export function scenePrompt(
   } = {}
 ) {
   const a = persona.appearance;
+  const stage = currentStage();
   const ph = phase || process.env.PERSONA_PHASE || 'before';
   const fragment = a.phases?.[ph]?.promptFragment || '';
 
@@ -509,6 +511,9 @@ export function scenePrompt(
     //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
     withReference ? '' : fragment,
     `Styling: ${styling || a.looks[look]}`,
+    // 변신 단계: 화장 농도와 옷차림 대담함이 시간에 따라 올라간다.
+    stage.makeup,
+    stage.wardrobe,
     a.figurePrompt || '',
     persona.setting?.places?.[place] || persona.setting?.roomPrompt || '',
     seasonNote,
@@ -518,7 +523,10 @@ export function scenePrompt(
     expression ? `Her expression: ${expression}.` : '',
     `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
     'Unedited camera roll photo. No filter, no retouching, no beauty app.',
-    'No legible text or characters anywhere in the image, no watermark, no logo.',
+    // ⚠️ FLUX.2는 네거티브를 지원하지 않는다. BFL 문서의 치환 예시대로 긍정형으로 쓴다.
+    //    (identityLock의 'Do not mirror/restyle'는 t2i 억제가 아니라 편집 문맥의 보존
+    //     지시라 성격이 다르다 — 그건 건드리지 않는다.)
+    'Every surface in the frame is clean and unmarked.',
     // 화면은 글자를 부르는 가장 강한 유인이다. 따로 못박지 않으면 영문 UI를 그려 넣어
     // (한국인 일상 사진에 영어 앱 화면) 단번에 AI 티가 난다.
     'Any phone, laptop or monitor screen in frame shows only blurred, indistinct interface shapes — ' +

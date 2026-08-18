@@ -235,6 +235,62 @@ export const hana = {
     },
   },
 
+  // ── 변신 단계 ───────────────────────────────────────────────
+  // 캐릭터가 시간이 지나며 달라진다. 점 제거 → 옅은 화장 → 짙은 화장 →
+  // 시술까지. 외모가 바뀌는 이유가 스토리 안에서 설명되는 게 이 채널의 축이다.
+  //
+  // PERSONA_STAGE=<index>로 현재 단계를 지정한다(기본 2).
+  // ⚠️ 단계를 건너뛰지 마라. 어제와 오늘이 확 달라지면 「같은 사람」이 깨진다.
+  //    한 단계는 최소 2~3주 유지하고, 변화한 날에는 브이로그로 이유를 남긴다.
+  arc: [
+    {
+      label: '0. 시작 — 점 있음, 민낯',
+      phase: 'before',
+      makeup: 'No makeup at all beyond a plain lip balm. Brows are unshaped and a little sparse.',
+      wardrobe:
+        'Oversized tops that hang loose and hide her shape — she dresses to not be looked at.',
+    },
+    {
+      label: '1. 점 뺀 직후 — 민낯, 옷이 몸에 맞기 시작',
+      phase: 'healing',
+      makeup: 'Still essentially bare-faced: lip balm only, brows lightly tidied.',
+      wardrobe: 'Ordinary fitted everyday tops that follow her shape instead of hanging loose.',
+    },
+    {
+      // ← 현재 단계
+      label: '2. 옅은 화장 시작 — 몸매가 드러나는 핏',
+      phase: 'healing',
+      makeup:
+        'Light everyday makeup, the kind someone is still learning: groomed and lightly filled brows, ' +
+        'a wash of tinted lip balm, a little concealer under the eyes, no eyeliner and no foundation — ' +
+        'her real skin texture and unevenness still read through.',
+      wardrobe:
+        'Fitted tops that clearly follow her bust and waist — often a V-neck or scoop neck showing ' +
+        'the collarbone and a hint of décolletage, sometimes short denim shorts. ' +
+        // ⚠️ 이 선을 넘으면 계정 톤과 플랫폼 도달이 같이 무너진다. 단계가 올라가도 유지한다.
+        'Always ordinary clothing that would not look out of place walking down a street: ' +
+        'no swimwear, no lingerie, midriff covered, and the framing stays on her face ' +
+        'and what she is doing rather than on her body.',
+    },
+    {
+      label: '3. 화장이 또렷해짐 — 자신감이 붙은 시기',
+      phase: 'after',
+      makeup:
+        'Clearly applied everyday makeup now: defined brows, soft eyeliner, blush, a proper lip colour. ' +
+        'Still not heavy — skin texture and pores remain visible, no airbrushed look.',
+      wardrobe:
+        'Confident fitted clothing, deeper necklines and shorter hems than before, ' +
+        'still ordinary street clothing under the same limits as stage 2.',
+    },
+    {
+      label: '4. 시술 이후 — 달라진 얼굴',
+      phase: 'glow',
+      makeup: 'Full but tasteful everyday makeup. She knows what suits her now.',
+      wardrobe: 'Same as stage 3.',
+      note: '성형 에피소드는 반드시 브이로그로 먼저 다룬 뒤 이 단계로 넘어간다.',
+    },
+  ],
+
   // ── 촬영 공간 ───────────────────────────────────────────────
   // 스튜디오가 아니라 자취방이다. 취준생이 집에서 혼자 준비하는 설정에 맞고,
   // 무엇보다 "진짜 사람 같음"이 스튜디오보다 훨씬 강하다.
@@ -596,15 +652,22 @@ export const hana = {
   //    "happy" 같은 단어는 활짝 웃는 스톡 사진으로 끌고 가므로 쓰지 않는다.
   //    억누른 감정으로 서술해야 사람 얼굴이 나온다.
   themeExpressions: {
+    // ⚠️ 「눈이 거의 감길 만큼」 웃게 하면 신원이 날아간다. 이 캐릭터의 식별점은
+    //    좌우 비대칭 눈매인데, 크게 웃으면 그게 사라져 다른 사람이 된다(실측).
+    //    환하게 웃되 눈은 반드시 보이게 한다.
+    // ⚠️ FLUX.2는 네거티브 프롬프트를 지원하지 않는다(BFL 공식: "does not support negative
+    //    prompts. Focus on describing what you want"). 즉 「눈 감지 마라」는 무효이고
+    //    「이를 드러내고 웃어라」만 작동해 눈이 감겨 신원이 날아갔다.
+    //    원하는 상태만 긍정형으로 쓴다.
     '바다 보러 간 날':
-      'a wide open genuine smile with her teeth showing, eyes crinkled almost shut at the corners, ' +
-      'cheeks pushed high, caught mid-laugh — the kind of grin someone makes when the wind hits ' +
-      'them at the water. Delighted and a bit silly, not a posed camera smile',
+      'lips together in a warm soft smile with the corners clearly lifted and cheeks slightly raised, ' +
+      'both eyes wide open and plainly visible, the asymmetry between her monolid left eye ' +
+      'and the faint crease on her right eye clearly readable, eyebrows relaxed — genuinely delighted',
 
     '서류 합격':
       'caught between disbelief and joy — eyes wide and bright, eyebrows up, ' +
       'a smile she is failing to hold back breaking through, one hand near her mouth ' +
-      'as if she just gasped. Genuinely startled-happy, not posed, not a calm smile. ' +
+      'as if she just gasped. Genuinely startled-happy, eyes wide open. ' +
       // 세수 직후 설정: 화장기 없이 물기만. 「젖었다」로 쓰면 샤워 장면으로 흘러가므로 선을 긋는다.
       'She has just washed her face: bare skin still slightly damp at the hairline and jaw, ' +
       'a few wet strands at her temples, a towel around her neck or in one hand — ' +
@@ -613,11 +676,11 @@ export const hana = {
       'quietly delighted with herself — a closed-lip smile with the corners pushed up, ' +
       'cheeks slightly raised, eyes a little narrowed and bright, chin tilted up a fraction ' +
       'as if checking her own face in a mirror. Pleased and a bit surprised at how easy it was. ' +
-      'Not grinning at the camera, not posing',
+      'a private everyday expression rather than a camera pose',
     '피부과 예약':
       'a small private smile she is trying not to show, lips pressed together with one corner slightly up, ' +
       'eyes a little brighter and more awake than usual, eyebrows raised just a fraction — ' +
-      'quietly pleased and a bit nervous at the same time, not grinning, not posing',
+      'quietly pleased and a bit nervous at the same time, eyes open and steady',
   },
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
@@ -796,6 +859,13 @@ export const hana = {
 
 // room은 위 roomPrompt를 그대로 쓴다. 방 묘사를 한 곳에서만 고치면 되도록 여기서 연결한다.
 hana.setting.places.room = hana.setting.roomPrompt;
+
+// 현재 변신 단계. PERSONA_STAGE로 지정, 범위를 벗어나면 마지막 단계로 클램프한다.
+export function currentStage() {
+  const n = Number(process.env.PERSONA_STAGE);
+  const i = Number.isInteger(n) ? Math.max(0, Math.min(hana.arc.length - 1, n)) : 2;
+  return hana.arc[i];
+}
 
 // 소재 → 장소. 매핑이 없으면 방이다.
 export function placeForTheme(theme) {

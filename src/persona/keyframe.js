@@ -80,7 +80,7 @@ function pickAction(scene, seed) {
 
 // 전날 브이로그 사진 중 쓸 만한 것. 캐릭터의 하루가 뉴스로 이어져 보인다.
 // 어제 것을 우선하고 없으면 최근 것. 얼굴이 나온 첫 장(photo-1)만 쓴다.
-export function recentVlogPhoto({ maxAgeDays = 3 } = {}) {
+export function recentVlogPhoto({ maxAgeDays = 3, excludeId = null } = {}) {
   try {
     const dirs = readdirSync(paths.out)
       .filter((d) => /^vlog-\d{8}-(day|evening)$/.test(d))
@@ -88,6 +88,7 @@ export function recentVlogPhoto({ maxAgeDays = 3 } = {}) {
       .reverse();
     const today = new Date();
     for (const d of dirs) {
+      if (excludeId && d === excludeId) continue; // 지금 쓰고 있는 게시물은 제외
       const stamp = d.slice(5, 13); // YYYYMMDD
       const dt = new Date(
         Number(stamp.slice(0, 4)),
@@ -120,10 +121,11 @@ export async function getKeyframe(
 
   try {
     // 앵커를 레퍼런스로 첨부해야 같은 사람이 유지된다.
-    // 최근 브이로그 사진(사람 검수를 거친 얼굴)을 두 번째 레퍼런스로 추가한다 —
-    // 검수된 신원이 뉴스로 이어지고, CF 무료 백엔드의 드리프트를 줄인다.
+    // ⚠️ 예전엔 최근 브이로그 사진을 두 번째 레퍼런스로 붙였다. 두 가지가 잘못이었다:
+    //    (1) 브이로그에서 이미 실패한 구성이다 — 두 번째 사진의 배경·의상이 통째로 끌려온다.
+    //    (2) 생성물을 다시 레퍼런스로 먹이는 드리프트 피드백 루프라 회차가 쌓일수록
+    //        원본 앵커에서 멀어진다. 신원 기준은 앵커 한 장으로 고정한다.
     const anchor = anchorPath(phase);
-    const vlogRef = recentVlogPhoto();
     const prompt = scenePrompt(hana, {
       look: scene.look,
       angle: scene.angle,
@@ -135,13 +137,13 @@ export async function getKeyframe(
       seed: `${sceneName}-${key}`,
     });
     // 해부학 검수 — 팔 3개 같은 컷이 뉴스 인트로로 나가면 안 된다. 실패하면 1회 재생성.
-    const refs = [anchor, vlogRef].filter(Boolean);
+    const refs = [anchor].filter(Boolean);
     let verdict;
-    for (let attempt = 0; attempt <= 1; attempt++) {
+    for (let attempt = 0; attempt <= 3; attempt++) {
       await generateImage(prompt, { outPath: file, refImages: refs });
       verdict = await inspectImage(file);
       if (verdict.ok) break;
-      if (attempt === 0) console.warn(`[persona] ${sceneName} 검수 실패(${verdict.reason}) → 재생성`);
+      if (attempt < 3) console.warn(`[persona] ${sceneName} 검수 실패(${verdict.reason}) → 재생성`);
     }
     console.log(
       `[persona] 키프레임 생성 ${sceneName} (${key})` +

@@ -136,6 +136,14 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
     `- photos[].action: 사진에 담길 장면을 **영어로** 한 문장. 인물이 뭘 하고 있는지.\n` +
     `  예: 'sitting cross-legged on the floor, marking a printed script with a highlighter'\n` +
     `- 셀카처럼 자연스러운 순간이어야 합니다. 화보처럼 꾸미지 마세요.\n` +
+    // ⚠️ 이미지 모델(FLUX.2)은 네거티브 프롬프트가 무효라 「웃지 마라」를 못 알아듣는다.
+    //    그래서 여기 LLM 단계에서 미리 막는다 — LLM은 부정 지시를 이해한다.
+    //    크게 웃는 컷은 눈이 감겨 이 캐릭터의 식별점(좌우 비대칭 눈매)이 사라진다.
+    `- action에 laughing, grinning, giggling, mouth open, eyes closed 를 쓰지 마세요.\n` +
+    `  웃는 장면이 필요하면 'a small soft smile with both eyes open'처럼 쓰세요.\n` +
+    // 손은 결함이 가장 잦은 부위다. 화면 가운데 크게 펼쳐지지 않게 유도한다.
+    `- 손이 화면 가운데 크게 펼쳐진 장면을 쓰지 마세요. 손은 컵·가방·주머니에 반쯤 가려지거나\n` +
+    `  프레임 가장자리에 걸치게 쓰세요.\n` +
     `- 첫 장은 인물이 보이는 사진, 나머지는 손·사물 클로즈업도 좋습니다.\n\n` +
     `아래 형식의 JSON만 출력하세요(다른 텍스트 금지):\n` +
     `{"caption":"게시물 본문(줄바꿈 포함)","hashtags":["#취준일기","#공채준비"],` +
