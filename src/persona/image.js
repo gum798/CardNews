@@ -311,6 +311,7 @@ const FRAMING = {
     'and a lens flare streaks across one corner. ' +
     'The sky and water are blown out slightly near the horizon. ' +
     'Warm colour cast overall, deep contrast, ISO 100: clean but with visible sensor noise in the shadows. ' +
+    'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
     'Handheld, the frame tilted a couple of degrees, framing casual and not quite level.',
 
   // 야외 흐림·비. 구름이 거대한 디퓨저라 그림자가 거의 없고 색이 빠진다 —
@@ -332,6 +333,8 @@ const FRAMING = {
     'The overhead fluorescent light is flat, slightly green and cold, and it comes from directly above, ' +
     'so there are small shadows under her eyes and nose. ' +
     'ISO 1600: visible grain, slightly muted colours, corners a touch darker. ' +
+    'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
+    'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
     'Handheld, the frame tilted a couple of degrees.',
 
   // 집 밖에서 낮에 찍은 컷. feedWindow/feedFlash는 「그녀의 방」·「밤」을 전제하므로
@@ -343,6 +346,7 @@ const FRAMING = {
     'the daylight side of her face reads slightly blue, the shadow side slightly green. ' +
     'The window side is about a stop and a half brighter and a little blown near the glass. ' +
     'ISO 400: light grain, corners a touch dark and soft. ' +
+    'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
     'Handheld, the frame tilted a couple of degrees, framing casual and not quite level.',
 };
 

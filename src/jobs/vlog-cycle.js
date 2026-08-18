@@ -14,6 +14,7 @@ import { writeVlogPost } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } from '../persona/image.js';
 import { anchorPath, recentVlogPhoto } from '../persona/keyframe.js';
 import { inspectImage } from '../persona/qc.js';
+import { applyDepthBlur, SIGNAGE_PLACES } from '../persona/depth.js';
 import { hana, outfitsForBand } from '../persona/hana.js';
 import { seasonNoteFor } from '../weather/seoul.js';
 import { paths, telegram } from '../config.js';
@@ -166,6 +167,9 @@ async function main() {
         if (verdict.ok) break;
         if (attempt < 3) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
       }
+      // 간판·상품명이 많은 장소는 배경 심도를 넣어 깨진 한글을 지운다.
+      // 검수·거리 측정이 끝난 뒤에 적용한다(블러가 얼굴 거리에 영향을 주지 않게).
+      if (SIGNAGE_PLACES.has(post.place)) await applyDepthBlur(out);
       files.push(out);
       dists.push(verdict?.stats?.faceDist ?? null);
       if (verdict && !verdict.ok) {

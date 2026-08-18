@@ -328,7 +328,7 @@ export const hana = {
       // ⚠️ 벽 메모에 읽히는 글자를 요구하면 깨진 유사 한글이 나온다. 프레임에서 가장 눈에 띄는
       //    위치라 AI 티의 큰 원인이 된다. 내용 대신 "읽히지 않는 손글씨"로만 지정한다.
       'plant on top; above the bookshelf, three A4 sheets are taped in a row at head height, slightly crooked, ' +
-      'covered in handwriting too small and too blurred to read, with no legible characters. ' +
+      'covered in dense grey pen strokes that blur together into texture at this distance. ' +
       'THE RIGHT WALL has a low bed with a beige fabric cover along it, and a white clothing rack at the far ' +
       'end of that wall with a navy interview suit jacket hanging on it. ' +
       'THE DOORWAY WALL (behind the viewer) is plain off-white, with a full-length mirror leaning ' +
@@ -375,7 +375,7 @@ export const hana = {
         // ⚠️ 열람실은 안내문·상표가 화면을 채우는 곳이다. 레퍼런스 사진에도 실제 로고와
         //    읽히는 한글 안내문이 있으므로, 생성물에서는 반드시 지워야 한다.
         'The standing sign, any posters and the tumbler must be blank or blurred — ' +
-        'no readable characters and no brand marks or logos anywhere in the frame.',
+        'plain unmarked surfaces: solid colour blocks and soft grey smudges where printing would be.',
 
       // 같은 도서관 건물 안의 카페. 열람실은 음식물 반입금지라 끼니는 여기서 해결한다.
       // 실사 레퍼런스: assets/persona/places/library-cafe.jpg
@@ -395,7 +395,7 @@ export const hana = {
         // ⚠️ 레퍼런스 사진에 실제 이용객이 찍혀 있다. 재현하면 실존 인물 초상 문제가 된다.
         'Other people in the background must be unidentifiable — seen from behind, cropped, or ' +
         'far enough away and soft enough that no face is legible. Do not reproduce any recognisable face. ' +
-        'All posters, signs and packaging are blank or blurred: no readable characters, no brand marks, no logos.',
+        'All posters, signs and packaging are plain solid-colour panels and blank white wrappers, thrown out of focus.',
 
       // 뉴스 촬영용 세트. 스튜디오가 아니라 자기 방 한쪽에 종이로 만든 조악한 배경이다.
       // 돈 없는 취준생이 유튜브 찍겠다고 직접 만든 것 — 그 어설픔이 이 채널의 정체성이고,
@@ -418,7 +418,7 @@ export const hana = {
         'On the desk in front of her, a small stack of printed script pages and a white ceramic mug. ' +
         'This is a broke YouTuber\'s bedroom news set, not a professional studio and not a virtual background — ' +
         'the hand-made cheapness is the whole point. ' +
-        'No legible characters anywhere on the paper — shapes and colour blocks only, no letters, no words, no logos.',
+        'The paper carries only flat colour blocks and cut-out silhouettes — plain painted surfaces throughout.',
 
       // 동해 바닷가.
       // ⚠️ 빛(맑음/흐림/비)은 여기 적지 않는다 — FRAMING 담당이다. 장소는 지형과 배치만.
@@ -439,7 +439,7 @@ export const hana = {
         // 옷은 파여도 사진의 주인공은 얼굴이다. 이 선이 무너지면 계정 톤도 도달도 같이 무너진다.
         'Still an ordinary everyday outfit, not a swimsuit and not beachwear, midriff covered; ' +
         'the framing stays on her face and what she is doing, never on her body. ' +
-        'All signage carries no readable characters and no brand marks or logos.',
+        'Any distant signage reads as small blocks of flat colour, softened by haze and distance.',
 
       // 목욕탕에서 나와 집으로 걷는 밤 골목.
       // ⚠️ 목욕탕 「안」은 절대 만들지 않는다 — 탈의·노출은 인스타·유튜브 정책 위반이고
@@ -459,7 +459,7 @@ export const hana = {
         'She carries a small plastic bath basket or a rolled towel under one arm. ' +
         'CRITICAL: never show the inside of the bathhouse, never any changing room, never any state ' +
         'of undress — she is fully clothed in ordinary clothes outdoors at all times. ' +
-        'All signs, shop fronts and notices carry no readable characters and no brand marks or logos.',
+        'Shop fronts and signs are plain glowing colour panels, their surfaces smooth and unprinted, softened by night haze.',
 
       // 새벽 전철 — 실제로 찍은 1호선 객차 사진을 레퍼런스로 붙인다.
       earlyTrain:
@@ -481,8 +481,8 @@ export const hana = {
         'She is never floating in the middle of the aisle with empty floor behind her: ' +
         'a seat back, a window or a pole must be directly behind her body. ' +
         // ⚠️ 전철 안은 안내문·노선도·광고가 화면을 뒤덮는다. 실제 상표(코레일 등)도 걸린다.
-        'All signage, route maps, notices and the ceiling display carry no readable characters ' +
-        'and no brand marks or logos — shapes and colour blocks only, blurred or out of focus.',
+        'Signage, route maps and the ceiling display show plain colour fields and simple line diagrams, ' +
+        'all well out of focus so their surfaces read as smooth colour.',
 
       // 인천 차이나타운 — 실제 방문한 가게의 사진 2장을 레퍼런스로 붙인다
       // (assets/persona/places/chinatown-restaurant.jpg, chinatown-food.jpg).
@@ -503,7 +503,7 @@ export const hana = {
         'Her friend is present but never identifiable: seen only as a forearm and hand across the table, ' +
         'a shoulder at the edge of the frame, or a soft out-of-focus back of a head — ' +
         'never a legible face, never looking at the camera. ' +
-        'All signs, menus and lanterns carry no readable characters of any language — ' +
+        'Signs, menus and lanterns are plain painted panels in flat red and gold, their surfaces smooth — ' +
         'shapes and colours only, blurred or out of focus. No brand marks, no logos.',
 
       // 헬스장 — 실제 다니는 곳의 사진을 레퍼런스로 붙인다 (assets/persona/places/gym.jpg).
@@ -518,8 +518,8 @@ export const hana = {
         // 레퍼런스에 실제 이용객이 있다 + 기구에 브랜드·모델명이 크게 적혀 있다.
         'WHERE SHE IS: she is either standing in the blue walking lane with the machine rows behind her, ' +
         'or seated on one of the machines — never floating in open floor with nothing behind her. ' +
-        'Other gym-goers appear only far away, from behind, or soft out of focus — no legible face. ' +
-        'All machine branding, model numbers and signs are blank or unreadable — no brand marks, no logos, no readable characters.',
+        'Other gym-goers appear only far away, from behind, or soft out of focus — faces are unresolved blurs. ' +
+        'Machine panels and signs are plain matte black and grey surfaces, smooth and unprinted.',
 
       convenienceStore:
         'Setting: a small Korean convenience store, late morning, almost empty. ' +
@@ -540,7 +540,7 @@ export const hana = {
         // ⚠️ 편의점은 상품 라벨과 간판이 화면을 뒤덮는 곳이다. 글자를 요구하면 깨진 유사 한글이
         //    잔뜩 나오고, 실제 브랜드가 나오면 상표 문제까지 생긴다. 양쪽 다 막는다.
         'All product packaging, price tags, posters and signage must be plain, blurred or out of focus ' +
-        'with no readable characters and no real brand marks or logos anywhere.',
+        'with plain unprinted surfaces throughout — smooth colour panels where labels would be.',
     },
   },
 
