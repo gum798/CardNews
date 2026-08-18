@@ -15,6 +15,7 @@ const QC_BIN = path.join(paths.root, 'tools', 'qc');
 
 function parse(line) {
   const m = line.match(/faces=(\d+) bigFaces=(\d+) hands=(\d+) bodies=(\d+) fingers=(\d+)/);
+  const d = line.match(/faceDist=([\d.]+)/);
   if (!m) return null;
   return {
     faces: Number(m[1]),
@@ -22,15 +23,17 @@ function parse(line) {
     hands: Number(m[3]),
     bodies: Number(m[4]),
     fingers: Number(m[5]),
+    faceDist: d ? Number(d[1]) : null,
   };
 }
 
 // 이미지 1장 검수. { ok, reason, stats } 반환. 도구가 없거나 실패하면 통과시킨다
 // (검수 때문에 발행이 멈추면 안 된다).
-export function inspectImage(imgPath) {
+export function inspectImage(imgPath, refPath = null) {
   return new Promise((resolve) => {
     if (!existsSync(QC_BIN) || !existsSync(imgPath)) return resolve({ ok: true, reason: 'skip' });
-    execFile(QC_BIN, [imgPath], { timeout: 30_000 }, (err, stdout) => {
+    const args = refPath && existsSync(refPath) ? [imgPath, refPath] : [imgPath];
+    execFile(QC_BIN, args, { timeout: 30_000 }, (err, stdout) => {
       if (err) return resolve({ ok: true, reason: 'qc 실행 실패(통과 처리)' });
       const s = parse(String(stdout).trim());
       if (!s) return resolve({ ok: true, reason: 'qc 파싱 실패(통과 처리)' });
@@ -39,6 +42,9 @@ export function inspectImage(imgPath) {
       if (s.hands > 2) return resolve({ ok: false, reason: `손 ${s.hands}개`, stats: s });
       if (s.bigFaces > 1) return resolve({ ok: false, reason: `큰 얼굴 ${s.bigFaces}개`, stats: s });
       if (s.bodies > 1) return resolve({ ok: false, reason: `몸통 ${s.bodies}개`, stats: s });
+      // ⚠️ faceDist는 얼굴 인식 임베딩이 아니라 범용 이미지 서술자다. 정상 컷들 사이에서도
+      //    0.4 넘게 벌어져 절대 임계값으로 쓰면 멀쩡한 컷이 버려진다.
+      //    같은 포스트 안에서의 상대 정렬에만 쓴다(호출부 책임).
       resolve({ ok: true, stats: s });
     });
   });

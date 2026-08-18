@@ -16,9 +16,10 @@ import CoreImage
 
 let args = CommandLine.arguments
 guard args.count >= 2 else {
-    FileHandle.standardError.write("usage: qc <image>\n".data(using: .utf8)!)
+    FileHandle.standardError.write("usage: qc <image> [reference]\n".data(using: .utf8)!)
     exit(2)
 }
+let refPath: String? = args.count >= 3 ? args[2] : nil
 guard let src = CIImage(contentsOf: URL(fileURLWithPath: args[1])) else {
     print("cannot read input"); exit(1)
 }
@@ -58,4 +59,38 @@ if (try? handler.perform([bodyReq])) != nil {
     bodies = (bodyReq.results ?? []).filter { $0.confidence >= 0.5 }.count
 }
 
-print("faces=\(faces) bigFaces=\(bigFaces) hands=\(hands) bodies=\(bodies) fingers=\(fingerPoints)")
+// ── 얼굴 유사도 (선택) ──────────────────────────────────────────────────────
+// 얼굴 영역만 잘라 특징 지문을 비교한다. 배경이 섞이면 장면 차이가 거리를 지배해
+// 신원 비교가 안 된다.
+func facePrint(_ img: CIImage) -> VNFeaturePrintObservation? {
+    let h = VNImageRequestHandler(ciImage: img, options: [:])
+    let fr = VNDetectFaceRectanglesRequest()
+    guard (try? h.perform([fr])) != nil,
+          let f = (fr.results ?? []).max(by: { $0.boundingBox.height < $1.boundingBox.height })
+    else { return nil }
+    let e = img.extent
+    let box = f.boundingBox
+    // 얼굴 박스를 1.6배로 넓혀 헤어라인·턱선까지 담는다.
+    let w = box.width * e.width * 1.6
+    let hh = box.height * e.height * 1.6
+    let cx = (box.midX * e.width) + e.minX
+    let cy = ((1 - box.midY) * e.height)
+    let rect = CGRect(x: cx - w/2, y: e.height - cy - hh/2, width: w, height: hh).intersection(e)
+    guard !rect.isEmpty else { return nil }
+    let cropped = img.cropped(to: rect)
+    let ch = VNImageRequestHandler(ciImage: cropped, options: [:])
+    let pr = VNGenerateImageFeaturePrintRequest()
+    guard (try? ch.perform([pr])) != nil else { return nil }
+    return pr.results?.first
+}
+
+var faceDist = ""
+if let rp = refPath, let refImg = CIImage(contentsOf: URL(fileURLWithPath: rp)),
+   let a = facePrint(src), let b = facePrint(refImg) {
+    var d = Float(0)
+    if (try? a.computeDistance(&d, to: b)) != nil {
+        faceDist = String(format: " faceDist=%.4f", d)
+    }
+}
+
+print("faces=\(faces) bigFaces=\(bigFaces) hands=\(hands) bodies=\(bodies) fingers=\(fingerPoints)" + faceDist)

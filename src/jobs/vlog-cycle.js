@@ -138,6 +138,7 @@ async function main() {
   const rest = compositionsForPlace(set.rest, post.place);
   const compositions = [shuffleWithSeed(first, id)[0], ...shuffleWithSeed(rest, id)];
   const files = [];
+  const dists = []; // 앵커 대비 얼굴 거리 — 정렬용(차단용 아님)
   const flagged = []; // 검수에 걸린 컷 — 파일은 남기되 기본 미선택으로 보낸다
   for (let i = 0; i < post.photos.length; i++) {
     const ph = post.photos[i];
@@ -161,11 +162,12 @@ async function main() {
       // 해부학 결함(팔 3개 등)은 시드를 바꾸면 대개 사라진다 → 1회만 다시 뽑는다.
       for (let attempt = 0; attempt <= 3; attempt++) {
         await generateImage(build(attempt), { outPath: out, refImages: refs });
-        verdict = await inspectImage(out);
+        verdict = await inspectImage(out, anchor);
         if (verdict.ok) break;
         if (attempt < 3) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
       }
       files.push(out);
+      dists.push(verdict?.stats?.faceDist ?? null);
       if (verdict && !verdict.ok) {
         flagged.push(i);
         console.warn(`[vlog] 사진 ${i + 1} 재생성 후에도 ${verdict.reason} → 미선택으로 표시`);
@@ -186,26 +188,35 @@ async function main() {
   const bot = new Bot(telegram.botToken);
   const caption = [post.caption, '', post.hashtags.join(' ')].filter(Boolean).join('\n');
 
+  // 얼굴이 앵커에 가까운 순으로 정렬한다. 검수를 통과해도 신원이 흔들린 컷이 섞이는데,
+  // 그걸 자동으로 버리기엔 지표가 부정확하다(정상 컷 사이에서도 0.4 넘게 벌어진다).
+  // 대신 앞쪽에 좋은 컷을 모아 고르는 부담을 줄인다. 거리를 못 잰 컷은 뒤로 보낸다.
+  const order = files
+    .map((f, i) => ({ f, i, d: dists[i] ?? Infinity, bad: flagged.includes(i) }))
+    .sort((a, b) => a.bad - b.bad || a.d - b.d);
+  const sortedFiles = order.map((o) => o.f);
+  const sortedFlagged = order.map((o, k) => (o.bad ? k : -1)).filter((k) => k >= 0);
+
   // 승인 시 발행할 내용을 남겨둔다. 사진 선택·글 수정은 텔레그램에서 한다.
   const record = savePost({
     id,
     slot,
     theme: post.theme,
     caption,
-    files,
+    files: sortedFiles,
     outfit, // 나중에 컷을 더 붙일 때 같은 옷을 쓰려면 남겨둬야 한다
     // 검수에 걸린 컷은 기본 미선택 — 사람이 보고 살릴 수도 있게 파일은 남긴다.
-    selected: files.map((_, i) => !flagged.includes(i)),
+    selected: sortedFiles.map((_, i) => !sortedFlagged.includes(i)),
     status: 'pending',
   });
 
   // 앨범으로 보내되 각 장에 번호를 달아 어느 게 몇 번인지 알 수 있게 한다.
-  if (files.length === 1) {
-    await bot.api.sendPhoto(telegram.chatId, new InputFile(files[0]), { caption: '1' });
+  if (sortedFiles.length === 1) {
+    await bot.api.sendPhoto(telegram.chatId, new InputFile(sortedFiles[0]), { caption: '1' });
   } else {
     await bot.api.sendMediaGroup(
       telegram.chatId,
-      files.map((f, i) => InputMediaBuilder.photo(new InputFile(f), { caption: `${i + 1}` }))
+      sortedFiles.map((f, i) => InputMediaBuilder.photo(new InputFile(f), { caption: `${i + 1}` }))
     );
   }
 
