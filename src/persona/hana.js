@@ -42,21 +42,20 @@ export const hana = {
 
     // 체형. 앵커 이미지는 상반신뿐이라 얼굴만 잡아주고 몸은 프롬프트가 정한다.
     // 그래서 여기 안 써두면 컷마다 체형이 흔들린다.
-    figure: '글래머 체형 — C~D컵, 허리는 들어가고 어깨는 좁은 편',
+    figure: '글래머 체형 — D컵, 허리는 들어가고 어깨는 좁은 편',
     // 점 빼고 자신감이 붙으면서 옷 입는 방식이 바뀌었다는 설정 —
     // 예전엔 오버사이즈로 가리고 다녔는데 요즘은 몸에 맞는 티를 입는다.
     // 외모 변화(glow 아크)와 같은 줄기의 이야기라 서사적으로도 근거가 있다.
     figurePrompt:
-      'Her build: a curvy hourglass figure — a full C-to-D-cup bust that is clearly visible ' +
-      'in how her top fits, a defined narrow waist, soft rounded shoulders and hips, 164cm. ' +
-      'Natural proportions for a real 25-year-old woman, not exaggerated, not stylised, not drawn. ' +
-      // ⚠️ 계정은 뉴스·일상 브랜드다. 노출로 가면 인스타·유튜브 정책상 도달이 깎이고
-      //    캐릭터 톤도 무너진다. 핏은 살리되 노출은 없다 — 이 선은 유지한다.
-      'These days she wears fitted tops: her t-shirt sits close to her body and visibly follows ' +
-      'the shape of her bust and waist rather than hanging loose. ' +
-      'Still nothing low-cut, no cleavage on show, shoulders and neckline ordinary — ' +
-      'a normal fitted everyday t-shirt, not clubwear. ' +
-      'The framing stays on her face and on what she is doing.',
+      // 크기는 바닷가 편 컷을 표준으로 확정. 이 문장을 바꾸면 체형이 흔들린다.
+      'Her build: a curvy hourglass figure — a full D-cup bust that reads clearly through a fitted ' +
+      'top, a defined narrow waist, soft rounded shoulders and hips, 164cm. ' +
+      'Realistic proportions for an actual 25-year-old woman with this build — ' +
+      'the shape comes from her body, not from the clothing being tight or from stylisation.',
+    // ⚠️ 목선·노출은 여기 쓰지 마라. exposureStandard가 유일한 기준이다.
+    //    예전엔 여기에 "nothing low-cut, no cleavage"가 있었는데 단계 프롬프트의
+    //    V넥 지시와 같은 프롬프트 안에서 정면 충돌했다. 모순을 주면 모델이
+    //    제멋대로 절충한다(얼굴에 점 도배된 그 건과 같은 원인).
     // ⚠️ 앵커 이미지 1장을 만들 때만 쓴다. 씬 프롬프트에는 identityLock을 쓴다.
     // 이 문자열을 바꾸면 다른 사람이 된다. 바꾸면 앵커 재생성 + 캐시 전량 삭제 필수.
     //
@@ -235,10 +234,32 @@ export const hana = {
     },
   },
 
+  // ── 노출 표준 (고정) ─────────────────────────────────────────
+  // 사용자가 바닷가 편(V넥 + 핫팬츠)을 표준으로 확정했다. 이 한 문장이 유일한 기준이고,
+  // 변신 단계가 올라가도 **바뀌지 않는다** — 단계는 화장만 진하게 만든다.
+  //
+  // ⚠️ 예전엔 단계 3·4에 "deeper necklines and shorter hems"를 넣어 노출이 자동으로
+  //    올라가게 해뒀다. 표준을 정한 이상 그 자동 상승은 제거한다.
+  //    노출을 바꾸려면 이 문자열 하나만 고치면 되고, 그때가 명시적 결정이어야 한다.
+  // ⚠️ 전부 긍정형으로 쓴다. FLUX.2는 네거티브 프롬프트를 지원하지 않아
+  //    "no ~"는 그냥 무시되거나 오히려 그 물건을 불러온다(BFL 공식).
+  //    한계선은 "무엇을 입지 마라"가 아니라 "옷이 어디까지 덮는다"로 적는다.
+  // ⚠️ 구체적 옷(반바지·레깅스·잠옷)은 여기 쓰지 마라. 그건 dailyOutfitsByBand /
+  //    gymwear / sleepwearByBand가 장면마다 정한다. 여기에 "데님 반바지"를 박아두면
+  //    헬스장 레깅스·겨울 파자마 컷과 정면으로 부딪힌다. 여기는 「어디까지」만 정한다.
+  exposureStandard:
+    'Neckline and fit, the same in every photo: whatever top she has on sits close to her bust ' +
+    'and waist, and its neckline opens enough to show her collarbone and the upper line of her chest. ' +
+    // 한계선 — 덮는 범위를 긍정형으로 못박는다.
+    'The fabric is opaque, and the hem reaches past her waistband so her stomach stays covered. ' +
+    'Ordinary clothing a real person wears out of the house. ' +
+    'The framing stays on her face and on what she is doing.',
+
   // ── 변신 단계 ───────────────────────────────────────────────
   // 캐릭터가 시간이 지나며 달라진다. 점 제거 → 옅은 화장 → 짙은 화장 →
   // 시술까지. 외모가 바뀌는 이유가 스토리 안에서 설명되는 게 이 채널의 축이다.
   //
+  // ⚠️ 단계가 바꾸는 것은 **화장뿐**이다. 옷차림·노출은 exposureStandard로 고정.
   // PERSONA_STAGE=<index>로 현재 단계를 지정한다(기본 2).
   // ⚠️ 단계를 건너뛰지 마라. 어제와 오늘이 확 달라지면 「같은 사람」이 깨진다.
   //    한 단계는 최소 2~3주 유지하고, 변화한 날에는 브이로그로 이유를 남긴다.
@@ -247,14 +268,11 @@ export const hana = {
       label: '0. 시작 — 점 있음, 민낯',
       phase: 'before',
       makeup: 'No makeup at all beyond a plain lip balm. Brows are unshaped and a little sparse.',
-      wardrobe:
-        'Oversized tops that hang loose and hide her shape — she dresses to not be looked at.',
     },
     {
       label: '1. 점 뺀 직후 — 민낯, 옷이 몸에 맞기 시작',
       phase: 'healing',
       makeup: 'Still essentially bare-faced: lip balm only, brows lightly tidied.',
-      wardrobe: 'Ordinary fitted everyday tops that follow her shape instead of hanging loose.',
     },
     {
       // ← 현재 단계
@@ -264,13 +282,6 @@ export const hana = {
         'Light everyday makeup, the kind someone is still learning: groomed and lightly filled brows, ' +
         'a wash of tinted lip balm, a little concealer under the eyes, no eyeliner and no foundation — ' +
         'her real skin texture and unevenness still read through.',
-      wardrobe:
-        'Fitted tops that clearly follow her bust and waist — often a V-neck or scoop neck showing ' +
-        'the collarbone and a hint of décolletage, sometimes short denim shorts. ' +
-        // ⚠️ 이 선을 넘으면 계정 톤과 플랫폼 도달이 같이 무너진다. 단계가 올라가도 유지한다.
-        'Always ordinary clothing that would not look out of place walking down a street: ' +
-        'no swimwear, no lingerie, midriff covered, and the framing stays on her face ' +
-        'and what she is doing rather than on her body.',
     },
     {
       label: '3. 화장이 또렷해짐 — 자신감이 붙은 시기',
@@ -278,15 +289,11 @@ export const hana = {
       makeup:
         'Clearly applied everyday makeup now: defined brows, soft eyeliner, blush, a proper lip colour. ' +
         'Still not heavy — skin texture and pores remain visible, no airbrushed look.',
-      wardrobe:
-        'Confident fitted clothing, deeper necklines and shorter hems than before, ' +
-        'still ordinary street clothing under the same limits as stage 2.',
     },
     {
       label: '4. 시술 이후 — 달라진 얼굴',
       phase: 'glow',
       makeup: 'Full but tasteful everyday makeup. She knows what suits her now.',
-      wardrobe: 'Same as stage 3.',
       note: '성형 에피소드는 반드시 브이로그로 먼저 다룬 뒤 이 단계로 넘어간다.',
     },
   ],

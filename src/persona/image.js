@@ -515,9 +515,10 @@ export function scenePrompt(
     //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
     withReference ? '' : fragment,
     `Styling: ${styling || a.looks[look]}`,
-    // 변신 단계: 화장 농도와 옷차림 대담함이 시간에 따라 올라간다.
+    // 변신 단계가 바꾸는 건 화장뿐이다. 옷차림·노출은 exposureStandard로 고정
+    // (사용자가 바닷가 V넥 컷을 표준으로 확정) — 단계가 올라가도 안 변한다.
     stage.makeup,
-    stage.wardrobe,
+    persona.exposureStandard,
     a.figurePrompt || '',
     persona.setting?.places?.[place] || persona.setting?.roomPrompt || '',
     seasonNote,
