@@ -15,7 +15,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { cloudflare } from '../config.js';
+import { cloudflare, paths } from '../config.js';
 import { foregroundMatte } from '../video/matte.js';
 import { identityLockFor, currentStage } from './hana.js';
 
@@ -95,6 +95,20 @@ const FFMPEG_BIN = '/opt/homebrew/bin/ffmpeg';
 //    구분은 얼굴 크기로 한다: 신원 사진의 얼굴은 세로 15~20%, 장소 사진 배경 인물은 2% 미만.
 const IDENTITY_FACE_RATIO = 0.1;
 
+// ⚠️ 얼굴 「개수」가 아니라 「크기」로 갈라야 한다. 방 사진에도 그녀가 작게 찍혀 있어서
+//    개수로 보면 인물 사진으로 오판하고 방을 잘라낸다(실측: 사용자가 준 방 전경 사진).
+//    tools/qc의 bigFaces는 세로 10% 이상인 얼굴만 세므로 IDENTITY_FACE_RATIO와 같은 기준이다.
+//    실패하면 -1을 주고 호출부가 기존(인물) 동작을 유지하게 한다.
+async function bigFaceCount(imgPath) {
+  try {
+    const { stdout } = await execFileAsync(path.join(paths.root, 'tools', 'qc'), [imgPath], { timeout: 30_000 });
+    const m = String(stdout).match(/bigFaces=(\d+)/);
+    return m ? Number(m[1]) : -1;
+  } catch {
+    return -1;
+  }
+}
+
 async function headCropForRef(imgPath) {
   const out = path.join(os.tmpdir(), 'cfref-' + path.basename(imgPath).replace(/[^\w.]/g, '_') + '.jpg');
   try {
@@ -121,7 +135,18 @@ async function headCropForRef(imgPath) {
       return out;
     }
   } catch { /* 폴백으로 */ }
-  // 매트 실패: 중앙 상단 정사각 크롭 (인물 사진 관례상 얼굴은 상단 중앙에 있다)
+
+  // ⚠️ matte는 「사람」을 찾는 도구라 사람이 없는 장소 사진에서는 항상 null을 준다.
+  //    예전엔 그걸 전부 인물 사진으로 보고 중앙 상단 정사각으로 잘랐는데,
+  //    빈 방 기준 사진을 넣으면 방이 잘려 구조 레퍼런스 역할을 못 한다(실측).
+  //    얼굴이 실제로 있는지로 갈라야 한다.
+  const faces = await bigFaceCount(imgPath);
+  if (faces === 0) {
+    // 장소 레퍼런스: 통째로 넘긴다(긴 변 480).
+    await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf','scale=480:480:force_original_aspect_ratio=decrease','-q:v','3',out,'-y']);
+    return out;
+  }
+  // 인물 사진인데 매트만 실패: 중앙 상단 정사각 크롭 (관례상 얼굴은 상단 중앙에 있다)
   await execFileAsync(FFMPEG_BIN, ['-v','error','-i',imgPath,'-vf',// ⚠️ ffmpeg 필터에서 min(iw,ih)의 쉼표는 필터 구분자로 파싱된다. 반드시 이스케이프.
       'crop=w=min(iw\\,ih):h=min(iw\\,ih):x=(iw-min(iw\\,ih))/2:y=0,scale=480:480','-q:v','3',out,'-y']);
   return out;
@@ -514,14 +539,18 @@ export function scenePrompt(
     //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
     //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
     withReference ? '' : fragment,
-    `Styling: ${styling || a.looks[look]}`,
     // 변신 단계가 바꾸는 건 화장뿐이다. 옷차림·노출은 exposureStandard로 고정
     // (사용자가 바닷가 V넥 컷을 표준으로 확정) — 단계가 올라가도 안 변한다.
     stage.makeup,
-    persona.exposureStandard,
-    a.figurePrompt || '',
     persona.setting?.places?.[place] || persona.setting?.roomPrompt || '',
     seasonNote,
+    // ⚠️ 옷은 반드시 장소 설명 **뒤에** 온다. 앞에 두면 방 묘사(약 600단어)에 묻혀
+    //    레퍼런스에 걸린 옷(앵커의 남색 정장)이 그대로 입혀진다(실측: 10장 중 9장).
+    //    장소는 배경일 뿐이고 옷은 인물에 붙는 지시라, 인물 지시를 뒤로 모은다.
+    `What she is wearing right now: ${styling || a.looks[look]}. ` +
+      'She has these clothes on in every photo of this set.',
+    persona.exposureStandard,
+    a.figurePrompt || '',
     scene ? `Action: ${scene}` : '',
     FRAMING[framing] || FRAMING.reel,
     angleText,

@@ -32,3 +32,6 @@ assets/persona/cache/
 
 # 컴파일된 검수 바이너리 (tools/qc.swift에서 빌드)
 tools/qc
+
+# matte 캐시 (자동 생성)
+*.mask.png
