@@ -126,11 +126,13 @@ export const minimax = {
 export const cloudflare = {
   accountId: process.env.R2_ACCOUNT_ID, // R2와 같은 계정 (1번)
   aiToken: process.env.CF_WORKERS_AI_TOKEN,
-  // ⚠️ klein-9b로 올리지 마라. 레퍼런스를 붙이면 인물을 통째로 지우고 빈 방만 그린다.
-  //    격리 실측: (구도O·ref O)→인물 없음 / (구도X·ref O)→인물 없음 / (구도O·ref X)→인물 있음.
-  //    하나 얼굴 고정에 레퍼런스가 필수라 9b는 이 파이프라인에서 못 쓴다.
-  //    flux-2-dev는 장당 6,825뉴런이라 무료 한도(10,000/일)로 하루 1장 — 역시 불가.
-  imageModel: process.env.CF_IMAGE_MODEL || '@cf/black-forest-labs/flux-2-klein-4b',
+  // klein-9b. 4b보다 피부·손이 확실히 낫고 레퍼런스도 정상 동작한다.
+  // ⚠️ 단, 프롬프트에서 인물을 먼저 선언하고 장소를 맨 뒤 「배경」으로 보내야 한다.
+  //    그러지 않으면 방이 주인공이 된다(scenePrompt 주석의 실측 참고).
+  // ⚠️ 장당 약 1,416뉴런 — 무료 10,000/일이면 계정당 7장이다. 그래서 브이로그당 5장이고
+  //    재시도도 아껴야 한다. 장수를 늘리려면 4b로 되돌리는 편이 낫다.
+  // ⚠️ flux-2-dev는 장당 6,825뉴런이라 무료로 하루 1장 — 쓸 수 없다.
+  imageModel: process.env.CF_IMAGE_MODEL || '@cf/black-forest-labs/flux-2-klein-9b',
   // 무료 뉴런 풀은 계정 단위(일 10,000)라 계정을 늘리면 한도가 늘어난다.
   // 1번(gum, R2와 동일) 소진 시 2번(kon)으로 넘어간다. 순서대로 시도.
   accounts: [

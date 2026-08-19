@@ -536,7 +536,17 @@ export function scenePrompt(
     ? identityLockFor(ph)
     : a.referencePrompt.replace(/\s*Vertical 4:5, head and shoulders\.$/, '');
 
+  // ⚠️ 순서가 곧 주인공을 정한다. 예전엔 장소 묘사가 프롬프트 한가운데 가장 긴 덩어리로
+  //    들어가 있었고, 그래서 모델이 「방 사진」을 그렸다. 실측(9b, 레퍼런스 동일):
+  //      · 33단어 짧은 프롬프트        → 하나가 화면을 채움
+  //      · +방 묘사 288단어            → 하나가 저 멀리 등 돌리고 앉은 배경 요소로 밀림
+  //      · 전체 파이프라인 프롬프트    → 하나가 아예 사라지고 빈 방만
+  //    그래서 (1) 맨 앞에 「인물이 주인공」을 못박고 (2) 장소는 맨 뒤로 보내
+  //    「그녀 뒤의 배경」이라고 이름 붙인다. 장소는 배경이지 피사체가 아니다.
+  const placeText = persona.setting?.places?.[place] || persona.setting?.roomPrompt || '';
   return [
+    'A photo of one young Korean woman. She is the subject and fills most of the frame; ' +
+      'everything around her is just the background she happens to be standing or sitting in.',
     identity,
     // ⚠️ 레퍼런스를 첨부할 때는 점을 말로 다시 설명하지 않는다.
     //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
@@ -545,11 +555,6 @@ export function scenePrompt(
     // 변신 단계가 바꾸는 건 화장뿐이다. 옷차림·노출은 exposureStandard로 고정
     // (사용자가 바닷가 V넥 컷을 표준으로 확정) — 단계가 올라가도 안 변한다.
     stage.makeup,
-    persona.setting?.places?.[place] || persona.setting?.roomPrompt || '',
-    seasonNote,
-    // ⚠️ 옷은 반드시 장소 설명 **뒤에** 온다. 앞에 두면 방 묘사(약 600단어)에 묻혀
-    //    레퍼런스에 걸린 옷(앵커의 남색 정장)이 그대로 입혀진다(실측: 10장 중 9장).
-    //    장소는 배경일 뿐이고 옷은 인물에 붙는 지시라, 인물 지시를 뒤로 모은다.
     `What she is wearing right now: ${styling || a.looks[look]}. ` +
       'She has these clothes on in every photo of this set.',
     persona.exposureStandard,
@@ -559,6 +564,8 @@ export function scenePrompt(
     angleText,
     expression ? `Her expression: ${expression}.` : '',
     `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
+    placeText ? `Behind her, out of focus and secondary to her: ${placeText}` : '',
+    seasonNote,
     'Unedited camera roll photo. No filter, no retouching, no beauty app.',
     // ⚠️ FLUX.2는 네거티브를 지원하지 않는다. BFL 문서의 치환 예시대로 긍정형으로 쓴다.
     //    (identityLock의 'Do not mirror/restyle'는 t2i 억제가 아니라 편집 문맥의 보존

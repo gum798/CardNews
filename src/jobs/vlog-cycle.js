@@ -161,11 +161,12 @@ async function main() {
     try {
       let verdict;
       // 해부학 결함(팔 3개 등)은 시드를 바꾸면 대개 사라진다 → 1회만 다시 뽑는다.
-      for (let attempt = 0; attempt <= 3; attempt++) {
+      // ⚠️ 9b는 장당 1,416뉴런 — 재시도 한 번이 4b 아홉 장 값이다. 1회만 다시 뽑는다.
+      for (let attempt = 0; attempt <= 1; attempt++) {
         await generateImage(build(attempt), { outPath: out, refImages: refs });
         verdict = await inspectImage(out, anchor);
         if (verdict.ok) break;
-        if (attempt < 3) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
+        if (attempt < 1) console.warn(`[vlog] 사진 ${i + 1} 검수 실패(${verdict.reason}) → 재생성`);
       }
       // 간판·상품명이 많은 장소는 배경 심도를 넣어 깨진 한글을 지운다.
       // 검수·거리 측정이 끝난 뒤에 적용한다(블러가 얼굴 거리에 영향을 주지 않게).
