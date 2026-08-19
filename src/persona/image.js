@@ -545,8 +545,13 @@ export function scenePrompt(
   //    「그녀 뒤의 배경」이라고 이름 붙인다. 장소는 배경이지 피사체가 아니다.
   const placeText = persona.setting?.places?.[place] || persona.setting?.roomPrompt || '';
   return [
-    'A photo of one young Korean woman. She is the subject and fills most of the frame; ' +
-      'everything around her is just the background she happens to be standing or sitting in.',
+    // ⚠️ "fills most of the frame"까지 쓰면 구도 지시를 눌러버려 5장이 전부 같은
+    //    정면 반신으로 나온다(실측). 거리·구도는 아래 composition/FRAMING이 정하게 두고,
+    //    여기서는 「무엇을 찍는 사진인가」만 못박는다.
+    'A photo of one young Korean woman. She is what this photo is of — the camera is placed ' +
+      'to photograph her, and the room is the background she happens to be in.',
+    // 구도를 앞으로 올린다. 뒤에 두면 긴 묘사에 묻혀 매번 같은 그림이 된다.
+    angleText,
     identity,
     // ⚠️ 레퍼런스를 첨부할 때는 점을 말로 다시 설명하지 않는다.
     //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
@@ -561,7 +566,6 @@ export function scenePrompt(
     a.figurePrompt || '',
     scene ? `Action: ${scene}` : '',
     FRAMING[framing] || FRAMING.reel,
-    angleText,
     expression ? `Her expression: ${expression}.` : '',
     `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
     placeText ? `Behind her, out of focus and secondary to her: ${placeText}` : '',
