@@ -38,6 +38,13 @@ export function inspectImage(imgPath, refPath = null) {
       const s = parse(String(stdout).trim());
       if (!s) return resolve({ ok: true, reason: 'qc 파싱 실패(통과 처리)' });
 
+      // ⚠️ 하나가 안 나온 컷은 그 자체로 실패다. 방은 배경이고 인물이 주인공이다.
+      //    실측: klein-9b로 바꿨을 때 5장 전부 사람 없는 빈 방이 나왔는데 검수를 그대로
+      //    통과했다 — 「셀 수 있는 것만 센다」는 원칙 아래서도 0은 셀 수 있다.
+      //    handsOnly 구도는 얼굴이 없는 게 정상이라 손으로 걸러진다.
+      if (s.faces === 0 && s.bodies === 0 && s.hands === 0) {
+        return resolve({ ok: false, reason: '인물 없음(빈 배경)', stats: s });
+      }
       // 1인 셀카/스냅 기준. 배경 행인의 작은 얼굴은 bigFaces에서 빠지므로 허용된다.
       if (s.hands > 2) return resolve({ ok: false, reason: `손 ${s.hands}개`, stats: s });
       if (s.bigFaces > 1) return resolve({ ok: false, reason: `큰 얼굴 ${s.bigFaces}개`, stats: s });

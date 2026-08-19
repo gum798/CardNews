@@ -123,9 +123,12 @@ async function headCropForRef(imgPath) {
       // ⚠️ 인물 bbox로 자르면 셀카의 「폰 든 팔」과 옷이 같이 들어가고, 생성물이 그
       //    포즈·복장을 그대로 베낀다(뉴스 세트에 나시티+폰이 나온 실측 사례).
       //    얼굴 박스가 있으면 그 주변만 잘라 신원만 넘긴다 — 나머지는 프롬프트가 정한다.
+      // ⚠️ 1.8배로 자르면 앵커의 남색 정장 옷깃과 흰 셔츠가 프레임에 남고, 그게 그대로
+      //    생성물의 옷이 된다(실측: 흰 반팔 지시인데 5장 중 2장이 남색 정장으로 나옴).
+      //    1.35배면 얼굴·머리만 남아 옷은 프롬프트가 정한다. 신원 정보는 얼굴에 다 있다.
       const f = info.face;
       const side = f
-        ? Math.min(Math.round(f.h * 1.8), info.width, info.height)
+        ? Math.min(Math.round(f.h * 1.35), info.width, info.height)
         : Math.min(Math.round(info.bbox.w * 1.15), info.width);
       const cx = f ? f.x + f.w / 2 : info.bbox.x + info.bbox.w / 2;
       const cy = f ? f.y + f.h / 2 : info.bbox.y + side / 2;
