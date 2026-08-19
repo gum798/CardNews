@@ -327,69 +327,41 @@ export const hana = {
     //    FLUX.2는 네거티브를 지원하지 않아 이 문장들이 통째로 무시됐다(BFL 공식).
     //    배치를 고정하는 유일한 방법은 「어디에 무엇이 있다」를 단정적으로 적는 것이다.
     //
-    // ⚠️ 사소한 물건까지 이름·색·개수를 박아둔다. 「책상 위에 물건들」처럼 두루뭉술하면
-    //    모델이 매번 새로 채워 넣어서 같은 방으로 안 보인다. 세부가 곧 고정 장치다.
+    // ⚠️ 적는 물건은 이름·색을 단정적으로 쓰되, 개수는 최소로 유지한다. 두 요구가 상충하는데
+    //    실측으로 선을 찾았다. 「책상 위에 물건들」처럼 두루뭉술하면 모델이 매번 새로
+    //    채워 넣어 같은 방으로 안 보이고, 반대로 사소한 것까지 다 적어 626단어로 늘렸더니
+    //    전체 프롬프트가 1198단어가 되면서 방 묘사가 절반을 넘었고 구도·옷·프레이밍 지시가
+    //    전부 묻혀 10장 모두 앵커 사진(남색 정장+책상)의 복제로 나왔다.
+    //    남길 세부는 「이 방을 이 방이게 하는 것」뿐이다 — 재질·색·벽 배정.
+    //    책상 위 펜 한 자루, 콘센트, 휴지통은 빼도 같은 방으로 보인다. 지금 288단어.
     roomPrompt:
-      'Setting: a small Korean one-room studio apartment, about 4.5m by 3m, tidy and neatly organised. ' +
-      // ⚠️ 천장 조명을 세부로 적었더니 10장 중 9장에서 화면 위쪽 빛덩어리로 나왔다(실측).
-      //    프레임 상단은 눈에 먼저 들어오는 자리라, 거기 있는 물건은 아무리 사소하게 적어도
-      //    주인공처럼 그려진다. 천장은 비워 두는 게 맞다.
-      // ⚠️ 천장 조명을 「원형 LED 하나」로 적었더니 10장 중 9장에서 화면 위쪽 빛덩어리로
-      //    나왔다(실측). 실제 방은 매입 다운라이트라 눈에 안 띈다 — 아래 몰딩 문장에서
-      //    지나가듯 한 번만 언급하고 여기서는 빼둔다.
-      'The walls are warm off-white wallpaper and the floor is pale grey-toned wood laminate ' +
-      'laid in wide planks. ' +
+      'Setting: a small Korean one-room studio apartment, about 4.5m by 3m, tidy. ' +
+      'Warm off-white wallpaper, pale grey-toned wide-plank wood floor, and a band of pale wood ' +
+      'moulding where the walls meet the ceiling. ' +
       '' +
-      'FIXED FLOOR PLAN — these positions belong to the room itself, not to the camera. ' +
-      'They are described as seen by someone standing in the doorway looking in. ' +
-      '' +
-      'THE FAR WALL, opposite the doorway, holds the room\'s single window: a wide sliding window ' +
-      'with a dark brown wooden frame and two panes, its sill at about desk height, hung with two panels ' +
-      'of beige linen curtains on a slim rod that runs the full width of the wall, the panels pushed ' +
-      'open to each side so the glass shows between them. ' +
-      'A desk stands against this wall directly under the window: a light wood top on a thin white ' +
-      'metal frame, about 110cm wide. On the desk, always in these places — a silver laptop in the middle, ' +
-      'a white ceramic mug, a loose stack of printed A4 pages, a black ballpoint pen, and a small white ' +
-      'desk lamp at the right end. A backless light wood stool is pulled up to the desk. ' +
-      '' +
-      'THE LEFT WALL holds a light wood open-cube bookcase, two rows of three cubes, with paperbacks ' +
-      'standing and leaning in the cubes, and one pothos plant in a pale mint-green pot on top of it. ' +
+      // 배치는 방에 고정된 절대 좌표다. 기준 시점을 현관으로 못박아야 카메라가 돌아도 안 움직인다.
+      'FIXED LAYOUT, as seen from the doorway looking in. ' +
+      'FAR WALL: the room\'s one window, a wide sliding window with a dark brown wooden frame, ' +
+      'beige linen curtains pushed open to each side. Directly under it stands the desk — ' +
+      'a light wood top on a thin white metal frame — with a silver laptop, a white ceramic mug ' +
+      'and a loose stack of printed A4 pages on it, and a backless light wood stool pulled up to it. ' +
+      'LEFT WALL: a light wood open-cube bookcase, two rows of three cubes, paperbacks standing and ' +
+      'leaning inside, one pothos plant in a pale mint-green pot on top, and above it three A4 sheets ' +
       // ⚠️ 벽 메모에 읽히는 글자를 요구하면 깨진 유사 한글이 나온다. 프레임에서 가장 눈에 띄는
       //    위치라 AI 티의 큰 원인이 된다. 내용 대신 "읽히지 않는 손글씨"로만 지정한다.
-      'On the wall above and to the left of it, three A4 sheets are taped in a row at head height, ' +
-      'each slightly crooked, covered in dense handwritten pen strokes that blur together into texture ' +
-      'at this distance. A small light wood cube shelf stands on the floor between the bookcase and the desk, ' +
-      'with a black backpack resting on the floor beside it. ' +
-      '' +
-      'THE RIGHT WALL holds a low bed on a light wood frame, covered with a beige quilted cover that ' +
-      'creases softly where she has been sitting. At the far end of the same wall, in the corner nearest ' +
-      'the window, stands a white metal clothing rack holding a navy suit jacket on a wooden hanger ' +
-      'and a few dark clothes beside it. A white round bin sits on the floor at the foot of the bed. ' +
-      '' +
-      'THE DOORWAY WALL, behind the viewer, holds a light wood door with a chrome lever handle. ' +
-      'A full-length mirror leans against the wall next to the door, and it is the room\'s only mirror. ' +
-      '' +
-      'A band of pale wood moulding runs around the top of the walls where they meet the ceiling, ' +
-      'and the ceiling carries a few small recessed round downlights set flush into it. ' +
+      'taped in a row at head height, slightly crooked, covered in dense handwritten pen strokes ' +
+      'that blur into texture at this distance. ' +
+      'RIGHT WALL: a low bed on a light wood frame under a beige quilted cover, and in the corner ' +
+      'nearest the window a white metal clothing rack with a navy suit jacket on a wooden hanger. ' +
+      'DOORWAY WALL, behind the viewer: a light wood door with a chrome lever handle, and the room\'s ' +
+      'one mirror, full-length, leaning against the wall beside it. ' +
       '' +
       // 절대 좌표를 유지시키는 유일한 긍정형 표현 — 「카메라가 움직여도 가구는 그 벽에 있다」.
-      'This layout is the same in every photo. The desk always stands under the window on the far wall, ' +
-      'the bookcase always stands against the left wall, the bed always stands against the right wall, ' +
-      'and the room has exactly one window and exactly one door. ' +
-      'When the camera faces the window, the bookcase appears on the left of the frame and the bed on the right. ' +
-      'When the camera faces back toward the doorway, they appear swapped — the furniture stayed where it is ' +
-      'and only the viewpoint moved. ' +
-      '' +
+      'The furniture keeps these walls in every photo; only the camera moves. ' +
       // ⚠️ "현관 쪽은 확실히 어둡다"고 썼더니 방 전체가 밤처럼 어두워졌다(실측).
-      //    밝기의 기준은 「창가가 밝다」로 잡고, 어두운 쪽은 살짝만 언급한다.
-      'The room is bright with daylight coming through that one window, and the corner ' +
-      'furthest from it sits in gentle shadow. ' +
-      // ⚠️ 「완벽한 쇼룸」이 되면 그 자체가 AI 티다. 지저분함이 아니라 "쓰던 흔적"으로 사람 냄새를 남긴다.
-      'WHERE SHE IS: she sits on the stool at the desk facing the window wall, or on the edge of the bed, ' +
-      'or cross-legged on the floor with the bed or the bookcase directly behind her — ' +
-      'her back is always against or near a piece of furniture. ' +
-      'The floor stays clear, and the room looks lived-in rather than staged: ' +
-      'the desk items sit where a person actually reaches for them and the notebook lies open mid-use.',
+      'The room is bright with daylight from that window. ' +
+      'WHERE SHE IS: on the stool at the desk, on the edge of the bed, or cross-legged on the floor ' +
+      'with the bed or the bookcase behind her — her back is always near a piece of furniture.',
 
     // 장소 풀. 방에서만 찍으면 계정이 한 장짜리처럼 보인다.
     // 방과 마찬가지로 각 장소도 배치를 문장으로 고정해야 갈 때마다 다른 가게가 안 나온다.
