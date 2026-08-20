@@ -16,8 +16,9 @@ import { anchorPath, recentVlogPhoto } from '../persona/keyframe.js';
 import { inspectImage } from '../persona/qc.js';
 import { applyDepthBlur, SIGNAGE_PLACES } from '../persona/depth.js';
 import { hana, outfitsForBand } from '../persona/hana.js';
+import { planPhotos, remaining } from '../persona/budget.js';
 import { seasonNoteFor } from '../weather/seoul.js';
-import { paths, telegram } from '../config.js';
+import { paths, telegram, cloudflare } from '../config.js';
 import { setMeta } from '../db/index.js';
 
 // 같은 날 같은 슬롯이면 항상 같은 순서 — 재실행해도 결과가 튀지 않는다.
@@ -64,6 +65,9 @@ function postId(slot) {
   return `vlog-${stamp}-${slot}`;
 }
 
+// 브이로그 목표 장수. 실제 장수는 남은 뉴런에 따라 이보다 줄 수 있다.
+const PHOTO_TARGET = 5;
+
 async function main() {
   const slot = process.env.VLOG_SLOT === 'evening' ? 'evening' : 'day';
   const id = postId(slot);
@@ -80,10 +84,28 @@ async function main() {
     }
   }
 
+  // ⚠️ 글부터 쓰고 사진을 뽑다가 뉴런이 떨어지면 글값(claude 호출)만 버리고 끝난다.
+  //    남은 예산을 먼저 재서 몇 장까지 가능한지 정한 뒤 그만큼만 만든다.
+  //    실측(8/20): 뉴스 발행이 하루치를 먼저 먹어 브이로그 5장이 전원 실패하고 작업이 죽었다.
+  const accountCount = cloudflare.accounts.length || 1;
+  const plan = planPhotos(cloudflare.imageModel, PHOTO_TARGET, { accountCount, refs: 1 });
+  if (plan.affordable === 0) {
+    console.warn(
+      `[vlog] 뉴런 부족으로 건너뜀 — 남은 ${remaining(accountCount)} / 1장당 ${plan.per}. ` +
+        '00:00 UTC(KST 09:00) 초기화 후 다시 시도한다.'
+    );
+    return;
+  }
+  if (plan.affordable < plan.wanted) {
+    console.warn(`[vlog] 뉴런이 빠듯해 ${plan.wanted}장 → ${plan.affordable}장으로 줄인다 (남은 ${remaining(accountCount)})`);
+  }
+
   // VLOG_THEME으로 오늘 소재를 지정할 수 있다(수동 실행). 장소는 소재가 정한다.
   const post = await writeVlogPost(slot, { theme: process.env.VLOG_THEME || undefined });
+  post.photos = post.photos.slice(0, plan.affordable);
   console.log(`[vlog] 소재: ${post.theme} / 장소: ${post.place} / 사진 ${post.photos.length}장`);
   console.log(`[vlog] 날씨: ${post.weather.label} ${post.weather.tempC}도 (${post.weather.source})`);
+  console.log(`[vlog] 뉴런: 남은 ${remaining(accountCount)} / 예상 소모 ${plan.per * post.photos.length}`);
 
   const outDir = path.join(paths.out, id);
   await mkdir(outDir, { recursive: true });

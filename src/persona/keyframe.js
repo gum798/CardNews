@@ -18,6 +18,9 @@ import { hana } from './hana.js';
 import { generateImage, scenePrompt } from './image.js';
 import { inspectImage } from './qc.js';
 
+// 뉴스 릴스 키프레임 전용 모델. 브이로그 피드 사진(9B)과 일부러 분리한다 — 이유는 아래 호출부 주석.
+const KEYFRAME_MODEL = process.env.CF_KEYFRAME_MODEL || '@cf/black-forest-labs/flux-2-klein-4b';
+
 const CACHE_DIR = path.join(paths.root, 'assets', 'persona', 'cache');
 
 // 시기별 앵커 이미지. 이 한 장이 얼굴 일관성의 원천이라 리포에 커밋해 둔다.
@@ -140,7 +143,11 @@ export async function getKeyframe(
     const refs = [anchor].filter(Boolean);
     let verdict;
     for (let attempt = 0; attempt <= 3; attempt++) {
-      await generateImage(prompt, { outPath: file, refImages: refs });
+      // ⚠️ 키프레임은 싼 모델로 뽑는다. 릴스에서 이 그림은 1~2초 스쳐가고 그 위에 자막과
+      //    배경 영상이 덮여서 9B와 4B 차이가 화면에 안 나타난다. 반면 뉴런은 9배 든다.
+      //    예전엔 브이로그와 같은 모델을 써서 뉴스 발행이 하루치를 먼저 먹고 브이로그가
+      //    통째로 죽었다(실측: 8/20 브이로그 5장 전원 실패). 비싼 뉴런은 피드 사진에 쓴다.
+      await generateImage(prompt, { outPath: file, refImages: refs, model: KEYFRAME_MODEL });
       verdict = await inspectImage(file);
       if (verdict.ok) break;
       if (attempt < 3) console.warn(`[persona] ${sceneName} 검수 실패(${verdict.reason}) → 재생성`);

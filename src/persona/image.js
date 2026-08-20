@@ -18,6 +18,7 @@ import { promisify } from 'node:util';
 import { cloudflare, paths } from '../config.js';
 import { foregroundMatte } from '../video/matte.js';
 import { identityLockFor, currentStage } from './hana.js';
+import { estimateNeurons, record as recordNeurons } from './budget.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
@@ -155,7 +156,10 @@ async function headCropForRef(imgPath) {
   return out;
 }
 
-async function viaCloudflare(prompt, refImages, size) {
+async function viaCloudflare(prompt, refImages, size, modelOverride) {
+  // 호출부가 모델을 지정할 수 있다. 뉴스 키프레임처럼 화질이 덜 중요한 쪽은 싼 모델로
+  // 내려서 하루 뉴런을 브이로그 피드 사진에 몰아준다(9B 1장 = 4B 아홉 장 값).
+  const model = modelOverride || cloudflare.imageModel;
   const [w, h] = (size || '768x1376').split('x').map(Number);
   const form = new FormData();
   form.append('prompt', prompt);
@@ -170,14 +174,15 @@ async function viaCloudflare(prompt, refImages, size) {
   const accounts = cloudflare.accounts.length ? cloudflare.accounts : [{ accountId: cloudflare.accountId, token: cloudflare.aiToken }];
   for (let ai = 0; ai < accounts.length; ai++) {
     const acct = accounts[ai];
-    res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/ai/run/${cloudflare.imageModel}`, {
+    res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/ai/run/${model}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${acct.token}` },
       body: form,
       signal: AbortSignal.timeout(300_000),
     });
     buf = Buffer.from(await res.arrayBuffer());
-    if (res.ok) break;
+    // 성공한 호출만 장부에 남긴다. 429는 뉴런을 안 쓴다.
+    if (res.ok) { recordNeurons(estimateNeurons(model, { width: w, height: h, refs: Math.min(refImages.length, 4) })); break; }
     const last = ai === accounts.length - 1;
     if (res.status === 429 && !last) {
       console.warn(`[persona] cf 계정 ${ai + 1} 뉴런 소진 → 계정 ${ai + 2} 시도`);
@@ -234,7 +239,7 @@ async function viaGemini(prompt, refImages) {
 }
 
 // prompt로 이미지 1장 생성. refImages(파일 경로)를 주면 그 인물을 유지하도록 첨부한다.
-export async function generateImage(prompt, { refImages = [], outPath, size } = {}) {
+export async function generateImage(prompt, { refImages = [], outPath, size, model } = {}) {
   const chain = backendChain(refImages.length > 0);
   let lastErr;
 
@@ -244,7 +249,7 @@ export async function generateImage(prompt, { refImages = [], outPath, size } = 
       try {
         const buf =
           which === 'omniroute' ? await viaOmniroute(prompt, size)
-          : which === 'cf' ? await viaCloudflare(prompt, refImages, size)
+          : which === 'cf' ? await viaCloudflare(prompt, refImages, size, model)
           : await viaGemini(prompt, refImages);
         if (buf.length < 1000) throw new Error('빈 이미지 응답');
         if (outPath) {
