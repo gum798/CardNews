@@ -7,7 +7,7 @@ import {
   setCandidateCardJson,
   insertPublish,
 } from './db/index.js';
-import { writeCards, pickBackgroundImages } from './curator/index.js';
+import { writeCards, pickBackgroundImages, pickBackgroundVideo } from './curator/index.js';
 import { searchTopicImages, downloadImage, searchTopicVideos, downloadVideo } from './images/index.js';
 import { renderCandidate, renderReelLines } from './renderer/index.js';
 import { makeReel, makeNarratedReel, grabPoster, personaLayersFor } from './video/index.js';
@@ -122,9 +122,22 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
         if (reelCfg.stockVideo && cardData.imageKeywords) {
           try {
             const vids = await searchTopicVideos(cardData.imageKeywords);
-            if (vids.length > 0) {
-              bgVideo = await downloadVideo(vids[0].url, path.join(outDir, 'bg.mp4'));
-              if (bgVideo) console.log(`[pipeline] 실사 배경 영상 (${vids[0].duration}초, ${vids[0].width}x${vids[0].height})`);
+            // ⚠️ 예전엔 vids[0]을 그냥 받아 썼다. 사진에는 관련성 검사가 있는데 영상에만 없어서
+            //    「챗GPT 단계별로 생각해봐」 뉴스에 해파리 영상이 깔렸다(2026-08-21 아침).
+            //    검색어의 'abstract' 한 단어가 검색을 지배한 결과였다. 사진과 같은 기준으로 거른다.
+            const pick = vids.length > 0
+              ? await pickBackgroundVideo(cover?.card?.headline || cand.topic, cover?.card?.category || '', vids)
+              : null;
+            if (pick === null) {
+              if (vids.length > 0) console.log(`[pipeline] 주제에 맞는 배경 영상 없음(후보 ${vids.length}개) → 사진 배경`);
+            } else {
+              bgVideo = await downloadVideo(vids[pick].url, path.join(outDir, 'bg.mp4'));
+              if (bgVideo) {
+                console.log(
+                  `[pipeline] 실사 배경 영상 (${vids[pick].duration}초, ${vids[pick].width}x${vids[pick].height}) ` +
+                  `후보 ${vids.length}개 중 ${pick}번: ${vids[pick].tags}`
+                );
+              }
             }
           } catch (e) {
             console.warn('[pipeline] 실사 영상 실패, 사진 배경 사용:', e.message);

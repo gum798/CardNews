@@ -140,6 +140,29 @@ const HEADLINE_RULES =
   '- 제목에 장면이 들어가야 합니다. 「출시했다」「도입한다」「공개했다」로 끝나는 제목은 ' +
   '무엇이 달라지는지가 없어 화면과 겉돕니다.\n';
 
+// 배경 소재 검색어. 표지 사진과 릴스 배경 영상이 같은 키워드로 검색된다.
+//
+// ⚠️ 예전 지침은 「핵심 개념을 시각적으로 대표」였다. 그러면 모델이 개념을 추상 렌더로
+//    번역해서, AI 뉴스마다 'neural network technology abstract' 같은 키워드가 나왔다.
+//    실측(2026-08-21 아침): 「챗GPT에 '단계별로 생각해봐' 붙이기」 뉴스의 배경으로
+//    빛나는 3D 파티클 뇌 영상이 깔렸는데, 세로로 가운데를 자르니 검은 배경에 떠 있는
+//    반투명 덩어리가 되어 시청자에게 해파리로 보였다.
+//    두 가지가 동시에 잘못이었다 — 내용과 무관한 「AI 하면 뇌」 클리셰였고,
+//    추상 렌더는 세로 크롭에서 형체를 잃는다.
+//    그래서 「개념」이 아니라 「카메라로 찍을 수 있는 장면」을 요구한다.
+const IMAGE_KEYWORDS_SPEC =
+  `imageKeywords: 배경 소재를 찾을 영어 검색어 2~3개(공백 구분). 표지 사진과 릴스 배경 영상을 ` +
+  `이 검색어로 찾습니다.\n` +
+  `- 이 뉴스의 내용에 실제로 나오는, 카메라로 찍을 수 있는 장면을 쓰세요. ` +
+  `사람·사물·장소·행동처럼 화면에서 바로 알아볼 수 있는 것이어야 합니다.\n` +
+  `- 개념을 추상적으로 표현한 소재는 쓰지 마세요. 세로로 잘리면 형체를 알 수 없는 덩어리가 됩니다. ` +
+  `abstract, neural network, glowing brain, particles, 3d render, digital concept 같은 단어는 넣지 마세요.\n` +
+  `- 주제가 아니라 이 기사에 맞춰 고르세요. AI 기사라고 전부 같은 검색어가 나오면 안 됩니다.\n` +
+  `  좋은 예: 챗GPT 질문법 기사 → 'person typing laptop keyboard' / ` +
+  `데이터센터 증설 기사 → 'data center server room' / 전세 대출 기사 → 'apartment building keys'\n` +
+  `  나쁜 예: 'neural network technology abstract', 'artificial intelligence concept'\n` +
+  `- 굴뚝·공해 연상 단어(factory, industry, pollution, smoke)와 특정 인물명·기업명·상표는 금지.\n`;
+
 const COPYRIGHT_RULES =
   `저작권/독창성 규칙(반드시 준수):\n` +
   `- 사실만 자기 표현으로 재작성한다.\n` +
@@ -317,7 +340,7 @@ export async function writeCards(newsItem, { hookType = '지목형', scriptStyle
     `- body:  {"type":"body","card":{"kicker":"소제목","title":"핵심 제목","text":"핵심 사실 본문","stat":{"value":"수치","label":"수치 설명"}}}  (stat은 수치가 있을 때만, 선택)\n` +
     `- last:  {"type":"last","card":{"summary":"한 줄 요약","insight":"자체 인사이트 한 줄"}}\n\n` +
     `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n` +
-    `imageKeywords: 표지 배경 사진용 영어 키워드 2~3개(공백 구분). 핵심 개념을 시각적으로 대표하되 긍정적·현대적·깔끔한 이미지가 나오게 하세요. 굴뚝·공해를 연상시키는 단어(factory, industry, pollution, smoke)와 특정 인물명·기업명·상표는 금지. 좋은 예: 'circuit board technology', 'modern city skyline', 'data center servers', 'financial district'.\n` +
+    IMAGE_KEYWORDS_SPEC +
     reelScriptSpec(hookType, scriptStyle) +
     `\n아래 형식의 JSON 객체만 출력하세요(다른 텍스트 금지):\n` +
     `{"cards":[...], "caption":"...", "imageKeywords":"...", "script":{"hook":"...","kicker":"...","lines":["...","..."],"checklist":{"title":"...","items":["...","..."]},"shareCta":"..."${
@@ -369,7 +392,7 @@ export async function generateEvergreen(topicKey, { hookType = '지목형' } = {
     `- body:  {"type":"body","card":{"kicker":"소제목","title":"핵심 제목","text":"본문","stat":{"value":"수치","label":"수치 설명"}}}  (stat은 수치가 있을 때만, 선택)\n` +
     `- last:  {"type":"last","card":{"summary":"한 줄 요약","insight":"자체 인사이트 한 줄"}}\n\n` +
     `caption: 인스타그램 캡션. 앞부분에 검색 키워드를 넣고, 해시태그 3~5개를 포함.\n` +
-    `imageKeywords: 표지 배경 사진용 영어 키워드 2~3개(공백 구분). 핵심 개념을 시각적으로 대표하되 긍정적·현대적·깔끔한 이미지가 나오게 하세요. 굴뚝·공해를 연상시키는 단어(factory, industry, pollution, smoke)와 특정 인물명·기업명·상표는 금지. 좋은 예: 'circuit board technology', 'modern city skyline', 'data center servers', 'financial district'.\n` +
+    IMAGE_KEYWORDS_SPEC +
     reelScriptSpec(hookType) +
     `\n아래 형식의 JSON 객체만 출력하세요(다른 텍스트 금지):\n` +
     `{"cards":[...], "caption":"...", "imageKeywords":"...", "script":{"hook":"...","kicker":"...","lines":["...","..."],"checklist":{"title":"...","items":["...","..."]},"shareCta":"..."}}`;
@@ -432,3 +455,45 @@ export async function pickBackgroundImages(headline, category, candidates, want 
 }
 
 // (pickBestImage는 pickBackgroundImages로 대체됨 — 릴스가 배경을 여러 장 쓰기 때문)
+
+// 릴스 배경 실사 영상 1개 고르기. 어울리는 게 없으면 null → 호출부가 사진 배경으로 간다.
+//
+// ⚠️ 예전엔 검색 결과 첫 번째를 그냥 썼다. 사진에는 관련성 검사가 있는데 영상에만 없었다.
+//    실측(2026-08-21 아침): 「챗GPT에 '단계별로 생각해봐' 붙이기」 뉴스에 해파리 영상이
+//    깔렸다. 검색어가 'neural network technology abstract'였는데 Pixabay 영상 코퍼스에는
+//    neural/network에 맞는 소재가 거의 없어서 'abstract' 한 단어가 검색을 지배했고,
+//    추상 영상으로 분류된 해파리가 1위로 올라왔다. 사진과 같은 기준으로 걸러야 한다.
+export async function pickBackgroundVideo(headline, category, candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+
+  const list = candidates
+    .map((c, i) => `${i}: [${c.portrait ? '세로' : '가로'}] ${c.tags}`)
+    .join('\n');
+  const prompt =
+    `당신은 한국어 카드뉴스 편집자입니다. 세로 영상(9:16)의 배경으로 깔 실사 영상을 고릅니다.\n` +
+    `영상 주제: [${category}] ${headline}\n\n` +
+    `후보 영상(번호: [방향] 태그):\n${list}\n\n` +
+    `선택 기준:\n` +
+    `- 주제와 실제로 관련이 있을 것. 배경이지만 시청자는 무슨 영상인지 알아봅니다.\n` +
+    // ⚠️ 이 조항이 이 함수의 존재 이유다. 태그만 보면 「brain, ai, neural network」는
+    //    AI 기사에 완벽히 맞지만, 실제로 나간 건 세로로 잘린 빛나는 덩어리였다.
+    //    태그가 주제에 맞는지가 아니라 「잘린 화면에 무엇이 보이는지」를 묻는다.
+    `- 가로 영상은 가운데만 남기고 양옆을 잘라냅니다. 잘린 뒤에도 무엇을 찍은 것인지 ` +
+    `알아볼 수 있어야 합니다. 검은 배경에 발광체 하나가 떠 있는 추상 렌더는 잘리면 ` +
+    `정체불명의 덩어리가 되므로 고르지 마세요.\n` +
+    `- 사람·사물·장소가 찍힌 실사 영상을 추상 렌더보다 우선하세요.\n` +
+    `- 자막이 위에 얹히므로 화면이 너무 복잡하거나 밝지 않을 것\n` +
+    `- 어울리는 것이 하나도 없으면 반드시 null을 주세요. 억지로 고르지 마세요. ` +
+    `엉뚱한 영상이 깔리는 것보다 배경 없이 가는 편이 낫습니다.\n\n` +
+    `JSON만 출력: {"index": 번호} 또는 {"index": null}`;
+
+  try {
+    const parsed = await askClaudeJson(prompt, claude.filterModel);
+    const i = parsed?.index;
+    if (!Number.isInteger(i) || i < 0 || i >= candidates.length) return null;
+    return i;
+  } catch {
+    // 판정을 못 하면 쓰지 않는다. 엉뚱한 영상이 깔리는 것보다 사진 배경이 낫다.
+    return null;
+  }
+}

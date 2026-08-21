@@ -66,10 +66,17 @@ export async function searchTopicVideos(keywords, count = 8) {
           duration: Number(h.duration) || 0,
           width: pick.width,
           height: pick.height,
+          // 세로 소재인지. 가로 소재는 가운데를 잘라 쓰므로 양옆이 날아간다.
+          portrait: pick.height > pick.width,
         };
       })
       .filter(Boolean)
-      .filter((v) => v.duration >= 4); // 너무 짧으면 루프 티가 난다
+      .filter((v) => v.duration >= 4) // 너무 짧으면 루프 티가 난다
+      // ⚠️ 세로 소재를 앞으로 보낸다. 가로 영상을 9:16으로 자르면 화면의 60%가 날아가서
+      //    무엇을 찍은 영상인지 알아볼 수 없게 된다(실측: 3D 뇌 영상이 세로로 잘리자
+      //    검은 배경에 뜬 반투명 덩어리가 되어 해파리로 보였다).
+      //    같은 세로/가로끼리는 Pixabay의 인기순을 그대로 둔다.
+      .sort((a, b) => Number(b.portrait) - Number(a.portrait));
   } catch (err) {
     console.error('[images] video search 실패:', err.message);
     return [];
