@@ -557,6 +557,10 @@ export function scenePrompt(
       'to photograph her, and the room is the background she happens to be in.',
     // 구도를 앞으로 올린다. 뒤에 두면 긴 묘사에 묻혀 매번 같은 그림이 된다.
     angleText,
+    // ⚠️ 표정도 같은 이유로 앞에 둔다. 예전엔 FRAMING(조명·카메라 설정 한 문단) 뒤에
+    //    있었는데, 표정 지시를 컷마다 다르게 넣어도 결과는 전부 같은 무표정이었다(실측).
+    //    표정은 「어떤 사진인가」를 정하는 요소지 마감 손질이 아니다.
+    expression ? `Her expression in this photo: ${expression}.` : '',
     identity,
     // ⚠️ 레퍼런스를 첨부할 때는 점을 말로 다시 설명하지 않는다.
     //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
@@ -571,7 +575,6 @@ export function scenePrompt(
     a.figurePrompt || '',
     scene ? `Action: ${scene}` : '',
     FRAMING[framing] || FRAMING.reel,
-    expression ? `Her expression: ${expression}.` : '',
     `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
     placeText ? `Behind her, out of focus and secondary to her: ${placeText}` : '',
     seasonNote,
