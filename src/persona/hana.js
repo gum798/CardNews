@@ -200,11 +200,19 @@ export const hana = {
     },
 
     dailyOutfitsByBand: {
+      // ⚠️ 머리 모양은 여기 쓰지 마라 — hairstyles가 따로 돌린다. 예전엔 4개 중 3개가
+      //    「머리 하나로 대충 묶음」이라 매일 같은 머리가 나왔다.
+      // ⚠️ 흰 반팔 편중도 깼다. 4개 중 3개가 흰·밝은 반팔이라 며칠치를 나란히 놓으면
+      //    같은 옷으로 보였다(실측: 6일치 중 4일이 흰 반팔).
       midsummer: [
-        '얇은 흰 반팔 티에 연청 데님 반바지, 민낯에 립밤만, 머리 하나로 대충 묶음',
-        '얇은 라이트그레이 반팔 티에 검정 코튼 반바지, 민낯에 립밤만, 머리 반묶음',
-        '얇은 소라색 반팔 티에 베이지 린넨 바지, 민낯에 립밤만, 머리 하나로 대충 묶음',
-        '얇은 검정 반팔 티에 연청 데님, 민낯에 립밤만, 목에 땀 식히는 손수건, 머리 하나로 대충 묶음',
+        '얇은 흰 반팔 티에 연청 데님 반바지, 민낯에 립밤만',
+        '얇은 라이트그레이 반팔 티에 검정 코튼 반바지, 민낯에 립밤만',
+        '얇은 소라색 반팔 티에 베이지 린넨 바지, 민낯에 립밤만',
+        '얇은 검정 반팔 티에 연청 데님 반바지, 민낯에 립밤만, 목에 땀 식히는 손수건',
+        '가는 스트라이프 반팔 티에 카키 코튼 반바지, 민낯에 립밤만',
+        '얇은 인디핑크 반팔 티에 흰 코튼 반바지, 민낯에 립밤만',
+        '헐렁한 카키 반팔 셔츠 안에 흰 나시, 연청 데님 반바지, 민낯에 립밤만',
+        '얇은 네이비 반팔 티에 밝은 회색 코튼 반바지, 민낯에 립밤만',
       ],
       summer: [
         '흰 반팔 티에 연청 데님, 민낯에 립밤만, 머리 하나로 대충 묶음',
@@ -668,6 +676,39 @@ export const hana = {
   // ⚠️ 영어로 쓴다 — 이미지 프롬프트에 그대로 들어간다.
   //    "happy" 같은 단어는 활짝 웃는 스톡 사진으로 끌고 가므로 쓰지 않는다.
   //    억누른 감정으로 서술해야 사람 얼굴이 나온다.
+  // 소재별 표정이 지정되지 않은 날 쓰는 일상 표정 풀.
+  //
+  // ⚠️ 26개 소재 중 표정이 지정된 건 4개뿐이라, 나머지 22일은 표정 지시가 빈 문자열로
+  //    떨어져 매일 같은 무표정이 나왔다(실측: 6일치 첫 컷이 전부 같은 얼굴).
+  //    소재가 매일 바뀌어도 얼굴이 같으면 사람 눈에는 같은 게시물로 보인다.
+  //
+  // ⚠️ 전부 「두 눈이 열려 있고 좌우 비대칭이 보인다」를 지킨다. 하나의 신원 앵커는
+  //    무쌍인 왼눈과 옅은 쌍꺼풀인 오른눈의 차이다. 눈을 감기거나 가늘게 만드는 표정
+  //    (활짝 웃어 눈이 접히는 등)을 넣었더니 다른 사람이 됐다(실측).
+  everydayExpressions: [
+    'a small closed-lip smile, cheeks slightly raised, both eyes open and steady on the lens',
+    'lips parted as if she just started saying something, eyebrows a little raised, eyes wide and on the camera',
+    'looking slightly off to the side of the lens, chin a fraction down, a faint amused curve at one corner of her mouth',
+    'eyebrows drawn together in mild concentration, lips pressed thin, eyes open and fixed on what she is doing',
+    'a tired half-smile with the corners barely lifted, eyelids relaxed but both eyes clearly open',
+    'mouth slightly open in a small surprised «어» as if something just occurred to her, eyes wide',
+    'cheeks puffed a little in a quiet sigh, lips pushed forward, eyes flat and open toward the lens',
+    'head tilted a few degrees, one eyebrow marginally higher, a wry closed-lip smile',
+    'lips pressed together holding back a laugh, cheeks raised, both eyes open and bright',
+    'a plain unguarded everyday face, no performance for the camera, eyes open and looking just past the lens',
+  ],
+
+  // 머리 모양. 예전엔 옷 문자열 끝에 「머리 하나로 대충 묶음」처럼 붙어 있었는데,
+  // 한여름 풀 4개 중 3개가 같은 표현이라 매일 같은 머리가 나왔다. 따로 분리해 돌린다.
+  hairstyles: [
+    'her shoulder-length hair is down, tucked behind one ear',
+    'her hair is pulled into a loose low ponytail with a few strands escaping at the temples',
+    'her hair is in a half-up style, the top half tied and the rest loose',
+    'her hair is twisted up into a quick claw clip, loose ends sticking out at the back',
+    'her hair is in a high messy bun with wisps around her hairline',
+    'her hair is down but pushed back off her face, a little flattened as if she has been lying down',
+  ],
+
   themeExpressions: {
     // ⚠️ 「눈이 거의 감길 만큼」 웃게 하면 신원이 날아간다. 이 캐릭터의 식별점은
     //    좌우 비대칭 눈매인데, 크게 웃으면 그게 사라져 다른 사람이 된다(실측).
@@ -922,6 +963,30 @@ export function identityLockFor(phase) {
 // 소재 → 표정. 없으면 빈 문자열(기본 표정).
 export function expressionForTheme(theme) {
   return hana.themeExpressions?.[theme] || '';
+}
+
+// 시드로 배열에서 하나 뽑는다. 같은 시드면 항상 같은 결과 — 재실행해도 그림이 안 튄다.
+function pickBySeed(arr, seed) {
+  if (!arr?.length) return '';
+  let h = 0x811c9dc5;
+  for (const c of String(seed)) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  return arr[(h >>> 0) % arr.length];
+}
+
+// 소재가 표정을 정하지 않은 날 쓸 일상 표정. 컷마다 달라야 한 게시물 안에서도 안 지루하다.
+export function everydayExpression(seed) {
+  return pickBySeed(hana.appearance?.everydayExpressions || hana.everydayExpressions, seed);
+}
+
+// 머리 모양. 한 게시물 안에서는 고정한다 — 한 시간 사이에 머리가 바뀌면 이상하다.
+export function hairstyleFor(seed) {
+  return pickBySeed(hana.appearance?.hairstyles || hana.hairstyles, seed);
 }
 
 export default hana;

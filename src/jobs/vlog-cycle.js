@@ -15,7 +15,7 @@ import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace } fr
 import { anchorPath, recentVlogPhoto } from '../persona/keyframe.js';
 import { inspectImage } from '../persona/qc.js';
 import { applyDepthBlur, SIGNAGE_PLACES } from '../persona/depth.js';
-import { hana, outfitsForBand } from '../persona/hana.js';
+import { hana, outfitsForBand, everydayExpression, hairstyleFor } from '../persona/hana.js';
 import { planPhotos, remaining } from '../persona/budget.js';
 import { seasonNoteFor } from '../weather/seoul.js';
 import { paths, telegram, cloudflare } from '../config.js';
@@ -136,6 +136,9 @@ async function main() {
       : nightHome
         ? hana.appearance.sleepwearByBand[post.weather.band] || pool[0]
         : pool[hashSeed(id) % pool.length];
+  // 머리는 게시물 하나에 하나. 매일 다르되 그날 안에서는 안 바뀐다.
+  const hairstyle = hairstyleFor(id);
+
   // 방에서는 세 번째 컷만 플래시(밤 감성). 밖에서는 전부 낮 혼합광 —
   // feedWindow/feedFlash가 「그녀의 방」·「밤」을 전제해서 장소 묘사와 싸운다.
   // 밤 소재면 방 컷도 밤 프레이밍으로. 마지막 컷만 플래시로 변주를 준다.
@@ -154,7 +157,10 @@ async function main() {
       : isNight
         ? ['feedPublicNight', 'feedPublicNight', 'feedPublicNight']
         : ['feedPublic', 'feedPublic', 'feedPublic'];
-  // 첫 장은 반드시 셀카 — 피드 썸네일에 얼굴이 걸려야 한다.
+  // 첫 장에는 얼굴이 있어야 한다 — 피드 썸네일에 얼굴이 걸려야 하기 때문이다.
+  // ⚠️ 다만 「반드시 셀카」로 묶어뒀더니 6일치 첫 컷이 전부 같은 정면 셀카였다(실측).
+  //    얼굴이 보이는 건 유지하되 셀카 말고 다른 사람이 찍어준 컷도 섞는다.
+  //    candidSide는 3/4 측면이라 얼굴이 살아 있고, 셀카가 아니라 그림이 확 달라진다.
   const set = COMPOSITION_SETS[slot] || COMPOSITION_SETS.day;
   // 밖에서 찍는 날엔 방 전용 구도(전신거울·방 전경)를 뺀다.
   const first = compositionsForPlace(set.first, post.place);
@@ -173,8 +179,12 @@ async function main() {
         scene: ph.action,
         framing: framings[i % framings.length],
         place: post.place,
-        styling: ph.look === 'daily' ? outfit : '',
-        expression: post.expression || '',
+        // 머리는 게시물 단위로 고정(한 시간 사이에 바뀌면 이상하다), 옷도 마찬가지.
+        styling: ph.look === 'daily' ? `${outfit}, ${hairstyle}` : hairstyle,
+        // ⚠️ 표정을 소재에만 맡기면 26개 중 22개가 빈 문자열이라 매일 같은 무표정이 나온다
+        //    (실측: 6일치 첫 컷이 전부 같은 얼굴). 소재가 정한 표정은 그날의 감정 비트라
+        //    첫 컷에 쓰고, 나머지 컷은 일상 표정 풀에서 컷마다 다르게 뽑는다.
+        expression: i === 0 && post.expression ? post.expression : everydayExpression(`${id}-${i}`),
         seasonNote: seasonNoteFor(post.weather.band, post.place),
         withReference: Boolean(anchor),
         // 재시도는 시드를 바꿔야 같은 결함이 그대로 재현되지 않는다.
