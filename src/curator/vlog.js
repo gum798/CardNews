@@ -95,10 +95,12 @@ const SLOT_GUIDE = {
 
 // slot: 'day' | 'evening'
 // → { theme, caption, hashtags[], photos:[{ action, look }] }
-export async function writeVlogPost(slot = 'day', { theme: forcedTheme } = {}) {
+export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSeed = '' } = {}) {
   // 소재를 지정하면 풀에서 뽑지 않는다(수동 실행에서 오늘 소재를 바꿀 때).
   const theme = forcedTheme || pickTheme(slot);
-  const place = placeForTheme(theme);
+  // 소재가 장소를 못박지 않았으면 시간대 풀에서 시드로 고른다 —
+  // 회고형 소재가 전부 방으로 몰려 매일 같은 그림이 나오던 문제(방 비중 73%).
+  const place = placeForTheme(theme, placeSeed || `${slot}-${theme}`, slot);
   const expression = expressionForTheme(theme);
   const brief = hana.themeBriefs?.[theme] || '';
   // 날씨를 모르면 8월에 「쌀쌀하네요」 같은 글이 나온다.

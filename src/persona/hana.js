@@ -550,14 +550,89 @@ export const hana = {
         'a microwave and hot water dispenser on a side counter in the background; ' +
         'flat greenish fluorescent ceiling light mixed with daylight from the window — ' +
         'this mix is what makes it read as a real convenience store, keep it; ' +
-        'WHERE SHE IS: she sits on one of the slatted chairs at a round table, her back to the chair back, ' +
-        'the parasol pole and other empty tables visible past her shoulder — never floating in open floor. ' +
+        // ⚠️ 이 문장은 libraryCafe에서 복붙된 채로 있었다(편의점인데 파라솔·원형테이블을 말했다).
+        //    장소를 추가할 때 WHERE SHE IS를 반드시 그 장소 가구로 다시 쓸 것.
+        'WHERE SHE IS: she sits on one of the high wooden stools at the window counter, ' +
+        'her back to the store interior, the full-height window and the street directly beside her, ' +
+        'the counter edge in front of her — her body is always against the stool and counter. ' +
         'lived-in details, not styled: a crumpled plastic film lid pushed to one side, ' +
         'a receipt curled on the counter, her tote bag hooked on the back of the stool. ' +
         // ⚠️ 편의점은 상품 라벨과 간판이 화면을 뒤덮는 곳이다. 글자를 요구하면 깨진 유사 한글이
         //    잔뜩 나오고, 실제 브랜드가 나오면 상표 문제까지 생긴다. 양쪽 다 막는다.
         'All product packaging, price tags, posters and signage must be plain, blurred or out of focus ' +
         'with plain unprinted surfaces throughout — smooth colour panels where labels would be.',
+
+      // ── 아래는 「방 73%」를 깨려고 추가한 장소들 ─────────────────────
+      // 소재 26개 중 19개가 room이라 매일 같은 그림이 나왔다. 갈 곳이 늘어야 한다.
+      cafe:
+        'Setting: a small neighbourhood cafe in Mangwon-dong, mid-afternoon. ' +
+        'Fixed layout, keep identical in every image: a long light-oak communal table down the middle ' +
+        'with mismatched wooden chairs; a wide window along one side looking onto a narrow street ' +
+        'with a hair salon awning opposite; exposed concrete ceiling with black track lights, switched off ' +
+        'because the daylight is enough; a low shelf of secondhand paperbacks against the back wall; ' +
+        'a matte-black espresso machine on the counter with a stack of white cups. ' +
+        'On the table in front of her: an iced americano sweating onto a paper coaster, an open notebook, ' +
+        'a laptop half closed. ' +
+        'WHERE SHE IS: she sits on one of the wooden chairs at the communal table, her back against the ' +
+        'chair back, the window and street directly to one side of her, the table edge in front of her. ' +
+        'Daylight from that window is the only light, so the far side of the room falls into soft shade. ' +
+        'Other people are seen from behind or cropped, far enough that no face is legible. ' +
+        'All menus, signs and packaging are plain solid-colour panels, thrown out of focus.',
+
+      nightStreet:
+        'Setting: an ordinary residential back street in Seoul on the way home, after dark. ' +
+        'Fixed layout, keep identical in every image: low-rise brick villas on both sides with metal gates ' +
+        'and window air-conditioners; a narrow road with no cars moving, one or two parked; ' +
+        'a single street lamp casting a warm pool of light on the asphalt; the cool white glow of a ' +
+        'convenience store spilling out from further down the street; overhead a tangle of power lines ' +
+        'against a dark blue sky; a low wall with a few potted plants beside a gate. ' +
+        'WHERE SHE IS: she walks along the edge of the road beside the low wall, or stands under the ' +
+        'street lamp with the villa wall directly behind her back — her body is always in front of a wall, ' +
+        'a gate or a parked car, never in the middle of open road. ' +
+        'The street lamp and the store glow are the only light, so her face is lit warm on one side and ' +
+        'falls dark on the other. ' +
+        'All shop signs and number plates are plain colour panels with no legible characters, out of focus.',
+
+      park:
+        'Setting: a neighbourhood park by the Han river in the late afternoon. ' +
+        'Fixed layout, keep identical in every image: a wide paved walking path with a painted lane line; ' +
+        'mown grass on both sides with scattered zelkova trees; a row of dark green metal benches facing ' +
+        'the water; the river beyond, flat and grey-blue, with apartment towers on the far bank hazed by ' +
+        'summer air; a low railing along the water side. ' +
+        'WHERE SHE IS: she sits on one of the green benches with its back directly behind her shoulders, ' +
+        'or stands leaning against the railing with the river behind her — her body is always against a ' +
+        'bench, a railing or a tree, never floating on open grass. ' +
+        'Late afternoon sun comes low and sideways, so her face is lit from one side and the path behind ' +
+        'her is warm and slightly hazy. ' +
+        'Other people jog or walk far in the background, seen from behind or too small for any face to read. ' +
+        'All signs and banners are plain colour panels, well out of focus.',
+
+      laundromat:
+        'Setting: a 24-hour coin laundry on a side street, at night, empty except for her. ' +
+        'Fixed layout, keep identical in every image: a row of stainless front-loading washers along one ' +
+        'wall with round glass doors, dryers stacked above them; a long pale bench down the middle of the ' +
+        'narrow room; a folding counter along the opposite wall; a large window facing the dark street, ' +
+        'the room reflected in it; flat white fluorescent ceiling light, the kind that makes everything ' +
+        'slightly green; a plastic laundry basket on the floor. ' +
+        'WHERE SHE IS: she sits on the middle bench with the row of washer doors directly behind her, ' +
+        'or stands in front of an open machine with the dryers stacked above her — her back is always ' +
+        'against a machine, the bench or the counter. ' +
+        'The fluorescent light is the only light and it is flat and even, so there are almost no shadows ' +
+        'on her face and the window behind is black. ' +
+        'All machine labels, price lists and instruction notices are plain colour panels with no legible text.',
+
+      busStop:
+        'Setting: a roadside bus stop shelter early in the morning, before the commute fills up. ' +
+        'Fixed layout, keep identical in every image: a glass-sided shelter with a flat metal roof and ' +
+        'a narrow stainless leaning bar along the back; a lit route-information panel glowing pale blue ' +
+        'inside the shelter; a wide road in front, still mostly empty; low shop fronts across the road ' +
+        'with their shutters still down; the sky pale and just turning light. ' +
+        'WHERE SHE IS: she sits on the narrow leaning bar with the glass shelter wall directly behind her, ' +
+        'or stands just inside the shelter with the lit route panel beside her — her body is always against ' +
+        'the glass wall or the bar, never in the open road. ' +
+        'The lit panel and the early sky both light her, so her face carries a faint cool cast on one side. ' +
+        'Any other waiting person is seen from behind and far enough that no face is legible. ' +
+        'All route maps, timetables and shop signs are plain colour fields with simple line shapes, no legible characters.',
     },
   },
 
@@ -649,12 +724,17 @@ export const hana = {
   // 장소별 프레이밍 오버라이드. feedPublic은 「실내 공공장소 + 형광등」을 전제하므로
   // 야외(바닷가)에는 안 맞는다. 장소가 조명 조건을 아는 게 맞다.
   placeFramings: {
+    park: 'feedOutdoorGolden',
     beach: 'feedOutdoorGolden',
   },
 
   // 소재별 촬영 시간대. 'night'면 밤 프레이밍(어두운 창, 실내등)을 쓴다.
   // 안 적으면 슬롯 기본(낮 창광)이다. 밤 소재인데 창밖이 대낮이면 글과 그림이 어긋난다.
   themeTimes: {
+    '빨래방 다녀오기': 'night',
+    '퇴근길 사람들 보며': 'night',
+    '집 가는 길 생각': 'night',
+    '첫차 기다리기': 'night',
     '열대야': 'night',
     '새벽 알바 가는 길': 'night', // 해뜨기 전 — 창밖이 어둡다
     '목욕탕 다녀오는 길': 'night',
@@ -662,6 +742,18 @@ export const hana = {
 
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
   themePlaces: {
+    // ⚠️ 소재 이름과 장소가 어긋나 있으면 카페 이야기가 방에서 찍힌다.
+    //    실측(2026-08-26): 「망원동 카페에서 공부」가 room, 「집 가는 길 생각」도 room이었다.
+    '망원동 카페에서 공부': 'cafe',
+    '집 가는 길 생각': 'nightStreet',
+    // 아래는 방 비중(73%)을 깨려고 추가한 소재들.
+    '한강 산책': 'park',
+    '빨래방 다녀오기': 'laundromat',
+    '첫차 기다리기': 'busStop',
+    '카페에서 자소서 고치기': 'cafe',
+    '퇴근길 사람들 보며': 'nightStreet',
+    '공원 벤치에서 통화': 'park',
+    '차이나타운 나들이': 'chinatown',
     '편의점 도시락': 'convenienceStore',
     '도서관 피서 공부': 'library',
     '도서관 점심': 'libraryCafe',
@@ -887,11 +979,19 @@ export const hana = {
 
   dailyThemes: {
     day: [
+      // 방 밖 소재를 늘려 그림이 매일 달라지게 한다.
+      '카페에서 자소서 고치기',
+      '한강 산책',
+      '차이나타운 나들이',
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
       '망원동 카페에서 공부', '채용공고 훑기', '편의점 도시락', '헬스장',
       '도서관 피서 공부', '도서관 점심', '새벽 알바 가는 길',
     ],
     evening: [
+      '빨래방 다녀오기',
+      '퇴근길 사람들 보며',
+      '공원 벤치에서 통화',
+      '첫차 기다리기',
       '오늘 실수한 것', '오늘 배운 것', '작은 성취', '서류 결과 기다리는 마음',
       '스터디원과 있었던 일', '탈락 통보 받은 날', '집 가는 길 생각', '내일 계획',
       '목욕탕 다녀오는 길', '바다 보러 간 날',
@@ -926,8 +1026,37 @@ export function currentStage() {
 }
 
 // 소재 → 장소. 매핑이 없으면 방이다.
-export function placeForTheme(theme) {
-  return hana.themePlaces?.[theme] || 'room';
+// 소재가 장소를 못박지 않았을 때 고를 수 있는 곳. 시간대별로 갈라 둔다.
+//
+// ⚠️ 예전엔 매핑이 없으면 무조건 'room'이었다. 저녁 소재가 대부분 회고형이라
+//    (오늘 실수한 것 / 작은 성취 / 탈락 통보 받은 날 …) 전부 방으로 몰렸고,
+//    실측 결과 전체 소재의 73%, 저녁만 보면 87%가 같은 방이었다.
+//    매일 소재는 바뀌는데 그림이 똑같으니 같은 게시물로 보인다.
+//    회고를 꼭 방에서 할 이유는 없다 — 이야기와 장소를 분리한다.
+const FALLBACK_PLACES = {
+  day: ['room', 'cafe', 'park', 'convenienceStore', 'libraryCafe'],
+  night: ['room', 'nightStreet', 'laundromat', 'busStop', 'convenienceStore'],
+};
+
+// 소재가 장소를 지정했으면 그것을 쓰고, 아니면 시간대 풀에서 시드로 고른다.
+// seed를 주면 같은 날 같은 슬롯은 항상 같은 장소가 나온다(재실행해도 안 튄다).
+// ⚠️ 슬롯을 넘겨야 한다. themeTimes에 'night'로 표시된 소재만 밤 풀을 쓰게 했더니
+//    저녁 게시물이 대낮 도서관 카페에서 찍혔다. 저녁 슬롯은 기본이 저녁이다.
+export function placeForTheme(theme, seed = '', slot = 'day') {
+  const fixed = hana.themePlaces?.[theme];
+  if (fixed) return fixed;
+  const night = hana.themeTimes?.[theme] === 'night' || slot === 'evening';
+  const pool = FALLBACK_PLACES[night ? 'night' : 'day'];
+  if (!seed) return pool[0];
+  let h = 0x811c9dc5;
+  for (const c of String(seed)) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  return pool[(h >>> 0) % pool.length];
 }
 
 // 기온대에 맞는 복장 풀. 알 수 없는 밴드면 선선한 봄가을로.

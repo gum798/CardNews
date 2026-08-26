@@ -101,7 +101,7 @@ async function main() {
   }
 
   // VLOG_THEME으로 오늘 소재를 지정할 수 있다(수동 실행). 장소는 소재가 정한다.
-  const post = await writeVlogPost(slot, { theme: process.env.VLOG_THEME || undefined });
+  const post = await writeVlogPost(slot, { theme: process.env.VLOG_THEME || undefined, placeSeed: id });
   post.photos = post.photos.slice(0, plan.affordable);
   console.log(`[vlog] 소재: ${post.theme} / 장소: ${post.place} / 사진 ${post.photos.length}장`);
   console.log(`[vlog] 날씨: ${post.weather.label} ${post.weather.tempC}도 (${post.weather.source})`);
