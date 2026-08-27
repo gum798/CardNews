@@ -122,7 +122,12 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSee
     `[이번 게시물]\n` +
     `- 시간대: ${s.label}\n` +
     `- 소재: ${theme}\n` +
-    (place !== 'room' ? `- 장소: ${hana.setting.summaryFor?.[place] || PLACE_LABEL[place]} — 집이 아닙니다. 이 장소에서 할 법한 행동만 쓰세요.\n` : '') +
+    // ⚠️ 장소를 반드시 넘긴다. 예전엔 summaryFor가 없어 undefined가 들어갔고,
+    //    글 쓰는 쪽이 어디인지 몰라 집 이야기를 써서 사진(카페)과 어긋났다.
+    (place !== 'room'
+      ? `- 장소: ${hana.setting.summaryFor?.[place] || place} — 집이 아닙니다. 이 장소에서 할 법한 행동만 쓰세요.\n` +
+        `  글 전체가 이 장소에서 벌어져야 합니다. 집·방 이야기를 쓰지 마세요.\n`
+      : '- 장소: 자취방 (원룸) — 이 글은 방 안에서 쓴 것입니다.\n') +
     `- ${s.guide}\n` +
     (brief ? `\n[이 소재의 상황 — 반드시 반영]\n${brief}\n` : '') +
     `\n[오늘 날씨]\n${weatherBrief(weather)}\n` +
