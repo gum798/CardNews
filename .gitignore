@@ -35,3 +35,6 @@ tools/qc
 
 # matte 캐시 (자동 생성)
 *.mask.png
+
+# 로컬 추론 모델 (8GB, 재생성 가능)
+assets/local-models/

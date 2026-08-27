@@ -48,7 +48,10 @@ export function inspectImage(imgPath, refPath = null) {
       // 1인 셀카/스냅 기준. 배경 행인의 작은 얼굴은 bigFaces에서 빠지므로 허용된다.
       if (s.hands > 2) return resolve({ ok: false, reason: `손 ${s.hands}개`, stats: s });
       if (s.bigFaces > 1) return resolve({ ok: false, reason: `큰 얼굴 ${s.bigFaces}개`, stats: s });
-      if (s.bodies > 1) return resolve({ ok: false, reason: `몸통 ${s.bodies}개`, stats: s });
+      // ⚠️ bodies 규칙은 제거했다. 카페·도서관·편의점처럼 손님이 있는 게 정상인 장소에서
+      //    배경 인물까지 세는 바람에 멀쩡한 컷이 전부 탈락했다(실측: 로컬 카페 컷 3장 모두
+      //    bodies=3). 「인물이 겹쳐 생성된 것」과 「배경에 손님이 있는 것」을 몸통 수로는
+      //    구분할 수 없다. 겹쳐 생성된 컷은 bigFaces(큰 얼굴 2개 이상)로 잡히므로 그쪽에 맡긴다.
       // ⚠️ faceDist는 얼굴 인식 임베딩이 아니라 범용 이미지 서술자다. 정상 컷들 사이에서도
       //    0.4 넘게 벌어져 절대 임계값으로 쓰면 멀쩡한 컷이 버려진다.
       //    같은 포스트 안에서의 상대 정렬에만 쓴다(호출부 책임).
