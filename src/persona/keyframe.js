@@ -24,9 +24,19 @@ const KEYFRAME_MODEL = process.env.CF_KEYFRAME_MODEL || '@cf/black-forest-labs/f
 const CACHE_DIR = path.join(paths.root, 'assets', 'persona', 'cache');
 
 // 시기별 앵커 이미지. 이 한 장이 얼굴 일관성의 원천이라 리포에 커밋해 둔다.
+//
+// ⚠️ 시기를 올렸는데 그 시기 앵커가 없으면 null이 되고, 그러면 레퍼런스 없이 생성돼
+//    신원이 통째로 날아간다(조용히 다른 사람이 된다). 실제로 after/glow는 앵커가 없다.
+//    앵커는 「같은 사람」의 기준이지 「그 시기의 피부」가 아니므로, 없으면 이전 시기 것을
+//    쓰는 게 맞다. 피부 변화는 identityLockFor(phase)의 문장이 담당한다.
+const ANCHOR_FALLBACK = { glow: ['glow', 'after', 'healing', 'before'], after: ['after', 'healing', 'before'], healing: ['healing', 'before'], before: ['before'] };
+
 export function anchorPath(phase = process.env.PERSONA_PHASE || 'before') {
-  const p = path.join(paths.root, 'assets', 'persona', 'hana', phase, 'anchor-news-front.png');
-  return existsSync(p) ? p : null;
+  for (const p of ANCHOR_FALLBACK[phase] || [phase, 'before']) {
+    const f = path.join(paths.root, 'assets', 'persona', 'hana', p, 'anchor-news-front.png');
+    if (existsSync(f)) return f;
+  }
+  return null;
 }
 
 // 릴스 씬. 행동을 여러 개 두고 날짜로 골라 매번 다른 그림이 나오게 한다.

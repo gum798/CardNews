@@ -350,7 +350,10 @@ export const hana = {
       // 배치는 방에 고정된 절대 좌표다. 기준 시점을 현관으로 못박아야 카메라가 돌아도 안 움직인다.
       'FIXED LAYOUT, as seen from the doorway looking in. ' +
       'FAR WALL: the room\'s one window, a wide sliding window with a dark brown wooden frame, ' +
-      'beige linen curtains pushed open to each side. Directly under it stands the desk — ' +
+      'beige linen curtains hanging from a slim matte-black metal curtain rod about 2cm thick, ' +
+      'held by two plain black brackets and capped with simple round black end caps — no finial, ' +
+      'no ornament, never a wooden or brass rod. The curtains are pushed open to each side. ' +
+      'Directly under the window stands the desk — ' +
       'a light wood top on a thin white metal frame — with a silver laptop, a white ceramic mug ' +
       'and a loose stack of printed A4 pages on it, and a backless light wood stool pulled up to it. ' +
       'LEFT WALL: a light wood open-cube bookcase, two rows of three cubes, paperbacks standing and ' +
@@ -382,6 +385,7 @@ export const hana = {
       library: '도서관 열람실 (칸막이 책상에서 공부)',
       libraryCafe: '도서관 안 카페 (창가 원형 테이블에서 점심)',
       cafe: '망원동 동네 카페 (긴 원목 공용 테이블, 창가 자리)',
+      movingRoom: '이사 당일 텅 빈 원룸 (종이박스와 포장테이프)',
       convenienceStore: '편의점 (창가 취식 카운터에서 도시락)',
       gym: '동네 헬스장 (러닝머신·프리웨이트 구역)',
       chinatown: '인천 차이나타운 중국집 (짜장면)',
@@ -584,6 +588,22 @@ export const hana = {
 
       // ── 아래는 「방 73%」를 깨려고 추가한 장소들 ─────────────────────
       // 소재 26개 중 19개가 room이라 매일 같은 그림이 나왔다. 갈 곳이 늘어야 한다.
+      movingRoom:
+        'Setting: a small Korean one-room studio apartment on moving day, emptied out. ' +
+        'Fixed look, keep identical in every image: pale wood laminate floor, off-white walls with ' +
+        'faint marks where furniture used to stand; one wide window with the curtains taken down so ' +
+        'that the same slim matte-black metal rod is left mounted above it, bare and empty, still held ' +
+        'by its two plain black brackets with round end caps; ' +
+        'the bare frame and the daylight are exposed; brown cardboard boxes of different sizes stacked ' +
+        'and scattered around, some sealed with tape and some still open; a roll of packing tape and a ' +
+        'marker on the floor; the room is otherwise completely empty — no bed, no desk, no bookshelf. ' +
+        'WHERE SHE IS: she kneels or crouches beside a box, sits on the bare floor with her back against ' +
+        'a wall, or stands among the stacked boxes — her body is always beside a box or against a wall, ' +
+        'never floating in empty floor. ' +
+        'Daylight from the uncovered window is the only light and it fills the empty room evenly, ' +
+        'so the walls read bright and slightly blown out. ' +
+        'Any writing on the boxes is plain marker strokes with no legible characters.',
+
       cafe:
         'Setting: a small neighbourhood cafe in Mangwon-dong, mid-afternoon. ' +
         'Fixed layout, keep identical in every image: a long light-oak communal table down the middle ' +
@@ -783,6 +803,7 @@ export const hana = {
 
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
   themePlaces: {
+    '이사하는 날': 'movingRoom',
     // 1차 합격 이후 아크 — 방에 몰리지 않게 밖으로 뺀다.
     '아무 계획 없는 하루': 'park',
     '미뤄둔 책 읽기': 'cafe',
@@ -884,6 +905,11 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '이사하는 날':
+      '원룸 계약이 끝나 이사하는 날. 짐을 싸다 보니 2년이 박스 몇 개로 줄어든 게 실감나는 하루. ' +
+      '들뜨거나 슬프지 않고 담담하게 — 벽에 남은 가구 자국, 커튼 뗀 창, 바닥에 뻗어 쉬는 순간. ' +
+      '새 집 자랑이나 신세한탄으로 흐르지 않게 쓴다.',
+
     '1차 면접 합격한 날':
       '1차 면접 합격 문자를 받은 날. 기뻐하되 들뜨지 않는다 — 몇 번을 다시 읽어봤고, ' +
       '누구에게 먼저 알릴지 고민하다 결국 아무에게도 말 안 한 마음. ' +
@@ -1047,6 +1073,7 @@ export const hana = {
 
   dailyThemes: {
     day: [
+      '이사하는 날',
       // 1차 합격 이후 — 계획 없는 하루를 보내는 소재들.
       '아무 계획 없는 하루',
       '미뤄둔 책 읽기',
@@ -1155,12 +1182,25 @@ export function identityLockFor(phase) {
     ) +
     // ⚠️ 「분홍 자국」을 그리라고 하면 모델이 뺨에 붉은 발진 덩어리를 만든다(실제로 그랬다).
     //    자국은 그리라고 할 게 아니라 "건드리지 말라"고 해야 한다. 앵커에 이미 들어있다.
+    // ⚠️ 예전엔 healing 외의 시기가 전부 같은 문장을 냈다. 점을 다 뺀 뒤 피부 관리를 하며
+    //    좋아지는 과정이 서사의 축인데, 그 변화가 프롬프트에 들어갈 자리가 없었다.
+    //    시기마다 피부 상태를 다르게 준다 — 다만 「매끈하게」로 가면 AI 티가 나므로
+    //    모공과 질감은 끝까지 남긴다.
     (phase === 'healing'
       ? ' Her skin is calm and clear: no redness, no rash, no blotch, no patch of pink or red ' +
         'on her cheeks or anywhere else, no swelling, no scab, no bruise. ' +
         'Any trace where the moles used to be is so faint it is barely perceptible — ' +
         'do not draw attention to it, do not enlarge it, do not colour it in.'
-      : '')
+      : phase === 'after'
+        ? ' Her skin has settled since the removal: an even tone across her cheeks and jaw, ' +
+          'the texture calm and healthy. Pores and fine texture are still clearly visible and ' +
+          'her face keeps its ordinary unretouched look — she has been looking after her skin, ' +
+          'not airbrushed.'
+        : phase === 'glow'
+          ? ' Her skin looks genuinely well cared for now: even tone, a soft natural sheen on her ' +
+            'cheekbones and the bridge of her nose, no dullness. Pores and real skin texture ' +
+            'remain visible — the improvement reads as health, not as retouching or a beauty filter.'
+          : '')
   );
 }
 
