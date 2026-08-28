@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- H3 타임: 18시~익일 09시에만 인트로 클립을 미리 만든다.
+     스크립트 자체가 시간대·경합을 다시 확인하므로 여기서는 넉넉히 깨우기만 한다. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cardnews.h3night</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/seojeonghwa/project/CardNews/scripts/h3-night.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/seojeonghwa/project/CardNews</string>
+
+  <!-- 18·20·22·0·2·4·6시에 깨운다. 이미 오늘 클립이 있으면 스크립트가 바로 끝난다.
+       한 번 실패해도 다음 회차가 다시 시도하는 구조라 재시도 로직이 따로 필요 없다. -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>10</integer></dict>
+  </array>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <!-- ⚠️ 낮 작업(뉴스 발행·브이로그)보다 우선순위를 낮춘다. H3는 급하지 않다. -->
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>LowPriorityIO</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/h3-night.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/h3-night.log</string>
+</dict>
+</plist>
