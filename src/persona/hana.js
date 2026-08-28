@@ -48,8 +48,21 @@ export const hana = {
     // 외모 변화(glow 아크)와 같은 줄기의 이야기라 서사적으로도 근거가 있다.
     figurePrompt:
       // 크기는 바닷가 편 컷을 표준으로 확정. 이 문장을 바꾸면 체형이 흔들린다.
-      'Her build: a curvy hourglass figure — a full D-cup bust that reads clearly through a fitted ' +
-      'top, a defined narrow waist, soft rounded shoulders and hips, 164cm. ' +
+      // ⚠️ 「D컵」만 쓰면 모델이 평균 체형으로 그린다. 옷 위로 어떻게 보이는지까지 적어야
+      //    반영된다 — 티셔츠가 가슴에서 뜨고 그 아래로 떨어지는 실루엣.
+      // ⚠️ 「D컵」이라고만 쓰면 모델이 계속 평균 체형으로 그린다. 두 번을 고쳤는데도 작았다.
+      //    치수가 아니라 「옷과 실루엣이 어떻게 되는가」로 적어야 반영된다.
+      'Her build: a curvy hourglass figure with a heavy D-cup bust that is the most obvious thing ' +
+      'about her silhouette. Her chest is full and rounded and clearly projects forward from her ribcage; ' +
+      'a plain cotton t-shirt is stretched taut across it, the fabric pulled tight at the fullest point ' +
+      'and hanging loose and away from her stomach below, so a clear shadow falls under her bust. ' +
+      'Seen from the side her chest projects well beyond the line of her stomach. ' +
+      'Below it a narrow defined waist, soft rounded shoulders and hips, 164cm. ' +
+      // ⚠️ 머리가 크게 나와 인물이 어려 보이고 비율이 무너졌다(사용자 지적). 두상 크기를
+      //    직접 지정한다. 8등신은 과장이라 실제 성인 비율인 7~7.5등신으로 잡는다.
+      'Her head is small in proportion to her body — about seven and a half head-heights tall overall, ' +
+      'the ordinary proportion of a real adult woman, with a slim neck. Her head is never oversized ' +
+      'or doll-like. ' +
       'Realistic proportions for an actual 25-year-old woman with this build — ' +
       'the shape comes from her body, not from the clothing being tight or from stylisation.',
     // ⚠️ 목선·노출은 여기 쓰지 마라. exposureStandard가 유일한 기준이다.
@@ -1205,6 +1218,23 @@ export function identityLockFor(phase) {
 }
 
 // 소재 → 표정. 없으면 빈 문자열(기본 표정).
+// 집에서는 화장을 하지 않는다.
+//
+// ⚠️ 단계별 화장(stage.makeup)이 장소와 무관하게 항상 적용됐다. 단계 3의 지시가
+//    「아이라이너·블러셔·립컬러」라서, 자취방에서 이사 짐을 싸는 컷까지 화장한 얼굴로
+//    나왔다(사용자 지적). 밖에 나갈 때 하는 화장을 집에서 하고 있을 리 없다.
+//    단계는 「할 줄 알게 됐다」를 뜻하지 「항상 하고 있다」가 아니다.
+const BARE_FACE_PLACES = new Set(['room', 'movingRoom']);
+
+export function makeupFor(stage, place) {
+  if (!BARE_FACE_PLACES.has(place)) return stage.makeup;
+  return (
+    'She is at home and has no makeup on: a bare face, nothing on her eyes, ' +
+    'no blush and no lip colour beyond a plain balm. Her brows are her own, ' +
+    'groomed but not filled in. Her real skin tone and texture show as they are.'
+  );
+}
+
 export function expressionForTheme(theme) {
   return hana.themeExpressions?.[theme] || '';
 }

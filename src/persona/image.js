@@ -17,7 +17,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cloudflare, paths } from '../config.js';
 import { foregroundMatte } from '../video/matte.js';
-import { identityLockFor, currentStage } from './hana.js';
+import { identityLockFor, currentStage, makeupFor } from './hana.js';
 import { estimateNeurons, record as recordNeurons } from './budget.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -568,7 +568,7 @@ export function scenePrompt(
     withReference ? '' : fragment,
     // 변신 단계가 바꾸는 건 화장뿐이다. 옷차림·노출은 exposureStandard로 고정
     // (사용자가 바닷가 V넥 컷을 표준으로 확정) — 단계가 올라가도 안 변한다.
-    stage.makeup,
+    makeupFor(stage, place),
     `What she is wearing right now: ${styling || a.looks[look]}. ` +
       'She has these clothes on in every photo of this set.',
     persona.exposureStandard,
