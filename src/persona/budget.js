@@ -66,11 +66,18 @@ export function record(neurons, ai = null) {
 
 // 429는 뉴런을 안 쓰지만 「이 계정은 오늘 끝」이라는 정보다. 장부가 얼마를 남겼다고
 // 하든 CF가 옳으므로, 그 계정은 오늘(UTC) 남은 몫 0으로 친다.
+// ⚠️ 429 표시는 2시간만 믿는다. 초기화가 문서(00:00 UTC)대로 오지 않는 걸 실측했다
+//    (2026-09-04: 00:52~01:04 UTC에 두 계정 다 429 → 04:55 UTC 탐침에 둘 다 200).
+//    영구 표시면 그날 남은 8시간을 통째로 버린다(실제로 11시 day 슬롯이 「남은 0」으로 죽었다).
+//    2시간 지나면 「모름」으로 돌아가고, 다음 작업의 탐침(58뉴런)이 다시 확인한다.
+const EXHAUST_TTL_MS = 2 * 3600 * 1000;
 export function markExhausted(ai) {
-  setMeta(exhaustedKey(ai), '1');
+  setMeta(exhaustedKey(ai), String(Date.now()));
 }
 export function isExhausted(ai) {
-  return getMeta(exhaustedKey(ai)) === '1';
+  const t = Number(getMeta(exhaustedKey(ai)));
+  // 옛 형식('1')은 t=1 → 만료로 본다.
+  return Number.isFinite(t) && t > 1e12 && Date.now() - t < EXHAUST_TTL_MS;
 }
 
 export function remaining(accountCount = 1) {

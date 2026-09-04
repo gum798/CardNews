@@ -33,10 +33,15 @@ function backendChain(wantRef) {
   const hasGemini = Boolean(process.env.GEMINI_API_KEY);
   const hasCF = Boolean(cloudflare.accountId && cloudflare.aiToken);
 
+  // ⚠️ IMAGE_BACKEND_OFF=gemini,omniroute 처럼 사슬에서 뺄 백엔드를 지정한다.
+  //    사용자 결정 2026-09-04: Gemini는 뺀다 — 선불 크레딧이 바닥나 429만 돌려주는데 사슬에
+  //    남아 있으면 장마다 「gemini 실패 → …」로 시간을 끌고, 충전되면 모르는 새 유료 호출이 나간다.
+  //    키를 지우지 않고 사슬에서만 빼므로 되살리려면 .env의 이 변수만 지우면 된다.
+  const off = new Set((process.env.IMAGE_BACKEND_OFF || 'gemini').split(',').map((b) => b.trim()).filter(Boolean));
   let chain = [];
-  if (hasGemini) chain.push('gemini');
-  if (hasCF) chain.push('cf'); // 무료(일 10,000뉴런). IMAGE_BACKEND=cf로 선두 지정.
-  if (hasOmni) chain.push('omniroute');
+  if (hasGemini && !off.has('gemini')) chain.push('gemini');
+  if (hasCF && !off.has('cf')) chain.push('cf'); // 무료(일 10,000뉴런). IMAGE_BACKEND=cf로 선두 지정.
+  if (hasOmni && !off.has('omniroute')) chain.push('omniroute');
 
   // 레퍼런스 첨부: cf(input_image_0..3 네이티브)와 gemini만 지원.
   if (wantRef) chain = chain.filter((b) => b === 'gemini' || b === 'cf');
@@ -49,8 +54,8 @@ function backendChain(wantRef) {
   if (!chain.length) {
     throw new Error(
       wantRef
-        ? '레퍼런스 첨부에는 GEMINI_API_KEY가 필요합니다'
-        : '이미지 백엔드 없음: GEMINI_API_KEY 또는 OMNIROUTE_URL+OMNIROUTE_API_KEY 필요'
+        ? '레퍼런스 첨부에는 cf 또는 gemini 백엔드가 필요합니다 (IMAGE_BACKEND_OFF 확인)'
+        : '이미지 백엔드 없음: CF 토큰, GEMINI_API_KEY 또는 OMNIROUTE_URL+OMNIROUTE_API_KEY 필요 (IMAGE_BACKEND_OFF 확인)'
     );
   }
   return chain;
@@ -179,7 +184,8 @@ export async function probeCloudflare({ log = console.log } = {}) {
       await res.arrayBuffer();
       if (res.status === 429) { markExhausted(ai); log(`[persona] cf 계정 ${ai + 1} 오늘 소진(탐침)`); continue; }
       if (!res.ok) { log(`[persona] cf 계정 ${ai + 1} 탐침 ${res.status} — 판단 보류`); alive++; continue; }
-      recordNeurons(estimateNeurons(model, { width: 1024, height: 1024 }), ai);
+      const real = Number(res.headers.get('cf-ai-neurons'));
+      recordNeurons(real > 0 ? real : estimateNeurons(model, { width: 1024, height: 1024 }), ai);
       alive++;
     } catch (e) {
       // 네트워크 문제는 소진이 아니다. 살아 있는 쪽으로 세되 로그는 남긴다.
@@ -208,17 +214,34 @@ async function viaCloudflare(prompt, refImages, size, modelOverride) {
   const accounts = cloudflare.accounts.length ? cloudflare.accounts : [{ accountId: cloudflare.accountId, token: cloudflare.aiToken }];
   for (let ai = 0; ai < accounts.length; ai++) {
     const acct = accounts[ai];
-    res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/ai/run/${model}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${acct.token}` },
-      body: form,
-      signal: AbortSignal.timeout(300_000),
-    });
-    buf = Buffer.from(await res.arrayBuffer());
+    // ⚠️ CF 5xx(Internal server error)는 그쪽 일시 장애라 같은 계정에 한 번 더 던진다.
+    //    실측 2026-09-04: 3장 중 1장이 500으로 빠져 2장짜리 게시물이 됐다. 5xx는 뉴런을 안 먹는다.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/ai/run/${model}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${acct.token}` },
+        body: form,
+        signal: AbortSignal.timeout(300_000),
+      });
+      buf = Buffer.from(await res.arrayBuffer());
+      if (res.status < 500 || attempt === 1) break;
+      console.warn(`[persona] cf 계정 ${ai + 1} ${res.status} → 10초 뒤 재시도`);
+      await new Promise((r) => setTimeout(r, 10_000));
+    }
     // 성공한 호출만 뉴런을 장부에 적는다. 429는 뉴런을 안 쓰지만 「이 계정은 오늘 끝」으로
     // 표시한다 — 안 그러면 장부는 여유 있다는데 실제론 전 계정 429인 상태를 가드가 못 잡는다
     // (실측 2026-09-04: 남은 12,794라며 통과 → 5장 전원 실패).
-    if (res.ok) { recordNeurons(estimateNeurons(model, { width: w, height: h, refs: Math.min(refImages.length, 4) }), ai); break; }
+    if (res.ok) {
+      // ⚠️ CF는 응답 헤더 cf-ai-neurons 에 이 호출의 실제 뉴런 값을 준다(실측 2026-09-04:
+      //    schnell 1024² = 57.60, 우리 추정은 38). 장부가 단가표 추정으로만 적혀 있어서
+      //    「추정 1,416/장 → 5장 7,080 → 여유 있음」이라고 봤는데 실제로는 5장 뒤에 429가 왔다.
+      //    실제 값이 있으면 그걸 적고, 추정과 얼마나 다른지 로그에 남겨 단가표를 고칠 근거로 삼는다.
+      const est = estimateNeurons(model, { width: w, height: h, refs: Math.min(refImages.length, 4) });
+      const real = Number(res.headers.get('cf-ai-neurons'));
+      if (real > 0 && Math.abs(real - est) / est > 0.1) console.warn(`[persona] cf 실제 뉴런 ${real} (추정 ${est}) · ${model.split('/').pop()}`);
+      recordNeurons(real > 0 ? real : est, ai);
+      break;
+    }
     if (res.status === 429) markExhausted(ai);
     const last = ai === accounts.length - 1;
     if (res.status === 429 && !last) {
