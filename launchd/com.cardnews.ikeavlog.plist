@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 「가구 보러 간 날 / 종아리 풀러 간 날」 2편 일회성 생성.
+     09:20 = 뉴런 리셋(KST 09:00) 직후 낮 편, 19:00 = 뉴스가 하루치를 쓴 뒤 저녁 편.
+     2편이 다 만들어지면 스크립트가 스스로 이 잡을 내린다. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cardnews.ikeavlog</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/seojeonghwa/project/CardNews/scripts/ikea-vlog.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/seojeonghwa/project/CardNews</string>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>20</integer></dict>
+    <!-- 한 번 실패해도 다음 회차가 다시 시도한다. 이미 만들었으면 스크립트가 바로 끝난다. -->
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>20</integer></dict>
+    <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>20</integer></dict>
+    <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/ikea-vlog.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/ikea-vlog.log</string>
+</dict>
+</plist>
