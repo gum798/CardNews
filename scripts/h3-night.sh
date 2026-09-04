@@ -18,16 +18,13 @@ MODEL=~/models/MiniMax-H3-MLX-4bit
 OUT="$ROOT/out/h3-clips"
 LOG="$ROOT/out/h3-night.log"
 
-HOUR=$(date +%-H)
-# 18~23시 또는 0~8시에만 실행. 09시 이후에는 즉시 종료해 낮 작업을 방해하지 않는다.
-if [ "$HOUR" -lt 18 ] && [ "$HOUR" -ge 9 ]; then
-  echo "[h3] $(date '+%F %T') H3 타임 아님(${HOUR}시) → 종료" >> "$LOG"
-  exit 0
-fi
+# 업무 시간(09~18시) 금지 규칙은 _worktime.sh가 한 곳에서 관리한다.
+source /Users/seojeonghwa/project/CardNews/scripts/_worktime.sh
+worktime_guard "$LOG" || exit 0
 
-# 이미지 생성이 돌고 있으면 비켜준다 — 둘을 같이 돌리면 스왑이 걸린다(실측).
-if pgrep -f "mflux-generate" > /dev/null; then
-  echo "[h3] $(date '+%F %T') 이미지 생성 중 → 이번 회차 건너뜀" >> "$LOG"
+# 다른 로컬 생성이 돌고 있으면 비켜준다 — 둘을 같이 올리면 스왑이 걸린다(실측).
+if localgen_busy; then
+  echo "[h3] $(date '+%F %T') 다른 로컬 생성 중 → 이번 회차 건너뜀" >> "$LOG"
   exit 0
 fi
 
@@ -47,18 +44,34 @@ SEED_IMG=$(ls -t "$ROOT"/assets/persona/cache/intro-*.png 2>/dev/null | head -1)
 echo "[h3] $(date '+%F %T') 시작 · seed=$(basename "$SEED_IMG")" >> "$LOG"
 START=$(date +%s)
 
-cd "$H3" || exit 1
-"$H3/.venv/bin/python" scripts/generate.py \
-  "A young Korean woman sitting at a desk, speaking to the camera, natural daylight, subtle head movement" \
-  --image "$SEED_IMG" --anchor first \
-  --checkpoint "$MODEL" \
-  --duration 5 --steps 4 \
-  -o "$TARGET" >> "$LOG" 2>&1
-
+# ⚠️ MLX 포팅판(minimax-h3-mlx)은 폐기했다. 트랜스포머만 담겨 있고 텍스트 인코더로
+#    Qwen3-VL-32B를 원본 정밀도(48GB)로 부르기 때문에 24GB에서 불가능하다.
+#    2026-09-01까지 이 잡이 이틀간 2시간마다 깨어나 매번 PIL 에러로 죽고 있었다.
+#    지금은 stable-diffusion.cpp(Metal) + GGUF 경로를 쓴다.
+bash "$HOME/models/h3-gguf/run.sh"
 RC=$?
 ELAPSED=$(( $(date +%s) - START ))
-if [ $RC -eq 0 ] && [ -f "$TARGET" ]; then
-  echo "[h3] $(date '+%F %T') 완료 ${ELAPSED}초 → $TARGET" >> "$LOG"
+if [ -f "$HOME/models/h3-gguf/first-clip.mp4" ]; then
+  echo "[h3] $(date '+%F %T') 완료 ${ELAPSED}초" >> "$LOG"
+  RESULT="✅ H3 클립 생성 (${ELAPSED}초)"
 else
-  echo "[h3] $(date '+%F %T') 실패 rc=$RC ${ELAPSED}초" >> "$LOG"
+  echo "[h3] $(date '+%F %T') 클립 없음 rc=$RC ${ELAPSED}초" >> "$LOG"
+  RESULT="❌ H3 실패 rc=$RC (${ELAPSED}초)"$'\n'"$(tail -3 "$LOG" | tr -d '\r')"
 fi
+
+# ⚠️ 결과를 반드시 사람에게 보낸다. 밤에 돌린 게 성공했는지 실패했는지 아침에
+#    사람이 물어봐야 알 수 있으면, 안 돌아도 아무도 모른다 — 실제로 이틀간 그랬다.
+cd "$ROOT" && /opt/homebrew/bin/node -e "
+import('grammy').then(async ({ Bot, InputFile }) => {
+  const fs = await import('node:fs');
+  const { telegram } = await import('./src/config.js');
+  const bot = new Bot(telegram.botToken);
+  const clip = process.env.HOME + '/models/h3-gguf/first-clip.mp4';
+  if (fs.existsSync(clip)) {
+    await bot.api.sendVideo(telegram.chatId, new InputFile(clip),
+      { caption: process.env.RESULT || 'H3 클립' });
+  } else {
+    await bot.api.sendMessage(telegram.chatId, (process.env.RESULT || 'H3 결과 없음').slice(0, 3500));
+  }
+});" >> "$LOG" 2>&1
+export RESULT
