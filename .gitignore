@@ -41,3 +41,6 @@ assets/local-models/
 
 # 컴파일된 사람 감지 바이너리 (tools/people.swift에서 빌드)
 tools/people
+
+# MiniMax H3 인가 신청서 — 비밀유지 조건, 공개 저장소에 올리지 않는다 (로컬 보관)
+docs/minimax-h3-*.md
