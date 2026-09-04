@@ -7,14 +7,20 @@
 # ⚠️ 무거운 생성을 돌리기 전에 저장 경로부터 검증한다. ACE-Step에서 2시간짜리 생성을
 #    두 번 날렸다 — 한 번은 출력 파일에 확장자가 없어서(soundfile이 포맷을 못 정함).
 set -u
-SCRATCH=/private/tmp/claude-501/-Users-seojeonghwa-project-CardNews/b7be60b3-830d-49de-a993-bcf31b22082d/scratchpad
+# ⚠️ 예전엔 이 경로가 세션 스크래치패드(/private/tmp/...)였다. macOS가 /private/tmp를
+#    주기적으로 청소하면서 venv 안의 __init__.py들을 지워버려 torch가 통째로 사라졌다
+#    (8/31 실측: "No module named torch", 디렉터리는 남고 파일만 없어짐).
+#    무거운 venv는 반드시 홈 아래 영구 경로에 둔다.
+LOCALGEN=$HOME/models/localgen
 OUT=~/models/bench
 LOG="$OUT/queue.log"
 mkdir -p "$OUT"
 
 say() { echo "[$(date '+%F %T')] $*" >> "$LOG"; }
-busy() { pgrep -f "mflux-generate|ace4.py|generate.py|sense_gen" > /dev/null; }
-waitfree() { while busy; do sleep 30; done; }
+waitfree() { while localgen_busy; do sleep 30; done; }
+
+source /Users/seojeonghwa/project/CardNews/scripts/_worktime.sh
+worktime_guard "$LOG" || exit 0
 
 say "=== 큐 시작 ==="
 
@@ -23,7 +29,7 @@ if [ -d ~/models/SenseNova-U1.5-4bit ] && [ ! -f "$OUT/sense.png" ]; then
   waitfree
   say "1/4 SenseNova 이미지 생성 시작"
   S0=$(date +%s)
-  "$SCRATCH/localgen/.venv/bin/python" "$SCRATCH/sense_gen.py" \
+  "$LOCALGEN/.venv/bin/python" "$LOCALGEN/sense_gen.py" \
     > "$OUT/sense.log" 2>&1
   say "1/4 SenseNova 종료 rc=$? $(( $(date +%s)-S0 ))초"
 fi
@@ -63,8 +69,8 @@ for KIND in news vlog; do
   waitfree
   say "4/4 음악($KIND) 시작"
   S0=$(date +%s)
-  KIND="$KIND" OUT="$TGT" "$SCRATCH/localgen/.venv/bin/python" \
-    "$SCRATCH/localgen/ace_kind.py" > "$OUT/bgm-$KIND.log" 2>&1
+  KIND="$KIND" OUT="$TGT" "$LOCALGEN/.venv/bin/python" \
+    "$LOCALGEN/ace_kind.py" > "$OUT/bgm-$KIND.log" 2>&1
   say "4/4 음악($KIND) 종료 rc=$? $(( $(date +%s)-S0 ))초"
 done
 
