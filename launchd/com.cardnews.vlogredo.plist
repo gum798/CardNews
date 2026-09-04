@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 2026-09-04 저녁 브이로그(오디세이) 다시 뽑기 — 일회성.
+     09:10 = 뉴런 리셋(KST 09:00) 직후. 부족하면 10:10 / 11:10에 다시 시도한다.
+     끝나면 scripts/vlog-redo.sh가 스스로 이 잡을 내린다. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cardnews.vlogredo</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/seojeonghwa/project/CardNews/scripts/vlog-redo.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/seojeonghwa/project/CardNews</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_EXTRA_CA_CERTS</key>
+    <string>/Users/seojeonghwa/project/CardNews/certs/corp-root.pem</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>10</integer></dict>
+  </array>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/vlog-redo.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/seojeonghwa/project/CardNews/out/vlog-redo.log</string>
+</dict>
+</plist>
