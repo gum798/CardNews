@@ -7,6 +7,7 @@ import { InlineKeyboard } from 'grammy';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { paths } from '../config.js';
+import { stageOn } from '../persona/hana.js';
 
 const ID_RE = /^vlog-\d{8}-(day|evening)$/;
 
@@ -42,6 +43,23 @@ export function selectedFiles(post) {
   return post.files.filter((f, i) => post.selected[i] && existsSync(f));
 }
 
+// 이 게시물이 만들어진 변신 단계. 2026-09-03부터는 post.json에 적혀 있고,
+// 그 전 것은 날짜로 되짚는다(hana.STAGE_HISTORY).
+export function postStage(post) {
+  if (Number.isInteger(post.stage)) return post.stage;
+  return stageOn(String(post.id || '').replace(/^vlog-/, ''));
+}
+
+// 릴스에 쓸 수 있는 게시물인가.
+// ⚠️ 2026-09-03 사용자 결정: 「점 빼고 얼굴 이뻐지고 난 이후 사진만」. 단계 3(화장이
+//    또렷해진 시기, phase after)부터다. 그 전 사진은 점·자국이 있고 화장기가 없어서
+//    지금 얼굴과 다른 사람처럼 보인다 — 릴스로 올리면 한 계정 안에 얼굴이 둘이 된다.
+//    사진 게시물(캐러셀)까지 막지는 않는다. 그건 사람이 보고 고른다.
+export const REEL_MIN_STAGE = 3;
+export function reelEligible(post) {
+  return postStage(post) >= REEL_MIN_STAGE;
+}
+
 export function reviewText(post) {
   const n = post.selected.filter(Boolean).length;
   const lines = [
@@ -50,18 +68,27 @@ export function reviewText(post) {
     '',
     post.caption,
     '',
-    `🖼 사진 ${n}/${post.files.length}장 선택됨`,
+    `🖼 사진 ${n}/${post.files.length}장 선택됨  (기본 해제 — 쓸 것만 체크)`,
   ];
+  // 검수에 걸린 컷을 알려준다. 걸렸다고 못 쓰는 건 아니고 사람이 보고 판단한다.
+  if (post.flagged?.length) {
+    lines.push(`⚠️ 검수 걸림: ${post.flagged.map((i) => i + 1).join(', ')}번`);
+  }
+  if (!reelEligible(post)) {
+    lines.push(`⛔ 점 빼기 전 시기 얼굴(단계 ${postStage(post)}) — 릴스는 만들지 않습니다`);
+  }
   if (post.status === 'published') {
-    lines.push('', `✅ 게시 완료 (media_id: ${post.mediaId})`);
+    lines.push('', '✅ 영상 생성 완료');
   } else if (post.status === 'skipped') {
     lines.push('', '🗑 보류함');
   } else {
     lines.push(
       '',
       '✏️ 글을 고치려면 이 메시지에 답장으로 새 글을 보내세요.',
-      '🖼 번호 버튼으로 쓸 사진을 고르세요.',
-      '📤 버튼을 누르기 전까지 인스타에 올라가지 않습니다.'
+      '🖼 번호 버튼으로 쓸 사진을 고르세요 (기본은 전부 해제).',
+      reelEligible(post)
+        ? '🎬 「영상 만들기」를 누르면 고른 사진으로 릴스를 만들어 보내드립니다.'
+        : '📷 이 글은 사진 게시물로만 씁니다 (릴스 없음).'
     );
   }
   return lines.join('\n');
@@ -69,7 +96,9 @@ export function reviewText(post) {
 
 export function reviewKeyboard(post) {
   const kb = new InlineKeyboard();
-  if (post.status === 'published') return kb.text('✅ 게시됨', 'noop');
+  // ⚠️ published는 「인스타 게시됨」이 아니라 「영상 생성 완료」다.
+  //    2026-09-03부터 인스타 자동 게시를 끄고, 승인하면 릴스를 만들어 텔레그램으로 보낸다.
+  if (post.status === 'published') return kb.text('✅ 영상 만듦', 'noop');
   if (post.status === 'skipped') return kb.text('🗑 보류함', 'noop');
 
   // 사진 토글 — 한 줄에 최대 5개
@@ -81,7 +110,9 @@ export function reviewKeyboard(post) {
 
   const n = post.selected.filter(Boolean).length;
   // 사진이 0장이면 게시할 게 없다 — 버튼을 눌러도 아무 일 없게 안내로 바꾼다.
-  kb.text(n > 0 ? '📤 인스타 게시' : '⚠️ 사진을 골라주세요', n > 0 ? `vpub:${post.id}` : 'noop');
+  // 점 빼기 전 시기 게시물은 릴스 버튼 자체를 빼서 실수로 못 누르게 한다(reelEligible).
+  if (!reelEligible(post)) kb.text('⛔ 이전 시기 — 릴스 없음', 'noop');
+  else kb.text(n > 0 ? `🎬 영상 만들기 (${n}장)` : '⚠️ 사진을 골라주세요', n > 0 ? `vpub:${post.id}` : 'noop');
   kb.text('🗑 보류', `vskip:${post.id}`);
   return kb;
 }

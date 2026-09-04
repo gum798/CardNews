@@ -77,6 +77,9 @@ export function startListener({
     }
   }
 
+  // 안내용 버튼(⏳ 생성 중 / ⛔ 릴스 없음 / ✅ 완료). 응답을 안 하면 클라이언트가 시계를 돌린다.
+  bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery());
+
   bot.callbackQuery(/^pub:(\d+)$/, async (ctx) => {
     if (!allowed(ctx)) return void ctx.answerCallbackQuery().catch(() => {});
     await ack(ctx);
@@ -118,14 +121,14 @@ export function startListener({
     await rewrite(ctx, view, ctx.callbackQuery.message.message_id);
   });
 
-  // 게시는 되돌릴 수 없다 → 누르는 즉시 버튼을 잠가 중복 탭을 막는다.
+  // 영상 생성은 시간이 걸린다 → 누르는 즉시 버튼을 잠가 중복 탭을 막는다.
   bot.callbackQuery(new RegExp(`^vpub:(${VLOG_ID})$`), async (ctx) => {
     if (!allowed(ctx)) return void ctx.answerCallbackQuery().catch(() => {});
     const msgId = ctx.callbackQuery.message.message_id;
     try {
-      await ctx.answerCallbackQuery({ text: '인스타에 올리는 중…' });
+      await ctx.answerCallbackQuery({ text: '영상 만드는 중…' });
       await ctx.editMessageReplyMarkup({
-        reply_markup: new InlineKeyboard().text('⏳ 게시 중…', 'noop'),
+        reply_markup: new InlineKeyboard().text('🎬 영상 만드는 중…', 'noop'),
       });
     } catch (e) {
       console.warn('[bot] ack 실패(계속 진행):', e?.description || e?.message);

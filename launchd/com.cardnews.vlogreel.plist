@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.cardnews.vlogreel</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/bash</string><string>/Users/seojeonghwa/project/CardNews/scripts/vlog-reel-auto.sh</string></array>
+  <key>WorkingDirectory</key><string>/Users/seojeonghwa/project/CardNews</string>
+  <!-- 브이로그는 09:20(낮)·21:00(저녁)에 만들어진다. 그 뒤에 릴스를 붙인다.
+       원격 API + ffmpeg만 쓰므로 업무시간에 돌아도 맥에 부하가 없다. -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>40</integer></dict>
+    <dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>Nice</key><integer>5</integer>
+  <key>StandardOutPath</key><string>/Users/seojeonghwa/project/CardNews/out/vlog-reel.log</string>
+  <key>StandardErrorPath</key><string>/Users/seojeonghwa/project/CardNews/out/vlog-reel.log</string>
+</dict>
+</plist>
