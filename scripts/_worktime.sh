@@ -78,3 +78,15 @@ worktime_guard() {
 localgen_busy() {
   pgrep -f "mflux-generate|ace_kind\.py|ace4\.py|sense_gen\.py|bin/sd-cli|scripts/generate\.py" > /dev/null
 }
+
+# run.sh(sd-cli) 로그에서 스크립트 진단 줄만 마지막 N줄 뽑는다.
+# ⚠️ sd-cli 진행 막대는 \r로만 이어지고 줄바꿈이 없어서, 그 위에 [h3] 진단이 줄 한가운데
+#    붙는다(실측: 36줄 중 4줄 — 하필 폭주 감지·종료 rc=143 같은 원인 줄). `grep '^\[h3\]'`로는
+#    그 줄들이 빠지고 이전 회차 줄이 대신 올라온다. → \r을 줄바꿈으로 바꾸고 [h3]/[guard]
+#    앞을 잘라낸 뒤 고른다. 자르기는 바이트 단위(cut -b): ANSI 시퀀스 섞인 줄에 cut -c를
+#    쓰면 macOS에서 「Illegal byte sequence」로 죽는다.
+h3_runlog_tail() {
+  local n="${1:-3}" f="${2:-$HOME/models/h3-gguf/run.log}"
+  [ -f "$f" ] || return 0
+  LC_ALL=C tr '\r' '\n' < "$f" | LC_ALL=C sed -E -n 's/.*(\[(h3|guard)\] )/\1/p' | tail -n "$n" | cut -b1-300
+}
