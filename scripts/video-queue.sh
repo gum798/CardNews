@@ -17,8 +17,8 @@ LOG=~/models/bench/video-queue.log
 mkdir -p "$OUT"
 
 say() { echo "[$(date '+%F %T')] $*" >> "$LOG"; }
-busy() { pgrep -f "mflux-generate|ace4.py|ace_kind|generate.py" > /dev/null; }
-waitfree() { while busy; do sleep 30; done; }
+source /Users/seojeonghwa/project/CardNews/scripts/_worktime.sh
+waitfree() { while localgen_busy; do sleep 30; done; }
 
 [ -d "$MODEL" ] || { say "H3 모델 없음 → 종료"; exit 1; }
 
@@ -46,6 +46,8 @@ run() {
   fi
   say "$name 종료 rc=$? $(( $(date +%s)-s0 ))초"
 }
+
+worktime_guard "$LOG" || exit 0
 
 say "=== 영상 큐 시작 ==="
 

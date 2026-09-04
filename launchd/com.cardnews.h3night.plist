@@ -16,10 +16,17 @@
   <key>WorkingDirectory</key>
   <string>/Users/seojeonghwa/project/CardNews</string>
 
-  <!-- 18·20·22·0·2·4·6시에 깨운다. 이미 오늘 클립이 있으면 스크립트가 바로 끝난다.
+  <!-- 2시간마다 깨운다. 평일 낮이면 worktime_guard가 즉시 종료시키고,
+       주말·공휴일이면 낮에도 돈다 — 그래야 쉬는 날 15시간을 안 버린다.
+       이미 오늘 클립이 있어도 스크립트가 바로 끝난다.
        한 번 실패해도 다음 회차가 다시 시도하는 구조라 재시도 로직이 따로 필요 없다. -->
   <key>StartCalendarInterval</key>
   <array>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>10</integer></dict>
     <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>10</integer></dict>
     <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>10</integer></dict>
     <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>10</integer></dict>
