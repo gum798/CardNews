@@ -23,8 +23,18 @@ export const SIGNAGE_PLACES = new Set([
   'chinatown',
   'earlyTrain',
   'gym',
+  'gymMassage',
   'libraryCafe',
   'library',
+  // 가구 매장은 가격표·안내판이 화면을 뒤덮는 곳이다. 배경을 흐려 글자 흉내를 지운다.
+  'ikea',
+  // 식당 벽 메뉴판·극장 포스터도 글자투성이다(일정 브이로그, 2026-09-04).
+  'restaurant',
+  'cinema',
+  // 밤거리·동네 카페도 간판·메뉴판이 배경을 채운다. 특히 섭외 사진이 편집 대상이라 프롬프트가
+  // 「조용한 주택가」라 해도 레퍼런스의 간판이 그대로 복제된다(실측 2026-09-04 테이크아웃 컷).
+  'nightStreet',
+  'cafe',
 ]);
 
 // 배경에 그라디언트 심도를 넣는다. 성공하면 true, 실패하면 false(원본 유지).

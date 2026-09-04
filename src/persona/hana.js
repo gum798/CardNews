@@ -46,14 +46,46 @@ export const hana = {
     // 점 빼고 자신감이 붙으면서 옷 입는 방식이 바뀌었다는 설정 —
     // 예전엔 오버사이즈로 가리고 다녔는데 요즘은 몸에 맞는 티를 입는다.
     // 외모 변화(glow 아크)와 같은 줄기의 이야기라 서사적으로도 근거가 있다.
-    figurePrompt:
+    // ⚠️ 넓은 컷 전용 축약판. 원본 figurePrompt는 156단어로 프롬프트에서 두 번째로 긴 덩어리인데,
+  //    옷감의 장력과 가슴 아래 그림자까지 요구한다 — 전부 가슴 위 거리에서만 해상되는 디테일이다.
+  //    8m 밖 전신 컷에 그대로 넣으면 예산만 먹고 「더 가까이 찍어라」로 작용한다(검증 지적).
+  //    실루엣만 남기고 나머지는 뺀다. 체형 자체는 그대로다.
+  // ⚠️ 축약하면서 「가장 눈에 띄는 특징」이라는 강조를 빼버렸더니 전신 컷에서 평범한 체형이
+  //    나왔다(실측 2026-09-02: 중간 거리는 D컵이 분명한데 와이드만 안 나옴).
+  //    짧게 쓰되 「D컵」과 「실루엣에서 제일 먼저 보인다」는 두 가지는 반드시 남긴다.
+  //    멀리서 안 보이는 것(옷감 장력, 가슴 아래 그림자)만 뺀다.
+  figurePromptWide:
+    // ⚠️ 강도 이력: 60단어 축약판 → 전신 컷에서 평범한 체형이 나왔다(실측).
+    //    88단어로 D컵을 되살렸으나 여전히 약했다. 지금은 「상체의 지배적인 선」으로 못박는다.
+    //    멀리서 안 보이는 디테일(옷감 장력·가슴 아래 그림자)은 계속 빼되, 크기와 돌출은 남긴다.
+    'Her build, unmistakable even at a distance: a curvy hourglass silhouette dominated by a large, ' +
+    'heavy D-cup bust. Her chest is the widest and most forward part of her upper body — it swells out ' +
+    'well beyond the line of her ribcage and stomach, so in profile the curve of her chest is the ' +
+    'dominant line of her whole figure, and from the front her torso reads clearly wider at the bust ' +
+    'than at the waist. Directly beneath her bust the ribcage and upper stomach pull in sharply, ' +
+    'flat and narrow, so the width difference between chest and midriff is obvious even from across a room. ' +
+    'Her top follows that curve instead of hanging straight down from her shoulders. ' +
+    'Below it a narrow defined waist, soft rounded shoulders and hips, 164cm, ' +
+    'and a head small in proportion to her body — about seven and a half head-heights tall overall. ' +
+    'Realistic proportions for an actual 25-year-old woman built this way.',
+
+  figurePrompt:
       // 크기는 바닷가 편 컷을 표준으로 확정. 이 문장을 바꾸면 체형이 흔들린다.
       // ⚠️ 「D컵」만 쓰면 모델이 평균 체형으로 그린다. 옷 위로 어떻게 보이는지까지 적어야
       //    반영된다 — 티셔츠가 가슴에서 뜨고 그 아래로 떨어지는 실루엣.
       // ⚠️ 「D컵」이라고만 쓰면 모델이 계속 평균 체형으로 그린다. 두 번을 고쳤는데도 작았다.
       //    치수가 아니라 「옷과 실루엣이 어떻게 되는가」로 적어야 반영된다.
-      'Her build: a curvy hourglass figure with a heavy D-cup bust that is the most obvious thing ' +
-      'about her silhouette. Her chest is full and rounded and clearly projects forward from her ribcage; ' +
+      // ⚠️ 3차 강화(2026-09-02, 사용자 요청 "더 강하게"). 「가장 눈에 띈다」는 형용에 그쳐
+      //    모델이 평균으로 회귀했다. 「상체에서 가장 넓은 부분」이라는 물리적 사실로 못박는다.
+      'Her build: a curvy hourglass figure with a large, heavy D-cup bust that dominates her silhouette — ' +
+      'it is the first thing anyone notices about her shape. Her chest is full, round and heavy, ' +
+      'swelling out well beyond the line of her ribcage so her torso is clearly widest at the bust ' +
+      'and narrows sharply to the waist below. ' +
+      // ⚠️ 대비로 크기를 만든다. 가슴만 키우면 상체 전체가 두꺼워 보여 오히려 덜 도드라진다.
+      //    가슴 바로 아래(상복부·늑골)를 좁고 평평하게 해야 그 위가 커 보인다(사용자 요청).
+      'Directly under her bust the ribcage and upper stomach draw in sharply — that stretch of torso ' +
+      'is flat and narrow, noticeably slimmer than her chest, so the underside of her bust reads as a ' +
+      'distinct ledge above it and the size contrast is what the eye picks up first; ' +
       'a plain cotton t-shirt is stretched taut across it, the fabric pulled tight at the fullest point ' +
       'and hanging loose and away from her stomach below, so a clear shadow falls under her bust. ' +
       'Seen from the side her chest projects well beyond the line of her stomach. ' +
@@ -185,7 +217,13 @@ export const hana = {
     },
     // 상황별 스타일링 — 얼굴은 고정, 옷·메이크업만 바꾼다
     looks: {
-      news: '남색 면접 정장 재킷에 흰 블라우스, 단정한 메이크업, 머리 귀 뒤로 넘김 (뉴스 정리·면접 준비용)',
+      // ⚠️ 2026-09-03 사용자 요청: 「이쁜 여자 앵커처럼」.
+    //    다만 방송국 앵커로 점프하지 않는다 — 인플루언서 아크에 맞춰
+    //    「장비를 갖추기 시작한 사람」 선에서 올린다. 서사가 끊기면 안 된다.
+    news:
+      '몸에 맞게 재단된 아이보리 트위드 재킷에 실크 느낌 라운드넥 이너, 작은 진주 귀걸이. ' +
+      '앵커처럼 단정하게 세팅한 머리 — 볼륨을 살려 안쪽으로 말고 한쪽만 귀 뒤로. ' +
+      '방송용 메이크업: 매끈한 베이스, 또렷한 아이라인, 정돈된 눈썹, 코랄빛 입술. 과하지 않게.',
       daily: '오버사이즈 맨투맨이나 후디, 민낯에 립밤만, 머리 대충 묶음 (일상용)',
       dressed: '블랙 원피스, 또렷한 아이라인과 레드 립, 머리 웨이브 (꾸민 날)',
     },
@@ -221,7 +259,9 @@ export const hana = {
         '얇은 흰 반팔 티에 연청 데님 반바지, 민낯에 립밤만',
         '얇은 라이트그레이 반팔 티에 검정 코튼 반바지, 민낯에 립밤만',
         '얇은 소라색 반팔 티에 베이지 린넨 바지, 민낯에 립밤만',
-        '얇은 검정 반팔 티에 연청 데님 반바지, 민낯에 립밤만, 목에 땀 식히는 손수건',
+        // ⚠️ 「목에 땀 식히는 손수건」을 붙였더니 다섯 장 전부 목에 흰 목욕 수건을 두른 채
+        //    영화관·카페에 들어갔다(실측 2026-09-04). 소품은 옷 문장에 넣지 않는다.
+        '얇은 검정 반팔 티에 연청 데님 반바지, 민낯에 립밤만',
         '가는 스트라이프 반팔 티에 카키 코튼 반바지, 민낯에 립밤만',
         '얇은 인디핑크 반팔 티에 흰 코튼 반바지, 민낯에 립밤만',
         '헐렁한 카키 반팔 셔츠 안에 흰 나시, 연청 데님 반바지, 민낯에 립밤만',
@@ -273,8 +313,11 @@ export const hana = {
     'and waist, and its neckline opens enough to show her collarbone and the upper line of her chest. ' +
     // 한계선 — 덮는 범위를 긍정형으로 못박는다.
     'The fabric is opaque, and the hem reaches past her waistband so her stomach stays covered. ' +
-    'Ordinary clothing a real person wears out of the house. ' +
-    'The framing stays on her face and on what she is doing.',
+    // ⚠️ 여기에 있던 "The framing stays on her face and on what she is doing."를 뺐다.
+    //    이 블록은 「옷이 어디까지 덮는가」만 정하는 자리인데 저 문장은 카메라 거리를 정한다.
+    //    프롬프트 7번 자리에서 무조건 나가 12번의 장소 블록보다 앞서 「얼굴만 찍어라」가 걸렸고,
+    //    넓게 찍으라는 구도 지시와 매 컷 충돌했다(2026-08-31 실측).
+    'Ordinary clothing a real person wears out of the house.',
 
   // ── 변신 단계 ───────────────────────────────────────────────
   // 캐릭터가 시간이 지나며 달라진다. 점 제거 → 옅은 화장 → 짙은 화장 →
@@ -394,6 +437,43 @@ export const hana = {
     // 글쓰기에는 「어디서 뭘 하는 중인지」 한 줄이면 된다.
     // ⚠️ places에 장소를 추가하면 여기에도 추가해야 한다. 빠지면 undefined가 들어가
     //    글은 집 이야기인데 사진은 카페인 게시물이 나온다.
+    // 장소 한 줄 요약(영어). 프롬프트 1번 자리와 장소 블록 접두사가 쓴다.
+    // ⚠️ 1번 자리는 프롬프트에서 가장 강한 자리다. 여기가 비면 image.js가 빈 문자열을 넣고
+    //    「어디인지」를 못 박지 못한 채 12번 자리의 긴 블록에만 의존하게 된다 — 그러면
+    //    예산에 밀려 장소가 통째로 무시된다(2026-08-31 실측). places에 추가하면 여기도 추가할 것.
+    headlineFor: {
+      room: 'the room',
+      movingRoom: 'the emptied-out studio flat she is moving out of',
+      library: 'the reading room of a public library',
+      libraryCafe: 'the cafe inside a public library',
+      cafe: 'a small neighbourhood cafe',
+      convenienceStore: 'a Korean convenience store',
+      gym: 'a large commercial gym',
+      gymMassage: 'the stretching corner of a gym',
+      chinatown: 'a Chinese restaurant in Incheon Chinatown',
+      beach: 'a beach on the East Sea',
+      park: 'a neighbourhood park near the river',
+      nightStreet: 'a quiet residential back street at night',
+      // ── 일정 브이로그(2026-09-04)에서 추가 — 그날 동선을 따라가는 장소들 ──
+      restaurant: 'a small casual Korean restaurant in Seoul in the evening',
+      cinema: 'the lobby outside an IMAX auditorium in a big Seoul multiplex',
+      riverNight: 'a riverside walking path along the Han river at night',
+      bathhouseStreet: 'the street outside a neighbourhood bathhouse at night',
+      laundromat: 'a 24-hour coin laundromat at night',
+      busStop: 'a roadside bus stop early in the morning',
+      earlyTrain: 'an almost empty subway carriage on the first train of the day',
+      ikea: 'a huge suburban furniture warehouse store',
+      // ── 인플루언서 아크에서 추가 ──
+      hotplaceCafe: 'a big renovated-warehouse cafe in Seongsu-dong',
+      noodleShop: 'an old family-run noodle shop on a Seoul back street',
+      nightView: 'a public night-view deck on a wooded hill above Seoul',
+      beautyStore: 'a bright chain cosmetics shop on a shopping street',
+      marketAlley: 'a covered traditional market alley in Seoul',
+      hanokAlley: 'a quiet hanok alley in an old hillside neighbourhood',
+      newsroom: 'a small home broadcast corner set up in her studio flat',
+      riversideDusk: 'a riverside walking path at blue hour, half an hour after sunset',
+    },
+
     summaryFor: {
       library: '도서관 열람실 (칸막이 책상에서 공부)',
       libraryCafe: '도서관 안 카페 (창가 원형 테이블에서 점심)',
@@ -401,19 +481,39 @@ export const hana = {
       movingRoom: '이사 당일 텅 빈 원룸 (종이박스와 포장테이프)',
       convenienceStore: '편의점 (창가 취식 카운터에서 도시락)',
       gym: '동네 헬스장 (러닝머신·프리웨이트 구역)',
+      gymMassage: '헬스장 스트레칭 코너 (나무 롤러 종아리 마사지 기계)',
+      ikea: '교외 대형 가구 매장 (전시장과 2층 식당)',
+      riversideDusk: '해 진 뒤 강변 산책로 (남색 하늘, 건너편 불빛)',
       chinatown: '인천 차이나타운 중국집 (짜장면)',
       beach: '동해 바닷가 (모래사장과 파도)',
       park: '한강 근처 동네 공원 (산책로와 벤치)',
       nightStreet: '밤에 집으로 걸어가는 동네 골목길',
+      restaurant: '저녁의 작은 한식당 (나무 테이블, 벽 메뉴판, 스테인리스 물컵)',
+      cinema: '멀티플렉스 아이맥스 상영관 앞 로비 (어두운 카펫, 포스터 라이트박스)',
+      riverNight: '밤의 한강 산책로 (강 건너 불빛, 다리 조명)',
       bathhouseStreet: '목욕탕에서 나와 집으로 걸어가는 밤길',
       laundromat: '24시 코인 빨래방 (밤, 혼자)',
       busStop: '이른 아침 버스 정류장',
       earlyTrain: '새벽 첫차 지하철 (텅 빈 객차)',
     },
     places: {
-      // room은 아래에서 roomPrompt를 그대로 넣는다(중복 정의 방지).
-      // 실제로 찍은 열람실 사진(assets/persona/places/library.jpg)을 레퍼런스로 함께 붙인다.
-      // 배치를 글로 다시 쓰는 이유: 레퍼런스만 주면 모델이 사진을 그대로 베껴 인물을 못 넣는다.
+      // ⚠️ 2026-09-03 사용자 요청으로 「종이 배경」에서 「홈 스튜디오」로 올렸다.
+      //    다만 방송국 세트로 점프하지 않는다 — 인플루언서 아크에 맞춰
+      //    「장비를 사서 갖춘 개인 방송 코너」 선을 지킨다. 방이라는 사실은 남긴다.
+      newsroom:
+        // ⚠️ 두 번 실패했다: 274단어(밀려서 무시), 138단어(마이크·모니터가 들어옴).
+        //    원인은 길이가 아니라 네거티브였다 — 'no monitors, no speakers'는 FLUX가
+        //    무시하고 오히려 그것들을 불러온다(이 프로젝트에서 반복 확인된 성질).
+        //    「없다」 대신 「화면이 무엇으로 가득 차는가」를 긍정형으로 쓴다.
+        'She is photographed against a single unbroken sheet of deep navy fabric that fills every ' +
+        'part of the frame around her — the entire background, from edge to edge and top to bottom, ' +
+        'is that one smooth colour. The fabric is matte, seamless and slightly darker toward the ' +
+        'corners, with a soft teal glow lifting just behind her head. ' +
+        'A large ring light off camera lights her face evenly and leaves a clean round catchlight ' +
+        'in both eyes. ' +
+        'WHERE SHE IS: seated upright, centred, shoulders square to the camera and chin level — ' +
+        'the framing of a news read. The lower edge of the frame crosses a slim white desktop ' +
+        'carrying only a squared stack of plain printed pages and a cream mug.',
       library:
         'Setting: a public study room (열람실) on an upper floor, quiet, mid-afternoon. ' +
         'Fixed layout, keep identical in every image: ' +
@@ -457,26 +557,6 @@ export const hana = {
       // ⚠️ 레퍼런스 사진(그녀의 방)이 프롬프트를 이기는 경향이 강하다. 첫 시도에서
       //    「방 한쪽」으로 시작했더니 모델이 그냥 평소 방을 그렸다. 종이 배경을
       //    맨 앞에 세우고 방 언급을 최소화해야 세트가 실제로 나온다.
-      newsroom:
-        'IMPORTANT — the wall behind her is COMPLETELY COVERED by a hand-made paper backdrop. ' +
-        'The usual bedroom wall, the taped A4 notes, the bookshelf, the window and the curtain are ' +
-        'all hidden behind it and must not be visible. ' +
-        'The backdrop: large sheets of deep navy poster paper taped edge to edge across the whole wall, ' +
-        'with two mustard-yellow paper strips running horizontally as accent bands; ' +
-        'a simple globe silhouette cut out of pale grey paper by hand, its scissor edges visibly uneven, ' +
-        'taped slightly off-centre behind her shoulder. ' +
-        'Strips of masking tape show at every seam and one bottom corner has come loose and curls forward. ' +
-        'The paper is a little wrinkled and reflects the light unevenly. ' +
-        'WHERE SHE IS: she sits on a chair at a light-wood desk, framed from the chest up, ' +
-        'her back and shoulders squarely in front of the paper backdrop which fills the frame behind her. ' +
-        'On the desk in front of her, a small stack of printed script pages and a white ceramic mug. ' +
-        'This is a broke YouTuber\'s bedroom news set, not a professional studio and not a virtual background — ' +
-        'the hand-made cheapness is the whole point. ' +
-        'The paper carries only flat colour blocks and cut-out silhouettes — plain painted surfaces throughout.',
-
-      // 동해 바닷가.
-      // ⚠️ 빛(맑음/흐림/비)은 여기 적지 않는다 — FRAMING 담당이다. 장소는 지형과 배치만.
-      //    처음엔 「해질녘」을 여기 박았다가 날씨를 바꿀 수 없게 됐다.
       beach:
         'Setting: a wide east-coast beach in Gangneung. ' +
         'Fixed look, keep consistent in every image: ' +
@@ -575,6 +655,28 @@ export const hana = {
         'Other gym-goers appear only far away, from behind, or soft out of focus — faces are unresolved blurs. ' +
         'Machine panels and signs are plain matte black and grey surfaces, smooth and unprinted.',
 
+      // 헬스장 스트레칭 코너 — 실제 사진을 레퍼런스로 붙인다
+      // (assets/persona/places/gym-massage.jpg, 기계만 남기고 사람은 잘라냈다).
+      // gym과 나눠 둔 이유: 종아리 푸는 이야기인데 러닝머신 앞에 서 있으면 글과 어긋난다.
+      gymMassage:
+        'Setting: the stretching corner of a neighbourhood gym, evening — match the reference photo. ' +
+        'Fixed look, keep identical in every image: ' +
+        'a light herringbone wood floor, a white wall panel crossed by one wide blue stripe, ' +
+        'and two low grey padded benches set end to end; ' +
+        'in front of the benches stands a wooden calf-roller massage machine — ' +
+        'a curved row of thick glossy dark-brown wooden rollers held in a white and grey frame, ' +
+        'a thick black foam-covered handle bar arching over each end, ' +
+        'and a small switch plate low on the frame; ' +
+        'flat white ceiling light, no windows. ' +
+        // ⚠️ WHERE SHE IS는 반드시 이 장소의 가구로 쓴다(편의점에 파라솔을 넣었던 실수 방지).
+        'WHERE SHE IS: she sits on the grey padded bench with her legs stretched out in front of her ' +
+        'and the backs of her calves resting on the brown wooden rollers, ' +
+        'or perches forward on the edge of the bench with one hand on her shin — ' +
+        'her body is always on that bench with the roller machine under her legs, ' +
+        'the wood floor and the blue-striped wall behind her. ' +
+        'Other gym-goers appear only far away, from behind, or soft out of focus — faces are unresolved blurs. ' +
+        'Switch plates, machine panels and wall notices are plain matte surfaces, smooth and unprinted.',
+
       convenienceStore:
         'Setting: a small Korean convenience store, late morning, almost empty. ' +
         'Fixed layout, keep identical in every image: ' +
@@ -617,18 +719,20 @@ export const hana = {
         'so the walls read bright and slightly blown out. ' +
         'Any writing on the boxes is plain marker strokes with no legible characters.',
 
+      // ⚠️ 시각·빛은 여기서 못 박지 않는다 — 일정 브이로그에선 21:30 카페도 있다(feedIndoorNight).
+      //    낮 컷은 feedPublic이 「한낮 창가 빛」을 따로 주므로 빼도 낮 카페는 그대로 나온다.
       cafe:
-        'Setting: a small neighbourhood cafe in Mangwon-dong, mid-afternoon. ' +
+        'Setting: a small neighbourhood cafe in Mangwon-dong. ' +
         'Fixed layout, keep identical in every image: a long light-oak communal table down the middle ' +
         'with mismatched wooden chairs; a wide window along one side looking onto a narrow street ' +
-        'with a hair salon awning opposite; exposed concrete ceiling with black track lights, switched off ' +
-        'because the daylight is enough; a low shelf of secondhand paperbacks against the back wall; ' +
+        'with a hair salon awning opposite; exposed concrete ceiling with black track lights; ' +
+        'a low shelf of secondhand paperbacks against the back wall; ' +
         'a matte-black espresso machine on the counter with a stack of white cups. ' +
         'On the table in front of her: an iced americano sweating onto a paper coaster, an open notebook, ' +
         'a laptop half closed. ' +
         'WHERE SHE IS: she sits on one of the wooden chairs at the communal table, her back against the ' +
         'chair back, the window and street directly to one side of her, the table edge in front of her. ' +
-        'Daylight from that window is the only light, so the far side of the room falls into soft shade. ' +
+        'The far side of the room, away from the window, falls into soft shade. ' +
         'Other people are seen from behind or cropped, far enough that no face is legible. ' +
         'All menus, signs and packaging are plain solid-colour panels, thrown out of focus.',
 
@@ -645,6 +749,49 @@ export const hana = {
         'The street lamp and the store glow are the only light, so her face is lit warm on one side and ' +
         'falls dark on the other. ' +
         'All shop signs and number plates are plain colour panels with no legible characters, out of focus.',
+
+      // ── 일정 브이로그(2026-09-04)에서 추가. 이 셋은 보통 섭외한 실사 레퍼런스(out/scout)와
+      //    같이 쓰인다. 레퍼런스가 「편집 대상」이라 배치를 세세히 못박으면 사진과 싸우므로,
+      //    고정 배치 대신 「이런 곳」과 「그녀가 어디 서 있는가」만 정한다.
+      restaurant:
+        'Setting: a small casual Korean restaurant in Seoul in the evening, the kind two friends pick ' +
+        'for a quick dinner before a movie. Typical of the place: plain wooden or laminate tables, ' +
+        'stainless-steel water cups and a metal chopstick box on the table, a handwritten menu board ' +
+        'on the wall, warm slightly yellow ceiling light, a window onto a street already dark outside. ' +
+        'On the table in front of her: a shared dish, two bowls of rice, a small side dish or two. ' +
+        'WHERE SHE IS: she sits at the table with the wall or window directly behind her back, ' +
+        'the table edge in front of her — never standing in the middle of the room. ' +
+        'The warm ceiling light is the only light, so her face is lit soft and slightly yellow. ' +
+        'Her friend, if present, is only a hand or a shoulder at the edge of the frame. ' +
+        'Other people are far and seen from behind. ' +
+        'All menus and signs are plain colour panels with no legible characters, out of focus.',
+
+      cinema:
+        'Setting: the lobby outside an IMAX auditorium in a big multiplex cinema in Seoul at night. ' +
+        'Typical of the place: dark charcoal carpet, black walls, a wide illuminated poster lightbox ' +
+        'and a glowing entrance sign above the auditorium doors, ticket-check stanchions with black ' +
+        'belts, a dim ceiling with small downlights, the escalator glow further back. ' +
+        'She holds a printed ticket or a phone with the ticket on screen. ' +
+        'WHERE SHE IS: she stands with the poster lightbox or the auditorium doors directly behind her, ' +
+        'or sits on a low bench against the wall — her body is always against a wall, a lightbox or ' +
+        'the doors, never in open floor. ' +
+        'The lightbox and the downlights are the only light, so her face is lit cool and even from ' +
+        'the front while the lobby behind her falls dark. ' +
+        'Other people are far in the background, seen from behind, no face legible. ' +
+        'All posters and signs are plain colour panels with no legible characters, out of focus.',
+
+      riverNight:
+        'Setting: a riverside walking path along the Han river in Seoul at night, after a movie. ' +
+        'Typical of the place: a wide paved path with a low railing along the water, the river black ' +
+        'and glossy, a lit bridge and apartment-tower lights on the far bank reflected in the water, ' +
+        'a few path lamps casting small warm pools, dark trees on the land side. ' +
+        'She carries a takeaway coffee cup with a lid. ' +
+        'WHERE SHE IS: she walks along the railing or stands leaning back against it with the river ' +
+        'and the far-bank lights behind her — her body is always against the railing or a lamp post, ' +
+        'never floating in the middle of the empty path. ' +
+        'The path lamps are the only light on her, so her face is lit warm on one side and the rest ' +
+        'of the frame is deep blue-black with the far lights as soft glowing dots. ' +
+        'Other people are far away, seen from behind, no face legible.',
 
       park:
         'Setting: a neighbourhood park by the Han river in the late afternoon. ' +
@@ -686,6 +833,161 @@ export const hana = {
         'The lit panel and the early sky both light her, so her face carries a faint cool cast on one side. ' +
         'Any other waiting person is seen from behind and far enough that no face is legible. ' +
         'All route maps, timetables and shop signs are plain colour fields with simple line shapes, no legible characters.',
+
+      // 이케아 — 실제 다녀온 사진 두 장을 레퍼런스로 붙인다
+      // (ikea-showroom.jpg / ikea-restaurant.jpg, 알아볼 수 있는 얼굴은 잘라내고 흐렸다).
+      // 전시장과 2층 식당을 한 장소로 묶는다: 같은 건물·같은 창밖이라 5장이 흩어지지 않는다.
+      // ⚠️ 브랜드 이름을 프롬프트에 쓰지 않는다. 상표가 박힌 그림이 나오면 쓸 수 없다.
+      ikea:
+        // ⚠️ 이 블록의 1차 버전은 사용자가 준 근접 사진 두 장(책상 위 스탠드, 식탁 위 접시)을
+        //    그대로 옮겨 적은 것이었다. 그래서 「넓은 매장」이라는 말은 있었지만 넓게 찍을
+        //    내용물이 없었다 — 통로도, 높은 선반도, 카트도, 화살표도 없었다.
+        //    와이드 구도를 아무리 잘 써도 렌더링되는 건 「책상 하나의 넓은 사진」이다.
+        //    실제로 넓은 그림이 나오려면 먼 곳까지 채울 물건이 프롬프트에 있어야 한다.
+        'Setting: a huge suburban flat-pack furniture warehouse store, weekday afternoon, overcast. ' +
+        'Fixed look, keep identical in every image: an enormous open floor under a high industrial ceiling ' +
+        'and rows of bright ceiling panels; pale grey polished concrete underfoot with a broad painted path ' +
+        'curving away between the displays; white walls and light birch-coloured wood throughout. ' +
+        'The floor runs a long way back — furnished room sets stand side by side down both sides of the path, ' +
+        'tall shelving units and stacked flat cardboard cartons rise well above head height further in, ' +
+        'and the far end of the hall is visible as a bright haze. ' +
+        'Yellow trolleys and a few large yellow shopping bags stand about. ' +
+        'One entire side is floor-to-ceiling glass looking down onto a wide road with green street trees ' +
+        'under a flat white sky — that glass is the main light. ' +
+        'Each image is in one of two zones, never both: ' +
+        '(a) the showroom floor — the room sets and the long path between them, one set holding ' +
+        'a plain white desk with a grey adjustable-arm lamp on a round white base; ' +
+        '(b) the upstairs canteen — long pale grey tables, light birch chairs, a row of white dome pendant lamps, ' +
+        'and white plates of salmon with mashed potato, meatballs on yellow rice, cream soup and salad. ' +
+        'WHERE SHE IS: on the showroom floor she is walking the path or stopped at a room set with a hand ' +
+        'on the furniture, the hall opening up behind her; in the canteen she sits at a long table with ' +
+        'the food in front of her, the chairs and pendant lamps running away past her shoulder. ' +
+        'Other shoppers appear only far away, from behind, or soft out of focus — faces are unresolved blurs. ' +
+        'Price tags, aisle numbers and signs are plain colour panels with smooth unprinted surfaces — ' +
+        'shapes readable as signage, their faces blank.',
+      // 성수동 대형 리노베이션 카페 (벽돌 홀, 긴 공용 테이블) — 인플루언서 아크(seen-by-strangers)
+      hotplaceCafe:
+        'Setting: a large renovated-factory cafe in Seongsu-dong, weekday early afternoon — the kind of ' +
+        'place people cross the city to photograph. Fixed look, keep identical in every image: a tall ' +
+        'open hall inside an old brick workshop, the original red-brown brick left bare on two walls with ' +
+        'patches of grey plaster showing through; exposed steel roof trusses and bare ducting overhead, ' +
+        'all matte black; a polished raw-concrete floor. Down the middle stands a long communal table of ' +
+        'thick pale ash, a bench along one side and low wooden stools along the other. Against the far ' +
+        'wall a squat concrete-block counter with a brushed-steel espresso machine. Two tall arched ' +
+        'windows with black steel frames fill one end of the hall with flat daylight and throw long ' +
+        'window shapes across the floor; a row of small industrial pendant lamps hangs low over the ' +
+        'table, weak against that daylight. On the table in front of her: a wide shallow latte cup on a ' +
+        'saucer, a glass of water, her phone face-up beside it. WHERE SHE IS: she sits on the long wooden ' +
+        'bench at the communal table, her back to the bare brick wall, the table edge in front of her and ' +
+        'the arched window throwing light across her from one side — never floating in open floor. Other ' +
+        'customers appear only far down the hall, from behind or cropped, soft enough that no face is ' +
+        'legible. Menu boards, cup sleeves and window lettering are plain flat colour panels with smooth ' +
+        'unprinted surfaces. ',
+      // 동네 오래된 국숫집 (스테인리스 테이블, 빨간 플라스틱 의자) — 인플루언서 아크(seen-by-strangers)
+      noodleShop:
+        'Setting: an old family-run noodle shop in a Seoul back street, just past the lunch rush. Fixed ' +
+        'look, keep identical in every image: a small low-ceilinged room of about six tables, walls of ' +
+        'yellowed painted plaster with a strip of dark wood panelling at waist height; four-seat tables ' +
+        'of scratched stainless steel on folded legs, paired with red plastic stools; a wall fan turning ' +
+        'slowly in one corner. A curtain of clear plastic strips hangs in the kitchen doorway with steam ' +
+        'drifting through it. The floor is speckled grey lino, worn pale along the walking lane. An old ' +
+        'wall calendar and framed notices hang slightly crooked above the counter. Two bare fluorescent ' +
+        'tubes and a doorway open to the street are the only light, so the room reads warm and a little ' +
+        'dim while the doorway is blown out white. On the steel table in front of her: a wide steel bowl ' +
+        'of hot noodle soup with chopped spring onion, a dish of yellow pickled radish, a steel cup of ' +
+        'water. WHERE SHE IS: she sits on one of the red plastic stools at a steel table, her back to the ' +
+        'panelled wall, the bowl and the steel table edge directly in front of her — never standing in ' +
+        'open floor. The owner and other customers appear only as a back, a forearm, or a soft shape near ' +
+        'the kitchen doorway, never a legible face. The calendar, notices, menu strips and packaging are ' +
+        'plain colour panels with smooth unprinted surfaces. ',
+      // 서울 야경 전망 데크 (밤, 난간과 도시 불빛) — 인플루언서 아크(seen-by-strangers)
+      nightView:
+        'Setting: a public night-view observation deck on a wooded hill above Seoul, after dark. Fixed ' +
+        'look, keep identical in every image: a broad open terrace of grey stone paving; a chest-high ' +
+        'railing of dark metal bars topped with a flat wooden handrail along the outer edge; beyond and ' +
+        'below it the city spreads out as a wide dark field of amber street lights, red tail-light lines ' +
+        'along a road, lit apartment blocks, and a black band of river with bridge lights strung across ' +
+        'it, all softened by haze. On the terrace side, low bollard lamps cast small warm pools on the ' +
+        'stone, dark pine and oak crowd in behind, and a few plain wooden benches stand set back from the ' +
+        'railing. Stone steps climb in from one side. It is genuinely dark: the city glow, the bollard ' +
+        'lamps and one cool floodlight on the trees are the only light, so faces are lit softly from ' +
+        'below and behind, and the sky is empty and starless. WHERE SHE IS: she stands at the railing ' +
+        'with both forearms on the wooden handrail and the city below and behind her, or sits on one of ' +
+        'the wooden benches with the pines behind her — her body is always against the railing or a ' +
+        'bench, never floating over open drop. Other visitors appear only as small dark silhouettes ' +
+        'further along the railing, seen from behind, no face legible. Information boards, plaques and ' +
+        'distant signs read as plain glowing colour panels with smooth unprinted surfaces. ',
+      // 화장품 로드숍 매장 (밝은 조명, 진열 매대와 테스터 코너) — 인플루언서 아크(seen-by-strangers)
+      beautyStore:
+        'Setting: a brightly lit chain beauty and drugstore-style cosmetics shop on a shopping street, ' +
+        'weekday evening. Fixed look, keep identical in every image: a long narrow floor under a white ' +
+        'ceiling packed with recessed downlights, so the whole room is flat and very bright; white ' +
+        'gondola shelving runs down both side walls and one low island stands down the middle, all ' +
+        'stacked with small identical boxes and tubes arranged in blocks of colour; a mirrored strip runs ' +
+        'along the top of the wall units; at the near end a tester counter with a white stone slab, a ' +
+        'round mirror on a stand and a dish of cotton pads. The floor is pale speckled vinyl worn shiny ' +
+        'along the walking lane. Everything is orderly, dense and slightly overwhelming — how much is ' +
+        'packed in is the point of this place. WHERE SHE IS: she stands at the middle island or at the ' +
+        'tester counter with the shelving wall directly behind her, one hand holding a small box or ' +
+        'resting on the counter edge, or she leans in toward the round tester mirror — her body is always ' +
+        'against the island, the counter or a shelf unit, never in open floor. Staff and other customers ' +
+        'appear only far down the aisle, from behind or cropped, soft enough that no face is legible. ' +
+        'Every box, tube, price tag, shelf strip and poster is a plain flat colour panel with a smooth ' +
+        'unprinted surface, and anywhere printing would be reads as a soft grey smudge. ',
+      // 재래시장 아케이드 골목 (초저녁, 전구 줄과 좌판) — 인플루언서 아크(seen-by-strangers)
+      marketAlley:
+        'Setting: a covered traditional market alley in Seoul in the early evening, once the stalls have ' +
+        'switched their lights on. Fixed look, keep identical in every image: a narrow lane running ' +
+        'straight away from the camera, roofed its whole length by a corrugated translucent arcade the ' +
+        'last daylight comes through grey; stalls press in on both sides — flat trays of vegetables and ' +
+        'dried goods tipped forward on wooden crates, a fishmonger\'s steel counter with crushed ice, a ' +
+        'fritter stall with a wide black pan of oil and a steel tray under a heat lamp; strings of bare ' +
+        'bulbs and long fluorescent tubes hang stall to stall so the lane is bright and warm while the ' +
+        'roof above stays dark; red and blue striped awnings, folded cardboard, stacked plastic crates; ' +
+        'the concrete floor is damp and reflects the lights. WHERE SHE IS: she stands at the edge of one ' +
+        'stall with its counter and trays directly beside her and the lit lane running away behind her, ' +
+        'or walks the lane with a stall front at her shoulder — her body is always beside a stall ' +
+        'counter, a crate stack or a wall, never in the middle of an empty lane. Stallholders and ' +
+        'shoppers appear only further down the lane, from behind, cropped, or soft enough that no face is ' +
+        'legible; the fritter seller is a hand and a forearm at the frame edge at most. Price cards, ' +
+        'banners, awning strips and boxes are plain flat colour panels with smooth unprinted surfaces. ',
+      // 한옥 골목 (오르막 돌길, 기와지붕과 낮은 담) — 인플루언서 아크(seen-by-strangers)
+      hanokAlley:
+        'Setting: a quiet hanok alley in an old hillside neighbourhood of Seoul, mid-afternoon on a ' +
+        'weekday. Fixed look, keep identical in every image: a narrow stone-paved lane climbing gently ' +
+        'between low traditional tile-roofed houses; grey-brown clay roof tiles with curved end caps, ' +
+        'whitewashed plaster panels set into frames of dark weathered timber, low stone-and-mortar ' +
+        'boundary walls at waist height; heavy wooden gates with round iron rings, one standing half open ' +
+        'onto a small stone courtyard; a persimmon tree leaning over a wall and potted plants in painted ' +
+        'tins along the stone base; a slim black street lamp pole and an old electricity pole with a ' +
+        'bundle of wires crossing overhead; further up the lane the roofline steps down and a slice of ' +
+        'pale modern city towers shows beyond it. The stone paving is uneven and worn smooth down the ' +
+        'middle. Daylight comes over the roofs from one side, so one wall of the lane is bright, the ' +
+        'opposite side sits in flat shade, and the lane floor is patched with both. WHERE SHE IS: she ' +
+        'walks up the lane close to the low stone wall, stands with her back against a whitewashed wall ' +
+        'beside a wooden gate, or sits on the stone base of a wall — her body is always against a wall, a ' +
+        'gate or a roofline, never floating in the middle of the lane. Other visitors appear only far up ' +
+        'the lane, from behind or cropped, with no face legible. House number plates, notices and distant ' +
+        'signs are plain colour panels with smooth unprinted surfaces. ',
+      // 대화에서 나온 장소 — 친구가 「해 지고 30분 뒤 하늘이 남색으로 넘어갈 때」라고 짚어준 자리.
+      // ⚠️ park는 늦은 오후 기준이라 블루아워가 안 나온다. 시간대가 달라 따로 둔다.
+      riversideDusk:
+        'Setting: the riverside walking path near her neighbourhood, about thirty minutes after sunset. ' +
+        'Fixed look, keep identical in every image: ' +
+        'the sky has gone deep blue but is not black yet, still bright along the horizon where the sun went down, ' +
+        'and that band of leftover warm light sits low behind the far bank; ' +
+        'a wide paved path runs along the water with a low railing on the river side; ' +
+        'the river surface is dark and smooth, carrying long broken reflections of the city lights on the far shore; ' +
+        'tall apartment blocks across the water show as rows of small lit windows; ' +
+        'evenly spaced path lamps throw warm pools of light on the pavement between cooler blue shadow; ' +
+        'a few low bushes and a bench beside the path. ' +
+        'WHERE SHE IS: she stands or walks at the railing with the river and the far-bank lights directly behind her, ' +
+        'or sits on the bench turned toward the water — her body is always against the railing or the bench, ' +
+        'with the lit far shore behind her rather than empty darkness. ' +
+        'The lamp nearest her lights one side of her face warm while the blue sky fills the other side, ' +
+        'and that split is what makes it read as this exact hour. ' +
+        'Other walkers and cyclists appear only far away or as soft silhouettes — faces are unresolved. ' +
+        'Any signage is a plain lit colour panel with no legible characters.',
     },
   },
 
@@ -770,6 +1072,35 @@ export const hana = {
         '1차 합격 이후의 여유. 기쁨과 불안이 같이 오고, 쉬는 법을 잊은 상태를 다룬다. ' +
         '자랑이 아니라 「다음이 남았다」는 자각이 바탕에 깔려야 한다.',
     },
+    {
+      id: 'seen-by-strangers',
+      title: '처음으로 누가 알아본 달',
+      // ⚠️ phaseAfter를 올리지 않는다(glow 유지). 이 아크는 외모가 아니라 「보는 눈」이
+      //    바뀌는 이야기라, 얼굴이 또 좋아지면 「예뻐져서 잘됐다」로 읽힌다.
+      beats: [
+        '카페에서 대충 찍어 올린 사진 하나가 평소의 열 배 넘게 퍼진 날. 기쁘기보다 어리둥절해서, 왜 하필 이건지 몇 번을 다시 봤다.',
+        '댓글에 「여기 어디예요?」가 처음 달렸다. 답을 쓰다가 세 번 지웠다 — 알려주면 그 자리가 내 자리가 아니게 될 것 같아서.',
+        '나가기 전에 거울을 한 번 더 보게 됐다. 어제까지 안 하던 짓이고, 그러고 있는 자신이 조금 낯설다.',
+        '사진을 찍으려고 일부러 어딘가에 간 첫날. 다 찍고 나서 정작 커피는 식은 채로 마셨다.',
+        '음식 사진을 먼저 찍느라 같이 온 친구를 기다리게 만든 날. 친구는 웃고 넘겼는데 내가 더 민망했다.',
+        '야경 명소에 갔더니 다들 같은 자리에서 같은 각도로 찍고 있었다. 나도 그 줄에 서 있었다는 걸 내려오는 길에 알았다.',
+        '처음으로 옷을 「사진 기준」으로 골라봤다. 색이 배경이랑 맞나부터 생각한 게 편하기도 하고 이상하기도 하다.',
+        '동네 가게에서 「인스타 하시죠?」라는 말을 들었다. 맞다고 대답하는데 목소리가 저절로 작아졌다.',
+        '협찬 비슷한 메시지가 처음 왔다. 며칠째 답장을 미루고 있다. 거절도 수락도 아직 못 했다.',
+        '취준 얘기를 안 쓴 날이 일주일 넘었다는 걸 알아챘다. 둘 다 나인데 한쪽이 조용해졌다.',
+        '2차 준비를 다시 시작하면서 며칠 아무것도 안 올렸다. 안 올려도 아무 일도 일어나지 않았다.',
+        '다시 올리기 시작했는데, 올려놓고 반응을 확인하는 횟수가 줄었다. 나아진 게 아니라 덜 확인하게 된 쪽에 가깝다.',
+      ],
+      note:
+        '성장담이 아니라 「보는 눈이 생겼다」는 이야기다. 결론은 항상 「덜 확인하게 됐다」이지 「잘 ' +
+        '됐다」·「예뻐졌다」가 아니다. ⚠️ 숫자(팔로워·조회수·좋아요)를 절대 쓰지 마라 — 숫자가 나오는 순간 ' +
+        '자랑이 되고 같은 처지 시청자가 등을 돌린다. 「많이 퍼졌다」 정도의 체감으로만 쓴다. ⚠️ 취준을 배경에서 ' +
+        '지우지 마라. 인플루언서가 되어 취준을 그만둔 게 아니라, 취준 중에 딴 일이 하나 늘어난 것이다. 12개 ' +
+        '비트 중 최소 5개(2·5·6·8·9)는 불편함이 결론이어야 하고, 성장 비트 뒤에는 반드시 어색함 비트가 ' +
+        '붙어야 한다. ⚠️ phaseAfter를 올리지 않는다(glow 유지). 이 아크는 외모가 아니라 시선이 ' +
+        '바뀌는 이야기라서, 얼굴이 또 좋아지면 서사가 「예뻐져서 잘됐다」로 읽힌다. ⚠️ 협찬 비트(9)는 끝까지 ' +
+        '결론을 내지 않는다. 수락하면 광고 계정이 되고 거절하면 착한 척이 된다 — 미뤄둔 채로 둔다. ',
+    },
   ],
 
   // ── 일상 브이로그 소재 풀 ───────────────────────────────────
@@ -790,6 +1121,11 @@ export const hana = {
     libraryCafe: 'assets/persona/places/library-cafe.jpg',
     chinatown: ['assets/persona/places/chinatown-restaurant.jpg', 'assets/persona/places/chinatown-food.jpg'],
     gym: 'assets/persona/places/gym.jpg',
+    // ⚠️ 두 장 다 알아볼 수 있는 실제 얼굴을 잘라내거나 흐리게 처리한 뒤에 넣었다.
+    //    또렷한 얼굴이 레퍼런스에 남으면 모델이 그 사람을 복제해 앵커 얼굴이 사라진다(방 실측).
+    ikea: ['assets/persona/places/ikea-showroom.jpg', 'assets/persona/places/ikea-restaurant.jpg'],
+    // 사람은 통째로 잘라내고 기계만 남겼다 — 사진 속 흰 티·검정 바지가 그대로 옷이 되면 안 된다.
+    gymMassage: 'assets/persona/places/gym-massage.jpg',
   },
 
   // 장소별 프레이밍 오버라이드. feedPublic은 「실내 공공장소 + 형광등」을 전제하므로
@@ -812,6 +1148,14 @@ export const hana = {
     '열대야': 'night',
     '새벽 알바 가는 길': 'night', // 해뜨기 전 — 창밖이 어둡다
     '목욕탕 다녀오는 길': 'night',
+    // 가구 보고 나서 저녁에 들른 헬스장 — 창 없는 실내지만 밤 프레이밍이 맞다.
+    '종아리 풀러 간 날': 'night',
+    '강변에서 해 지고': 'night',
+    '야경 보러 올라간 날': 'night',
+    '야경 명소에서 줄 서서': 'night',
+    '시장 골목 저녁': 'night',
+    '먼저 찍느라': 'night',
+    '쿠션 하나 사러': 'night',
   },
 
   // 소재별 촬영 장소. 여기 없으면 방(room)이다.
@@ -842,9 +1186,27 @@ export const hana = {
     '도서관 점심': 'libraryCafe',
     '차이나타운 짜장면': 'chinatown',
     '헬스장': 'gym',
+    // 이사 아크의 다음 날 — 가구 사러 갔다가 그 안에서 밥까지 먹은 하루.
+        '가구 보러 간 날': 'ikea',
+    '종아리 풀러 간 날': 'gymMassage',
     '새벽 알바 가는 길': 'earlyTrain',
     '목욕탕 다녀오는 길': 'bathhouseStreet',
     '바다 보러 간 날': 'beach',
+    // ── 인플루언서 아크(seen-by-strangers) ──
+    // 두 페르소나 대화(2026-09-03)에서 나온 소재 — 친구가 자리·시간·옷까지 정해줬다.
+    '강변에서 해 지고': 'riversideDusk',
+    '핫플 카페 다녀오기': 'hotplaceCafe',
+    '사진 찍으러 나온 날': 'hotplaceCafe',
+    '노포 국숫집 혼밥': 'noodleShop',
+    '누가 알아본 날': 'noodleShop',
+    '한옥 골목 걷기': 'hanokAlley',
+    '골목에서 길 잃은 날': 'hanokAlley',
+    '야경 보러 올라간 날': 'nightView',
+    '야경 명소에서 줄 서서': 'nightView',
+    '시장 골목 저녁': 'marketAlley',
+    '먼저 찍느라': 'marketAlley',
+    '쿠션 하나 사러': 'beautyStore',
+    '거울 앞에서 오래 서 있었다': 'room',
   },
 
   // 소재별 표정. 안 주면 기본(무심한 순간 포착)이다.
@@ -864,10 +1226,13 @@ export const hana = {
     'a small closed-lip smile, cheeks slightly raised, both eyes open and steady on the lens',
     'lips parted as if she just started saying something, eyebrows a little raised, eyes wide and on the camera',
     'looking slightly off to the side of the lens, chin a fraction down, a faint amused curve at one corner of her mouth',
-    'eyebrows drawn together in mild concentration, lips pressed thin, eyes open and fixed on what she is doing',
+    // ⚠️ 원래 여기 'eyebrows drawn together in mild concentration, lips pressed thin'이 있었다.
+    //    실측(2026-08-31 이케아 5장): 눈썹을 모으라고 하면 찡그린 얼굴로 렌더링돼 기분 나빠 보인다.
+    //    집중은 남기되 눈썹은 풀어둔다.
+    'absorbed in what she is doing, lips slightly parted, brows relaxed and even, both eyes open and steady on it',
     'a tired half-smile with the corners barely lifted, eyelids relaxed but both eyes clearly open',
     'mouth slightly open in a small surprised «어» as if something just occurred to her, eyes wide',
-    'cheeks puffed a little in a quiet sigh, lips pushed forward, eyes flat and open toward the lens',
+    'cheeks puffed a little in a quiet sigh, lips pushed forward, both eyes open and soft toward the lens',
     'head tilted a few degrees, one eyebrow marginally higher, a wry closed-lip smile',
     'lips pressed together holding back a laugh, cheeks raised, both eyes open and bright',
     'a plain unguarded everyday face, no performance for the camera, eyes open and looking just past the lens',
@@ -918,10 +1283,133 @@ export const hana = {
 
   // 소재별 추가 맥락. 스토리 아크에 얽힌 소재는 이걸 줘야 글이 겉돌지 않는다.
   themeBriefs: {
+    '강변에서 해 지고':
+      '친구가 알려준 자리에 갔다. 해 지고 30분쯤 뒤, 하늘이 남색으로 넘어갈 때가 제일 잘 나온다고 했다. ' +
+      '저번엔 뭉그적대다 타이밍을 놓쳐서 이번엔 시간을 맞춰 갔다. ' +
+      '옷도 친구 말대로 입었다 — 어두운 배경엔 밝은 색이 얼굴로 시선을 끌어준다고 했고, ' +
+      '위아래 다 튀게 입던 버릇을 처음으로 안 했다. 포인트는 신발 하나에만. ' +
+      '2차 면접이 8일이라 나오기 전까지 대본을 붙들고 있었다. 강 보고 있으니 그 생각이 잠깐 멀어진다. ' +
+      '⚠️ 사진 잘 나왔다는 얘기로 흐르지 마라. 옷을 골라본 게 처음이라 그게 어색한 날이다. ' +
+      '⚠️ 친구를 화면에 그리지 마라 — 같이 갔더라도 사진에는 하나만 나온다. ' +
+      '⚠️ 「인생샷」·「힐링」 쓰지 마라. 취준 걱정을 길게 늘어놓지도 마라.',
+
+    // ── 인플루언서 아크(seen-by-strangers) ──
+    '핫플 카페 다녀오기':
+      '사진이 많이 올라오는 성수동 쪽 카페에 처음 가봤다. 지하철 갈아타고 내려서 또 20분을 걸었다. 커피값이 ' +
+      '동네 카페의 두 배다. 자리 잡고 앉으니 옆 테이블도 앞 테이블도 다들 찍고 있어서, 나만 안 찍는 게 더 ' +
+      '어색해 결국 나도 찍었다. 벽돌벽은 예쁜데 사람이 많아 오래 앉아 있진 못하겠다. ⚠️ 카페 이름·지점명을 ' +
+      '쓰지 마라. 「성수동 쪽 카페」까지만. ⚠️ 카페 추천·리뷰 글이 되면 안 된다. 메뉴 가격 나열 금지, ' +
+      '평가 금지. ⚠️ 「인생샷」·「감성」·「핫플」 같은 말 쓰지 마라. ⚠️ 해시태그에 사는 동네(망원동)를 ' +
+      '넣지 마라 — 오늘은 성수동까지 나간 날이다. ',
+
+    '사진 찍으러 나온 날':
+      '오늘은 순서가 반대다. 갈 데가 있어서 나온 게 아니라, 올릴 사진이 필요해서 갈 데를 정했다. 그걸 스스로 ' +
+      '알고 있는 채로 앉아 있는 게 이 글의 핵심이다. 자리를 두 번 옮겼고, 잔을 창가로 밀었다가 다시 당겼다. ' +
+      '다 찍고 나니 커피가 식어 있었고, 그제야 한 모금 마셨다. ⚠️ 자기비하로 쓰지 마라. 「내가 이러고 ' +
+      '있네」로 끝내지 말고 그냥 오늘 한 일로 담담하게. ⚠️ 사진 잘 찍는 법·꿀팁으로 흐르지 마라. ⚠️ ' +
+      '「현타」·「자아성찰」 같은 단어 금지. 식은 커피 한 모금이 결론이다. ⚠️ 팔로워·조회수 숫자를 쓰지 ' +
+      '마라. ',
+
+    '노포 국숫집 혼밥':
+      '점심때가 지나서 오래된 국숫집에 혼자 들어갔다. 스테인리스 테이블에 빨간 플라스틱 의자, 벽걸이 선풍기 한 ' +
+      '대. 사장님이 말없이 물컵을 놓고 갔다. 혼밥이 어색하지 않게 된 지 오래됐다는 걸 새삼 느낀다. 국물이 ' +
+      '뜨거워서 천천히 먹었다. ⚠️ 가게 이름·정확한 위치를 특정하지 마라. 「동네 국숫집」까지만. ⚠️ 맛 ' +
+      '평가·리뷰 톤 금지. 「존맛」·「강추」·「가성비」 쓰지 마라. ⚠️ 혼밥을 외로움이나 궁상으로 쓰지 마라 — ' +
+      '그냥 오늘 점심이다. ⚠️ 노포를 「옛날 감성」으로 뭉뚱그리지 마라. 본 것(선풍기 소리, 스테인리스 ' +
+      '온도)만 쓴다. ',
+
+    '누가 알아본 날':
+      '밥 다 먹고 계산하는데 사장님이 「인스타 하시죠?」라고 물었다. 맞다고 대답하는데 목소리가 저절로 작아졌다. ' +
+      '자랑스럽기보다 들킨 것 같았다. 사장님은 별말 없이 거스름돈을 줬고 나는 인사하고 나왔는데, 나와서 몇 걸음 ' +
+      '걷다가 얼굴이 뜨거워졌다. ⚠️ 사장님을 팬처럼 그리지 마라. 그냥 한 번 물어보고 끝난 대화다. ⚠️ ' +
+      '「알아봐 주셔서 감사합니다」류 인사 금지 — 시청자에게 하는 말이 아니다. ⚠️ 숫자·성과를 붙이지 마라. ' +
+      '⚠️ 결론을 뿌듯함으로 닫지 마라. 얼굴이 뜨거워진 채로 끝낸다. ',
+
+    '한옥 골목 걷기':
+      '면접 준비하다가 답답해서 오후에 한옥 골목까지 걸으러 나왔다. 오르막이라 금방 더워졌다. 기와 끝이랑 담벼락 ' +
+      '위 화분만 자꾸 찍게 된다. 관광객이 생각보다 적어서 조용했고, 담 너머에서 누가 사는 소리가 들려서 사진 ' +
+      '찍던 손을 잠깐 멈췄다. ⚠️ 동네 이름을 특정하지 마라. 「한옥 골목」까지만. ⚠️ 여행 정보·코스 ' +
+      '추천으로 흐르지 마라. ⚠️ 사람 사는 동네다. 「구경」·「관광지」 톤으로 쓰지 말고, 조용히 지나가는 ' +
+      '사람의 시선으로 쓴다. ⚠️ 「한국의 미」 같은 큰 말 금지. ',
+
+    '골목에서 길 잃은 날':
+      '길치라는 걸 또 확인한 날. 지도를 켜놨는데도 같은 골목을 세 번 지났다. 담벼락이 다 비슷하게 생겨서 아까 ' +
+      '그 화분인지 다른 화분인지 모르겠다. 다리는 아픈데 짜증은 안 났다. 어차피 오늘은 어디 가야 하는 것도 ' +
+      '아니었다. ⚠️ 이 소재의 훅은 「같은 자리를 세 번 지났다」다. 첫 줄에 그게 나와야 한다. ⚠️ 길치를 ' +
+      '개그로 과장하지 마라. 담담하게. ⚠️ 인생 비유로 끝내지 마라(「인생도 이렇게…」 절대 금지). 다리 아픈 ' +
+      '걸로 끝낸다. ',
+
+    '야경 보러 올라간 날':
+      '저녁 먹고 야경 보러 올라갔다. 버스 갈아타고 계단까지 올라가느라 숨이 찼다. 난간에 팔 얹고 한참 서 ' +
+      '있었다. 도시가 저렇게 넓은데 내가 아는 데는 몇 군데 안 된다는 게 이상했다. 바람이 생각보다 차서 팔을 ' +
+      '문질렀다. ⚠️ 장소는 서울시가 공개한 공공 야경명소만 쓴다. 사설 전망대·카페 이름 금지. ⚠️ ' +
+      '「힐링」·「인생샷」·「뷰맛집」 금지. ⚠️ 취준 걱정을 길게 늘어놓지 마라. 잠깐 올라온 날이다. ⚠️ ' +
+      '야경을 설명(몇 미터·몇 년 개장)하지 마라. 정보 글이 아니다. ',
+
+    '야경 명소에서 줄 서서':
+      '올라와 보니 다들 같은 자리에서 같은 각도로 찍고 있었다. 나도 그 줄에 섰고, 앞사람이 비켜주길 기다렸다가 ' +
+      '거의 같은 사진을 찍었다. 그때는 몰랐는데 내려오는 계단에서 그게 생각났다. 그래도 지우진 않았다. ⚠️ ' +
+      '남을 비웃는 글로 쓰지 마라. 나도 그 줄에 있었다는 게 핵심이다. ⚠️ 「다들 똑같다」로 결론 내지 마라. ' +
+      '판단하지 말고 본 것만 쓴다. ⚠️ 사진 속 사람들의 인상착의를 쓰지 마라. ⚠️ SNS 비판·자기반성 ' +
+      '에세이로 흐르지 마라. 지우지 않았다는 한 줄로 닫는다. ',
+
+    '시장 골목 저녁':
+      '저녁에 시장 골목을 한 바퀴 돌았다. 살 것도 없으면서 끝까지 걸었다. 기름 냄새, 물 뿌린 바닥, 다 ' +
+      '다르게 붙은 가격표. 튀김 하나만 사서 서서 먹었다. 사진을 몇 장 찍었는데 얼굴이 다 들어가서 결국 ' +
+      '천막이랑 바닥만 남겼다. ⚠️ 시장 이름을 특정하지 마라. ⚠️ 상인분들을 구경거리로 쓰지 마라. 사진에 ' +
+      '얼굴이 안 나온다는 전제로 쓴다. ⚠️ 「정겹다」·「옛날 그대로」로 뭉뚱그리지 마라. 냄새와 소리처럼 실제로 ' +
+      '겪은 것만 쓴다. ⚠️ 물가 이야기·경제 코멘트로 흐르지 마라. ',
+
+    '먼저 찍느라':
+      '친구랑 시장에서 만나 튀김을 샀는데, 내가 사진부터 찍느라 친구는 기다리고 있었다. 「식어」라고 웃으면서 ' +
+      '말하는데 그게 더 민망했다. 그 뒤로는 그냥 먹었다. ⚠️ 친구는 등장하되 이름·신상은 없다. 사진에도 ' +
+      '얼굴이 안 나온다는 전제로 쓴다. ⚠️ 반성문으로 쓰지 마라. 「앞으로는 안 그래야지」 같은 다짐투 금지. ' +
+      '⚠️ SNS 중독 이야기로 키우지 마라. 오늘 튀김 한 봉지 크기의 일이다. ⚠️ 친구 말을 길게 인용하지 ' +
+      '마라. 한마디면 충분하다. ',
+
+    '쿠션 하나 사러':
+      '쓰던 쿠션이 다 떨어져서 저녁에 매장에 들렀다. 하나만 사러 왔는데 매대가 너무 밝고 물건이 많아서 15분을 ' +
+      '서 있었다. 예전엔 제일 싼 걸 집었는데 오늘은 두 개를 손에 들고 한참 비교했다. 그 차이를 스스로 알아챈 ' +
+      '게 오늘의 일이다. 결국 원래 쓰던 걸로 샀다. ⚠️ 브랜드명·제품명·가격을 쓰지 마라. ' +
+      '「쿠션」·「매장」까지만. ⚠️ 화장품 리뷰·추천 글이 되면 절대 안 된다. 성분·효과 언급 금지. ⚠️ ' +
+      '「꾸미기 시작했다」로 선언하지 마라. 두 개를 비교한 15분만 쓴다. ⚠️ 소비를 자랑으로도 죄책감으로도 ' +
+      '쓰지 마라. ',
+
+    '거울 앞에서 오래 서 있었다':
+      '나가기 전에 거울 앞에 평소보다 오래 서 있었다. 뭘 바르려다가 결국 그냥 립밤만 바르고 나왔다. 안 한 게 ' +
+      '잘한 것도 아니고 못 한 것도 아닌데, 거울 앞에 서 있던 그 시간이 예전엔 없었다는 게 마음에 걸린다. ' +
+      '⚠️ 이 소재는 집(원룸)이라 항상 민낯이다. 화장하는 장면을 쓰지 마라 — 하려다 그만둔 날이다. ⚠️ ' +
+      '「꾸며야 하나」 고민을 길게 늘어놓지 마라. 서 있던 시간만 쓴다. ⚠️ 외모 자존감 에세이로 흐르지 마라. ' +
+      '교훈 금지. ⚠️ 결론은 「덜 신경 쓰게 됐다」 계열이지 「예뻐졌다」도 「나답게 살자」도 아니다. ',
+
     '이사하는 날':
       '원룸 계약이 끝나 이사하는 날. 짐을 싸다 보니 2년이 박스 몇 개로 줄어든 게 실감나는 하루. ' +
       '들뜨거나 슬프지 않고 담담하게 — 벽에 남은 가구 자국, 커튼 뗀 창, 바닥에 뻗어 쉬는 순간. ' +
       '새 집 자랑이나 신세한탄으로 흐르지 않게 쓴다.',
+
+    // ── 이사 다음 이야기: 가구 사러 간 하루 (낮 → 저녁 두 편) ──
+    '가구 보러 간 날':
+      '이사한 집에 책상이 없어서 교외 대형 가구 매장에 왔다. 지하철 갈아타고 셔틀까지 타야 해서 ' +
+      '오는 데만 한 시간 반 걸렸다. 화살표 따라 걷다 보면 안 사려던 것까지 손에 들려 있다. ' +
+      '오늘 실제로 필요한 건 책상 하나와 스탠드 하나인데, 종이 줄자로 이것저것 재보다가 ' +
+      '방 치수를 안 적어온 걸 깨달았다. 예산은 정해져 있고, 싼 걸 고르면 오래 못 쓸까 봐 망설이는 중. ' +
+      '점심때가 지나서 2층 식당에서 밥을 먹었다. 연어에 매시드포테이토, 미트볼, 수프, 샐러드. ' +
+      '창밖으로 도로가 내려다보이고, 혼자 온 사람이 생각보다 많다. ' +
+      '⚠️ 매장 이름·브랜드명을 쓰지 마라. 「가구 매장」, 「2층 식당」으로만 쓴다. ' +
+      '⚠️ 제품 후기·쇼핑 정보 글이 되면 안 된다. 가격 나열 금지. ' +
+      '⚠️ 「신혼집」·「자취 꿀템」 같은 말 쓰지 마라. 책상 하나 사러 온 취준생이다. ' +
+      // 실측: 교외 매장 이야기인데 해시태그에 #망원동(사는 동네)이 붙어 장소가 어긋났다.
+      '⚠️ 해시태그에 사는 동네 이름(망원동 등)을 넣지 마라. 오늘은 교외까지 나간 날이다.',
+
+    '종아리 풀러 간 날':
+      '가구 매장에서 몇 시간을 걸었더니 저녁에 종아리가 딱딱하게 뭉쳤다. ' +
+      '집에 가서 누울까 하다가 그냥 헬스장에 들렀다. 운동하러 온 건 아니고 ' +
+      '스트레칭 코너의 나무 롤러 종아리 마사지 기계에 다리만 올려놓으러 왔다. ' +
+      '처음엔 아파서 소리가 나올 뻔했는데 몇 분 지나니 풀린다. ' +
+      '기계 돌아가는 소리랑 저쪽 러닝머신 소리만 들리고, 그 십 분 동안 아무 생각도 안 했다. ' +
+      '⚠️ 운동 열심히 했다는 글로 쓰지 마라 — 오늘은 다리만 풀러 온 날이다. ' +
+      '⚠️ 「갓생」·「오운완」 같은 말 쓰지 마라. ' +
+      '⚠️ 마사지 효과 설명·건강 조언으로 흐르지 마라.',
 
     '1차 면접 합격한 날':
       '1차 면접 합격 문자를 받은 날. 기뻐하되 들뜨지 않는다 — 몇 번을 다시 읽어봤고, ' +
@@ -1097,6 +1585,14 @@ export const hana = {
       '자소서 쓰기', '인적성 문제 풀기', '면접 스터디', '시사상식 정리',
       '망원동 카페에서 공부', '채용공고 훑기', '편의점 도시락', '헬스장',
       '도서관 피서 공부', '도서관 점심', '새벽 알바 가는 길',
+      '가구 보러 간 날',
+      // ── 인플루언서 아크 ──
+      '핫플 카페 다녀오기',
+      '사진 찍으러 나온 날',
+      '노포 국숫집 혼밥',
+      '누가 알아본 날',
+      '한옥 골목 걷기',
+      '골목에서 길 잃은 날',
     ],
     evening: [
       '1차 면접 합격한 날',
@@ -1114,6 +1610,15 @@ export const hana = {
       // storyArc: skin-routine — 외모 변화가 자신감으로 이어지는 후속 아크
       '피부과 첫 관리', '붉은기가 가라앉았다', '민낯으로 나가는 날',
       '점 뺀 날', // storyArc: mole-removal 세 번째 비트 — 이후 phase가 healing으로 바뀐다
+      '종아리 풀러 간 날', // '가구 보러 간 날'의 같은 날 저녁
+      // ── 인플루언서 아크 ──
+      '강변에서 해 지고',
+      '야경 보러 올라간 날',
+      '야경 명소에서 줄 서서',
+      '시장 골목 저녁',
+      '먼저 찍느라',
+      '쿠션 하나 사러',
+      '거울 앞에서 오래 서 있었다',
     ],
   },
 
@@ -1134,10 +1639,32 @@ export const hana = {
 hana.setting.places.room = hana.setting.roomPrompt;
 
 // 현재 변신 단계. PERSONA_STAGE로 지정, 범위를 벗어나면 마지막 단계로 클램프한다.
+export function currentStageIndex() {
+  const raw = process.env.PERSONA_STAGE;
+  const n = raw === undefined || raw.trim() === '' ? NaN : Number(raw); // ''는 미설정. Number('')=0이라 0단계로 읽힌다
+  return Number.isInteger(n) ? Math.max(0, Math.min(hana.arc.length - 1, n)) : 2;
+}
 export function currentStage() {
-  const n = Number(process.env.PERSONA_STAGE);
-  const i = Number.isInteger(n) ? Math.max(0, Math.min(hana.arc.length - 1, n)) : 2;
-  return hana.arc[i];
+  return hana.arc[currentStageIndex()];
+}
+
+// 단계가 실제로 올라간 날. 게시물이 「어느 얼굴」로 만들어졌는지 날짜로 되짚을 때 쓴다.
+// post.json에 stage를 남기기 시작한 게 2026-09-03부터라, 그 전 게시물은 이 표로 판정한다.
+// ⚠️ 단계를 올릴 때(.env PERSONA_STAGE) 여기에도 한 줄 추가한다. 빠뜨리면 그날 이후
+//    게시물이 예전 단계로 읽혀 릴스에서 빠진다(반대 방향 실수보다는 안전한 쪽으로 틀린다).
+export const STAGE_HISTORY = [
+  { from: '2026-08-28', stage: 3 }, // PERSONA_STAGE=3 / PHASE=after — 화장 또렷, 자국 사라짐
+  { from: '2026-08-16', stage: 2 }, // arc 도입, 옅은 화장 시작 (PHASE=healing)
+  { from: '2026-08-08', stage: 1 }, // 점 뺀 직후 (PHASE=healing 신설)
+  { from: '2000-01-01', stage: 0 }, // 그 전 — 입가 점 있음
+];
+
+// 그 날짜의 단계. 'YYYYMMDD' 또는 'YYYY-MM-DD'. 모르는 형식이면 0(가장 이른 단계)으로 본다.
+export function stageOn(date) {
+  const d = String(date || '').replace(/-/g, '').slice(0, 8);
+  if (!/^\d{8}$/.test(d)) return 0;
+  const hit = STAGE_HISTORY.find((h) => d >= h.from.replace(/-/g, ''));
+  return hit ? hit.stage : 0;
 }
 
 // 소재 → 장소. 매핑이 없으면 방이다.
