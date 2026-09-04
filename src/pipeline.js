@@ -11,7 +11,7 @@ import { writeCards, pickBackgroundImages, pickBackgroundVideo } from './curator
 import { searchTopicImages, downloadImage, searchTopicVideos, downloadVideo } from './images/index.js';
 import { renderCandidate, renderReelLines } from './renderer/index.js';
 import { makeReel, makeNarratedReel, grabPoster, personaLayersFor } from './video/index.js';
-import { animatePersona } from './video/hailuo.js';
+import { makeIntroVideo } from './video/intro.js';
 import { synthesizeLines } from './tts/index.js';
 import { scriptViolations, ADVICE_GUARD_PROMPT } from './guards/policy.js';
 import { getReelKeyframes, publishKey } from './persona/keyframe.js';
@@ -156,13 +156,17 @@ export async function generateAndPublish(candidateId, { auto = false } = {}) {
         // 훅도 낭독한다 → 0초부터 소리가 나고, 프레임과 오디오가 1:1로 맞는다.
         const narrationLines = [cardData.script.hook, ...cardData.script.lines];
         const segments = await synthesizeLines(narrationLines, path.join(outDir, 'audio'));
-        // 인트로: 정지 사진 대신 실사 영상(Hailuo, 크레딧). 실패 시 null → 기존 컷아웃 방식.
+        // 인트로: 정지 사진 대신 실사 영상. 무료(ZeroGPU) → 유료(Hailuo) → null 순.
+        // ⚠️ 기본은 완전 무료(allowPaid=false). 유료 Hailuo 폴백을 켜려면 config의
+        //    reelCfg.introPaidFallback=true로 명시한다("완전 무료" 목표라 기본은 끈다).
         let introVideo = null;
         if (bgVideo && reelCfg.introVideo && personaFrames?.intro) {
-          introVideo = await animatePersona(
+          introVideo = await makeIntroVideo(
             personaFrames.intro,
             path.join(outDir, 'intro-hana.mp4'),
-            { duration: 6 }
+            // ⚠️ 인트로는 훅 구간이라 짧아도 된다. 6초면 ZeroGPU 하루 5분의 40%를
+            //    한 컷에 쓴다 — 브이로그와 같은 풀이라 4초로 줄여 여유를 남긴다.
+            { duration: 4, allowPaid: Boolean(reelCfg.introPaidFallback) }
           );
         }
 
