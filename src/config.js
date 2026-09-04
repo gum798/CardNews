@@ -64,8 +64,11 @@ export const reel = {
   stockVideo: process.env.REEL_STOCK_VIDEO !== '0',
   // 진행자 하나를 인트로/아웃트로에 합성한다. 실패해도 발행은 계속(베스트에포트).
   persona: process.env.REEL_PERSONA !== '0',
-  // 인트로를 정지 사진 대신 실사 영상(Hailuo i2v, 크레딧 결제)으로. 실패 시 정지 사진 폴백.
+  // 인트로를 정지 사진 대신 실사 영상으로. 무료 ZeroGPU → (아래가 켜져 있으면) 유료 Hailuo → 정지 사진.
   introVideo: process.env.REEL_INTRO_VIDEO !== '0',
+  // 유료 Hailuo 폴백. 「완전 무료」가 목표라 기본은 끈다 — 켜려면 REEL_INTRO_PAID_FALLBACK=1.
+  // (pipeline.js가 읽는데 여기 정의가 없어서 켤 방법이 없었다.)
+  introPaidFallback: process.env.REEL_INTRO_PAID_FALLBACK === '1',
 };
 
 // 발행 슬롯 + 실패 시 재시도 창. launchd가 target~retryUntilHour 매 정시에 잡을 실행하면,

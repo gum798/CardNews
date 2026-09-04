@@ -10,10 +10,8 @@ import { existsSync } from 'node:fs';
 import { startListener, report } from '../bot/index.js';
 import { updateCandidateStatus, setMeta } from '../db/index.js';
 import { generateAndPublish } from '../pipeline.js';
-import { uploadFile } from '../storage/index.js';
-import { publishCarousel, publishPhoto } from '../publisher/index.js';
 import { loadPost, savePost, selectedFiles, reviewText, reviewKeyboard, reelEligible, postStage, REEL_MIN_STAGE } from '../vlog/review.js';
-import { dryRun, account, paths, telegram } from '../config.js';
+import { dryRun, paths, telegram } from '../config.js';
 
 async function onApprove(candidateId) {
   await generateAndPublish(candidateId);

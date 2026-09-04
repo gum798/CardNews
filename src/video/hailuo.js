@@ -32,6 +32,11 @@ async function api(path, opts = {}) {
 // 사진 → 6초 영상. 성공 시 outPath, 실패 시 null.
 export async function animatePersona(imagePath, outPath, { prompt = INTRO_PROMPT, duration = 6 } = {}) {
   if (!minimax.subKey) return null;
+  // ⚠️ Hailuo-02/2.3 계열의 duration은 6 또는 10만 받는다. 호출부(pipeline.js)가 ZeroGPU
+  //    할당량 때문에 4초를 넘기는데, 그대로 보내면 invalid parameter로 task_id 없이 거절되어
+  //    유료 폴백이 조용히 무력화된다 → 6으로 올려 보낸다(10초는 요청이 10 이상일 때만).
+  const apiDuration = duration >= 10 ? 10 : 6;
+  if (apiDuration !== duration) console.log(`[hailuo] duration ${duration}→${apiDuration}초 (API 허용값)`);
   try {
     const b64 = readFileSync(imagePath).toString('base64');
     const sub = await api('/v1/video_generation', {
@@ -40,7 +45,7 @@ export async function animatePersona(imagePath, outPath, { prompt = INTRO_PROMPT
         model: MODEL,
         prompt,
         first_frame_image: `data:image/png;base64,${b64}`,
-        duration,
+        duration: apiDuration,
         resolution: '768P',
       }),
     });
@@ -61,7 +66,7 @@ export async function animatePersona(imagePath, outPath, { prompt = INTRO_PROMPT
         const v = await fetch(url, { signal: AbortSignal.timeout(180_000) });
         if (!v.ok) return null;
         writeFileSync(outPath, Buffer.from(await v.arrayBuffer()));
-        console.log(`[hailuo] 인트로 영상 생성 (${duration}초, task=${taskId})`);
+        console.log(`[hailuo] 인트로 영상 생성 (${apiDuration}초, task=${taskId})`);
         return outPath;
       }
       if (st === 'Fail') {
