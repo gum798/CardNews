@@ -18,7 +18,7 @@ import { promisify } from 'node:util';
 import { cloudflare, paths } from '../config.js';
 import { foregroundMatte } from '../video/matte.js';
 import { identityLockFor, currentStage, makeupFor } from './hana.js';
-import { estimateNeurons, record as recordNeurons } from './budget.js';
+import { estimateNeurons, record as recordNeurons, markExhausted, isExhausted } from './budget.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
@@ -156,6 +156,40 @@ async function headCropForRef(imgPath) {
   return out;
 }
 
+// CF 계정별로 「오늘 아직 살아 있나」를 아주 싼 호출로 확인해 장부에 반영한다.
+// CF는 남은 뉴런 조회 API가 없어서 장부는 추정일 뿐이고, 자정(UTC) 초기화가 계정마다
+// 제때 안 오기도 한다(실측 2026-09-04: 계정 1은 00:50 UTC에도 429, 계정 2는 초기화됨).
+// 글값(claude 호출)을 쓰기 전에 이걸로 재면 「장부는 여유·실제는 전 계정 429」를 피한다.
+// 비용: flux-1-schnell 1024x1024 한 장 = 약 40뉴런/계정. 이미 소진 표시된 계정은 건너뛴다.
+export async function probeCloudflare({ log = console.log } = {}) {
+  const accounts = cloudflare.accounts.length ? cloudflare.accounts : [{ accountId: cloudflare.accountId, token: cloudflare.aiToken }];
+  const model = '@cf/black-forest-labs/flux-1-schnell';
+  let alive = 0;
+  for (let ai = 0; ai < accounts.length; ai++) {
+    if (isExhausted(ai)) continue;
+    const acct = accounts[ai];
+    try {
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/ai/run/${model}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${acct.token}`, 'Content-Type': 'application/json' },
+        // ⚠️ schnell은 width/height를 받지 않는다(넣으면 400 Bad input, 실측). 기본 1024x1024·1스텝.
+        body: JSON.stringify({ prompt: 'a plain grey wall', steps: 1 }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      await res.arrayBuffer();
+      if (res.status === 429) { markExhausted(ai); log(`[persona] cf 계정 ${ai + 1} 오늘 소진(탐침)`); continue; }
+      if (!res.ok) { log(`[persona] cf 계정 ${ai + 1} 탐침 ${res.status} — 판단 보류`); alive++; continue; }
+      recordNeurons(estimateNeurons(model, { width: 1024, height: 1024 }), ai);
+      alive++;
+    } catch (e) {
+      // 네트워크 문제는 소진이 아니다. 살아 있는 쪽으로 세되 로그는 남긴다.
+      log(`[persona] cf 계정 ${ai + 1} 탐침 실패 — 판단 보류: ${e.message}`);
+      alive++;
+    }
+  }
+  return { alive, total: accounts.length };
+}
+
 async function viaCloudflare(prompt, refImages, size, modelOverride) {
   // 호출부가 모델을 지정할 수 있다. 뉴스 키프레임처럼 화질이 덜 중요한 쪽은 싼 모델로
   // 내려서 하루 뉴런을 브이로그 피드 사진에 몰아준다(9B 1장 = 4B 아홉 장 값).
@@ -181,8 +215,11 @@ async function viaCloudflare(prompt, refImages, size, modelOverride) {
       signal: AbortSignal.timeout(300_000),
     });
     buf = Buffer.from(await res.arrayBuffer());
-    // 성공한 호출만 장부에 남긴다. 429는 뉴런을 안 쓴다.
-    if (res.ok) { recordNeurons(estimateNeurons(model, { width: w, height: h, refs: Math.min(refImages.length, 4) })); break; }
+    // 성공한 호출만 뉴런을 장부에 적는다. 429는 뉴런을 안 쓰지만 「이 계정은 오늘 끝」으로
+    // 표시한다 — 안 그러면 장부는 여유 있다는데 실제론 전 계정 429인 상태를 가드가 못 잡는다
+    // (실측 2026-09-04: 남은 12,794라며 통과 → 5장 전원 실패).
+    if (res.ok) { recordNeurons(estimateNeurons(model, { width: w, height: h, refs: Math.min(refImages.length, 4) }), ai); break; }
+    if (res.status === 429) markExhausted(ai);
     const last = ai === accounts.length - 1;
     if (res.status === 429 && !last) {
       console.warn(`[persona] cf 계정 ${ai + 1} 뉴런 소진 → 계정 ${ai + 2} 시도`);
@@ -367,8 +404,33 @@ const FRAMING = {
     'so there are small shadows under her eyes and nose. ' +
     'ISO 1600: visible grain, slightly muted colours, corners a touch darker. ' +
     'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
+    'Handheld, the frame tilted a couple of degrees.',
+
+  // 집 밖 실내 + 저녁. feedPublicNight는 「해 뜨기 전 형광등」이라 저녁 식당·극장·카페의
+  // 따뜻한 조명과 싸운다(일정 브이로그, 2026-09-04).
+  // ⚠️ 창문·색온도를 여기서 단정하지 않는다 — 극장 로비는 창이 없고 차가운 조명이고,
+  //    카페는 따뜻하다. 그건 장소 블록(hana.setting.places)이 말한다. 여기선 「밤이다」와
+  //    카메라·노출만.
+  feedIndoorNight:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken indoors in the evening. ' +
+    'It is already night outside, so the interior lighting of the place is the only light, ' +
+    'and any window in the frame is dark and reflects the room back. ' +
+    'That light is soft and uneven, with gentle shadows and dimmer far corners. ' +
+    'ISO 1600: visible grain, especially in the shadows, slightly muted colours, corners a touch darker. ' +
     'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
     'Handheld, the frame tilted a couple of degrees.',
+
+  // 야외 + 밤. 가로등·간판 불빛만 있는 조건이라 실내 프레이밍을 못 쓴다.
+  feedOutdoorNight:
+    'Vertical 4:5, a snapshot straight from her camera roll, taken outdoors at night. ' +
+    'The sky is deep blue-black. The only light comes from street lamps, shop signs and distant ' +
+    'city lights: her face is lit warm on one side by the nearest lamp and falls into shadow on the other, ' +
+    'and the lights behind her bloom into soft glowing dots. ' +
+    'ISO 3200: heavy grain, muted colours, blacks slightly lifted, corners darker. ' +
+    // ⚠️ 아래 문장은 SHALLOW_DOF와 글자 단위로 같아야 한다 — framingForDistance가 그 문장을 찾아
+    //    와이드/디테일 컷에서 바꿔 끼운다. 한 단어라도 다르면 밤 산책 와이드 컷이 f/1.8로 남는다.
+    'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her falls into soft bokeh and background surfaces read as smooth blocks of colour. ' +
+    'Handheld, a hint of motion blur in the background lights, the frame tilted a couple of degrees.',
 
   // 집 밖에서 낮에 찍은 컷. feedWindow/feedFlash는 「그녀의 방」·「밤」을 전제하므로
   // 편의점·카페 같은 장소에서 쓰면 장소 묘사와 정면으로 싸운다.
@@ -387,83 +449,230 @@ const FRAMING = {
 // 매번 같은 "책상 앞 반신"이면 계정 전체가 한 장짜리처럼 보인다.
 // 셀카는 전면카메라 특성(광각·팔 길이·약간 위에서)을 명시해야 셀카로 읽힌다.
 export const COMPOSITIONS = {
-  // ── 셀카 계열 ──
-  selfieHigh:
-    'This photo IS taken by the phone she is holding — the phone must not appear in the frame. ' +
-    'A front-camera selfie held at arm\'s length, about 45cm from her face, raised slightly above eye level ' +
-    'and angled down, so her face is a little larger than the rest of the frame and the ceiling shows behind her. ' +
-    'Wide front-camera lens, about 23mm equivalent: mild barrel distortion, her nose and the near cheek slightly enlarged. ' +
-    'Her extended arm is cut off at the bottom corner of the frame. ' +
-    'Whatever activity the scene describes, at this moment she has paused it to take the selfie: ' +
-    'her eyes are open and looking straight into the lens, aware of the camera.',
+  // ⚠️ 이 문자열들은 프롬프트 2번 자리에 들어간다 — 실측상 「어떤 그림이 되는가」를
+  //    사실상 결정하는 자리다. 그래서 여기에 장소를 적으면 맨 뒤의 장소 블록을 이긴다.
+  //    예전 문자열들은 전부 그녀의 방을 전제하고 있었다("in the room", "on the desk",
+  //    "the ceiling shows behind her", "the background is the floor and her lap").
+  //    그 결과 가구매장 소재인데 5장 전부 남의 집 침실에서 찍힌 채로 나왔다(2026-08-31 실측).
+  //    → 규칙: 구도는 카메라 위치·렌즈·거리·행동만 말한다. 장소 이름과 가구는 말하지 않는다.
+  //    가구가 필요하면 "the surface in front of her"처럼 장소가 채워 넣을 자리로 비워둔다.
 
-  // 머리 위에서 내려찍는 각도. 한국 셀카에서 가장 흔한 구도다.
-  // ⚠️ 전면카메라 셀카는 폰이 곧 카메라라 화면에 폰이 보이면 안 된다.
-  //    명시하지 않으면 모델이 폰 든 손을 그려 거울샷처럼 만들어 버린다.
+  // ── 셀카 계열 (가까움) ──
+  selfieHigh:
+    'This photo IS taken by the phone she is holding — the phone itself is the camera and stays out of frame. ' +
+    'A front-camera selfie at arm\'s length, about 45cm from her face, raised slightly above eye level and angled down. ' +
+    'Wide front-camera lens, about 23mm equivalent: mild barrel distortion, her nose and near cheek slightly enlarged. ' +
+    'Her extended arm is cut off at the bottom corner. ' +
+    'Whatever the scene describes, she has paused it to take this selfie: eyes open and looking into the lens.',
+
   selfieOverhead:
-    'This photo IS taken by the phone she is holding above her head — the phone itself is the camera ' +
-    'and must not appear anywhere in the frame. Her hand and the phone are out of shot. ' +
-    'The camera looks steeply down on her from about 40cm above her head, tilted down roughly 40 degrees. ' +
-    'Because of the high angle: the top of her head and her forehead are closest to the lens and largest, ' +
-    'her chin and shoulders recede and look small, and the background behind her is the floor and her lap, ' +
-    'not the wall. Whatever the scene describes her doing, she has paused to take this selfie — ' +
-    'she tilts her chin up and looks up directly into the lens. ' +
-    'Wide front-camera lens at 23mm equivalent with the mild distortion that angle produces.',
+    'This photo IS taken by the phone she holds above her head — the phone itself is the camera and stays out of frame. ' +
+    'The camera looks down on her from about 40cm above, tilted down roughly 40 degrees, so the top of her head reads ' +
+    'largest and her chin and shoulders recede. ' +
+    'She tilts her chin up into the lens. Wide front-camera lens at 23mm equivalent with the distortion that angle gives.',
 
   selfieLow:
-    'This photo IS taken by the phone she is holding — the phone must not appear in the frame. ' +
-    'A front-camera selfie held at chest height and tilted up slightly, about 40cm from her face, shot in a hurry — ' +
-    'her face fills a third of the frame and part of her extended arm shows at the bottom edge; ' +
-    'the frame is crooked, part of her shoulder fills the lower left corner, and she is looking at the screen ' +
-    'rather than the lens so her eyes are a fraction off-axis. Wide front-camera lens, mild distortion.',
+    'This photo IS taken by the phone she is holding — the phone itself is the camera and stays out of frame. ' +
+    'A front-camera selfie held at chest height and tilted up slightly, about 40cm from her face, shot in a hurry: ' +
+    'her face fills a third of the frame, part of her extended arm shows at the bottom edge, the frame is crooked, ' +
+    'and she is looking at the screen rather than the lens so her eyes sit a fraction off-axis.',
 
-  mirrorSelfie:
-    'A mirror selfie taken in her room: she stands holding the phone up in front of her chest, ' +
-    'the phone and her hand clearly visible in the reflection, her face partly behind it. ' +
-    'The mirror is a little smudged, the tidy room reflected behind her — made bed, clear floor. ' +
-    'Shot on the rear camera through the mirror.',
+  // 셀카인데 뒤 공간이 살아 있는 컷. 「어디에 있는지 보이는 셀카」가 없어서 새로 넣는다.
+  selfieWithPlace:
+    'This photo IS taken by the phone she is holding — the phone itself is the camera and stays out of frame. ' +
+    'She holds it out at full arm\'s length and leans back so the camera catches the space she is standing in, ' +
+    'not just her face: her head and shoulders sit in the lower third of the frame and off to one side, ' +
+    'and the upper two thirds are the place opening up behind and above her, in focus and legible. ' +
+    'Wide front-camera lens, 23mm equivalent. She looks into the lens.',
 
-  // ── 남이 찍어준 것 같은 계열 ──
+  // ── 남이 찍어준 것 같은 계열 (중간) ──
   candidSide:
-    'Shot from the side by someone else in the room, she is not aware of the camera, ' +
-    'looking down at what she is doing. Her face is in three-quarter profile, one ear toward the lens.',
+    'Shot from the side by someone standing a couple of metres away, she is unaware of the camera, ' +
+    'looking down at what she is doing. Her face is in three-quarter profile, one ear toward the lens. ' +
+    'Her whole upper body is in frame with space around her.',
 
   overShoulder:
-    'Shot from slightly behind and above her shoulder, so we see the back of her head, ' +
-    'part of her cheek, and what she is looking at on the desk in front of her.',
+    'Shot from slightly behind and above her shoulder, so we see the back of her head, part of her cheek, ' +
+    'and what she is looking at on the surface in front of her.',
 
-  // ── 얼굴이 없거나 작은 계열 (피드에 리듬을 준다) ──
+  // 남이 몇 걸음 떨어져 찍어준 전신. 방 밖 소재에 「사람이 공간 안에 서 있는」 컷이 없었다.
+  fullBodyCandid:
+    'Shot by someone standing five or six metres away, holding the phone vertically at chest height. ' +
+    'She is in full length from head to feet, standing about a third of the way in from one edge, ' +
+    'and she takes up roughly half the height of the frame. The rest of the frame is the space around her, ' +
+    'sharp enough to read. She is absorbed in what she is doing and not looking at the camera.',
+
+  // ── 공간이 주인공인 계열 (넓음) ──
+  // ⚠️ 얼굴이 작아지면 앵커 신원이 무너진다. 그래서 「멀리서 찍되 얼굴은 알아볼 수 있는
+  //    거리」로 못박는다. "she is small in the frame" 같은 표현은 쓰지 않는다 —
+  //    검증 결과 그러면 얼굴이 30px가 되어 신원도 QC도 같이 무너진다.
+  wideEstablishing:
+    'A wide establishing shot taken from about eight metres back, phone held vertically at chest height. ' +
+    'The space itself takes up most of the frame — it runs away from the camera and its far end is visible — ' +
+    'and she stands in the middle distance, turned three-quarters away, occupying about a third of the frame height. ' +
+    'Her face is still clearly readable at that distance. Everything from her to the far end stays in focus.',
+
+  downTheAisle:
+    'Shot straight down a long open run of the space from about six metres back, so the two sides of it ' +
+    'frame the picture and converge toward a bright far end. She stands off-centre in the middle distance, ' +
+    'facing away and looking at something to one side, taking up about a third of the frame height. ' +
+    'Her face reads in profile. The whole depth of the run is in focus.',
+
+  // ── 얼굴이 없거나 작은 계열 (디테일 — 피드에 리듬을 준다) ──
+  // ⚠️ 원래 "her face is not in the frame at all"이라고 썼는데 이건 네거티브라 FLUX.2가 무시한다
+  //    (실측 2026-08-31: 손만 나와야 할 4번 컷에 얼굴이 그대로 나옴).
+  //    「무엇이 없다」 대신 「프레임이 무엇으로 가득 차고 어디서 끝나는가」로 쓴다.
   handsOnly:
-    'A close-up of her hands and the desk surface only — her face is not in the frame at all. ' +
-    'Shot looking down from her own eye level, phone held in one hand.',
+    'The camera points straight down at the surface in front of her from chest height. ' +
+    'That surface and her two hands working on it fill the frame edge to edge, ' +
+    'and the top edge of the frame cuts across her forearms.',
+
+  // 같은 이유로 긍정형. 프레임의 끝을 손목으로 못박아 얼굴이 들어올 자리를 남기지 않는다.
+  objectDetail:
+    'The one object this moment is about fills the frame edge to edge, held in or just under her hands. ' +
+    'The camera looks straight down at it from chest height and the frame ends at her wrists, ' +
+    'with one sleeve entering from a corner. The background falls away soft behind the object.',
+
+  // ── 방 전용 ──
+  mirrorSelfie:
+    'A mirror selfie: she stands holding the phone up in front of her chest, the phone and her hand clearly ' +
+    'visible in the reflection, her face partly behind it. The mirror is a little smudged, her tidy room ' +
+    'reflected behind her — made bed, clear floor. Shot on the rear camera through the mirror.',
 
   wideRoom:
-    'A wide shot of the whole room taken from the doorway, she is small in the frame and off to one side, ' +
-    'absorbed in what she is doing. Most of the frame is the room itself.',
+    'A wide shot of the whole room taken from the doorway, she is seated or standing off to one side and ' +
+    'absorbed in what she is doing, taking up about a third of the frame height. Most of the frame is the room itself.',
+};
+
+// 구도별 촬영 거리. 이게 있어야 「5장의 거리 배분」을 강제할 수 있다.
+// ⚠️ 예전엔 거리라는 축 자체가 없어서, 서로 다른 구도 키 5개가 전부 팔 길이 셀카일 수 있었다.
+//    실제로 2026-08-31 이케아 5장이 정확히 그렇게 나왔다.
+export const COMPOSITION_DISTANCE = {
+  selfieHigh: 'close',
+  selfieOverhead: 'close',
+  selfieLow: 'close',
+  selfieWithPlace: 'medium',
+  candidSide: 'medium',
+  overShoulder: 'medium',
+  fullBodyCandid: 'wide',
+  wideEstablishing: 'wide',
+  downTheAisle: 'wide',
+  handsOnly: 'detail',
+  objectDetail: 'detail',
+  mirrorSelfie: 'close',
+  wideRoom: 'wide',
 };
 
 // 슬롯별 구도 배분. 첫 장은 항상 셀카로 고정하고(피드 썸네일에 얼굴이 걸리게),
 // 나머지는 섞는다. 얼굴 없는 컷을 하나쯤 넣어야 피드에 리듬이 생긴다.
 // 방에서만 성립하는 구도. 밖에서 찍는 날엔 빼야 한다
 // (전신거울과 방 전경은 편의점·카페에 없다).
-export const ROOM_ONLY_COMPOSITIONS = ['mirrorSelfie', 'wideRoom'];
+// 장소의 「종류」. 같은 실내라도 6평 원룸과 2만평 창고는 성립하는 구도가 다르다.
+// ⚠️ 예전엔 이 축이 없어서 room이냐 아니냐로만 갈랐고, 유일한 와이드 구도(wideRoom)가
+//    방 밖에서 전부 제거됐다. 그래서 가구매장·헬스장·바닷가에 「공간이 보이는 컷」을
+//    만들 수단이 아예 없었다(2026-08-31 실측: 이케아 5장 전부 팔 길이 셀카).
+export const VENUE_OF_PLACE = {
+  room: 'home',
+  movingRoom: 'home',
+  // 넓은 실내 — 멀리까지 시선이 뻗는 곳. 와이드가 성립한다.
+  ikea: 'largeVenue',
+  gym: 'largeVenue',
+  gymMassage: 'largeVenue',
+  library: 'largeVenue',
+  laundromat: 'smallIndoor',
+  libraryCafe: 'smallIndoor',
+  cafe: 'smallIndoor',
+  convenienceStore: 'smallIndoor',
+  chinatown: 'smallIndoor',
+  // 야외 — 하늘과 지평선이 있어 가장 넓게 찍을 수 있다.
+  beach: 'outdoor',
+  park: 'outdoor',
+  nightStreet: 'outdoor',
+  bathhouseStreet: 'outdoor',
+  busStop: 'outdoor',
+  earlyTrain: 'transit',
+  // ── 인플루언서 아크에서 추가 ──
+  hotplaceCafe: 'largeVenue',
+  noodleShop: 'smallIndoor',
+  nightView: 'outdoor',
+  beautyStore: 'smallIndoor',
+  marketAlley: 'outdoor',
+  hanokAlley: 'outdoor',
+  riversideDusk: 'outdoor',
+  // ── 일정 브이로그(2026-09-04)에서 추가 ──
+  restaurant: 'smallIndoor',
+  cinema: 'largeVenue',
+  riverNight: 'outdoor',
+};
+
+export function venueOf(place) {
+  return VENUE_OF_PLACE[place] || 'smallIndoor';
+}
+
+// 장소 종류별로 성립하는 구도. 없는 종류는 smallIndoor로 떨어진다.
+// ⚠️ mirrorSelfie·wideRoom은 전신거울과 방 전경이라 집에서만 성립한다.
+const VENUE_COMPOSITIONS = {
+  home:        ['selfieHigh','selfieOverhead','selfieLow','mirrorSelfie','candidSide','overShoulder','handsOnly','objectDetail','wideRoom'],
+  largeVenue:  ['selfieHigh','selfieOverhead','selfieLow','selfieWithPlace','candidSide','overShoulder','fullBodyCandid','wideEstablishing','downTheAisle','handsOnly','objectDetail'],
+  smallIndoor: ['selfieHigh','selfieOverhead','selfieLow','selfieWithPlace','candidSide','overShoulder','fullBodyCandid','handsOnly','objectDetail'],
+  outdoor:     ['selfieHigh','selfieOverhead','selfieLow','selfieWithPlace','candidSide','fullBodyCandid','wideEstablishing','handsOnly','objectDetail'],
+  transit:     ['selfieHigh','selfieOverhead','selfieLow','selfieWithPlace','candidSide','overShoulder','downTheAisle','handsOnly','objectDetail'],
+};
 
 // 장소에 맞는 구도만 남긴다. 전부 걸러지면 원본을 그대로 돌려준다(빈 배열 방지).
 export function compositionsForPlace(list, place) {
-  if (place === 'room') return list;
-  const kept = list.filter((c) => !ROOM_ONLY_COMPOSITIONS.includes(c));
-  return kept.length ? kept : list;
+  const allowed = VENUE_COMPOSITIONS[venueOf(place)] || VENUE_COMPOSITIONS.smallIndoor;
+  const kept = list.filter((c) => allowed.includes(c));
+  return kept.length ? kept : allowed;
+}
+
+// 한 게시물 5장의 거리 배분 계약.
+// ⚠️ 이게 없으면 구도 키가 5개 다 달라도 전부 팔 길이 셀카일 수 있다 — 실제로 그랬다.
+//    1번은 반드시 close(피드 썸네일에 얼굴이 걸려야 한다), 나머지는 넓게→좁게 훑는다.
+//    집은 넓게 찍을 게 없으므로 와이드를 한 장만 준다.
+const DISTANCE_PLAN = {
+  home:        ['close', 'medium', 'detail', 'wide',   'close'],
+  largeVenue:  ['close', 'wide',   'medium', 'detail', 'wide'],
+  smallIndoor: ['close', 'medium', 'wide',   'detail', 'medium'],
+  outdoor:     ['close', 'wide',   'medium', 'detail', 'wide'],
+  transit:     ['close', 'medium', 'wide',   'detail', 'close'],
+};
+
+// n장을 뽑을 때 각 장의 목표 거리. 5장보다 적게 뽑아도 앞에서부터 잘라 쓴다
+// (뉴런이 모자라 3장으로 줄어도 close·wide·medium은 확보된다).
+export function distancePlanFor(place, n = 5) {
+  const plan = DISTANCE_PLAN[venueOf(place)] || DISTANCE_PLAN.smallIndoor;
+  return Array.from({ length: n }, (_, i) => plan[i % plan.length]);
+}
+
+// 목표 거리에 맞는 구도를 뽑는다. 같은 게시물 안에서 구도 키가 겹치지 않게 used를 넘긴다.
+// 목표 거리에 남은 게 없으면 인접 거리로 물러난다 — 빈손으로 돌아가지 않는다.
+const DISTANCE_FALLBACK = {
+  wide: ['wide', 'medium', 'close', 'detail'],
+  medium: ['medium', 'wide', 'close', 'detail'],
+  close: ['close', 'medium', 'detail', 'wide'],
+  detail: ['detail', 'close', 'medium', 'wide'],
+};
+
+export function pickComposition(place, wantDistance, used = [], shuffled = []) {
+  const allowed = VENUE_COMPOSITIONS[venueOf(place)] || VENUE_COMPOSITIONS.smallIndoor;
+  // shuffled는 호출부가 시드로 섞어 넘긴 순서. 같은 날 같은 게시물은 항상 같은 결과가 나온다.
+  const order = shuffled.length ? shuffled.filter((c) => allowed.includes(c)) : allowed;
+  for (const dist of DISTANCE_FALLBACK[wantDistance] || DISTANCE_FALLBACK.medium) {
+    const hit = order.find((c) => COMPOSITION_DISTANCE[c] === dist && !used.includes(c));
+    if (hit) return hit;
+  }
+  return order.find((c) => !used.includes(c)) || order[0];
 }
 
 export const COMPOSITION_SETS = {
   day: {
     first: ['selfieOverhead', 'selfieHigh', 'selfieLow', 'candidSide'],
-    rest: ['handsOnly', 'candidSide', 'overShoulder', 'selfieHigh', 'selfieLow', 'wideRoom', 'selfieOverhead'],
+    rest: ['wideEstablishing','downTheAisle','fullBodyCandid','selfieWithPlace','candidSide','overShoulder','objectDetail','handsOnly','selfieHigh','selfieLow','selfieOverhead','wideRoom'],
   },
   evening: {
     first: ['selfieOverhead', 'selfieLow', 'mirrorSelfie', 'selfieHigh', 'candidSide'],
-    // 10장 체제라 rest가 순환한다. 셀카 계열도 섞어 같은 구도가 연달아 나오지 않게 한다.
-    rest: ['wideRoom', 'overShoulder', 'handsOnly', 'candidSide', 'selfieHigh', 'selfieLow', 'selfieOverhead'],
+    rest: ['wideEstablishing','fullBodyCandid','downTheAisle','selfieWithPlace','overShoulder','handsOnly','objectDetail','candidSide','selfieHigh','selfieLow','selfieOverhead','wideRoom'],
   },
 };
 
@@ -506,6 +715,45 @@ function pickImperfections(seed, n = 3, phase = 'before') {
 // framing: 'reel' | 'feedWindow' | 'feedFlash'
 // withReference=true면 짧은 identityLock을 쓴다(레퍼런스 이미지를 함께 첨부할 때).
 // 긴 얼굴 묘사를 매번 반복하면 토큰이 얼굴로 쏠려 촬영 조건 지시가 묻힌다.
+
+// 넓은 컷에서는 배경을 지우면 안 된다.
+// ⚠️ FRAMING들이 "everything more than a metre behind her falls into soft bokeh"를 들고 있는데,
+//    이 문장은 프롬프트 10번 자리라 12번의 장소 블록보다 앞선다. 즉 장소를 묘사하기도 전에
+//    「배경을 뭉개라」가 먼저 걸린다. 60m 창고를 찍어도 익명의 색 덩어리가 나온 이유다.
+//    close/detail 컷에서는 그대로 두고(그게 셀카의 실제 심도다), wide/medium에서만 바꾼다.
+const SHALLOW_DOF =
+  'Shot at f/1.8 with focus locked on her face, so everything more than a metre behind her ' +
+  'falls into soft bokeh and background surfaces read as smooth blocks of colour.';
+const DEEP_DOF =
+  'Shot at f/5.6 with a deep focus that holds both her and the space behind her sharp all the way ' +
+  'to its far end, so the place she is in is legible rather than blurred away.';
+
+const DETAIL_DOF =
+  'Shot at f/2.8 with focus locked on her hands and the surface they rest on, ' +
+  'so the object is crisp and everything beyond it softens away.';
+
+// Pexels alt 정제 — 「Explore the lively, bustling …」 같은 홍보 어투와 인파·간판 형용사를 뺀다.
+function cleanPlaceNote(note) {
+  return String(note)
+    .replace(/^(explore|discover|experience|enjoy|visit|capture|step into)\s+/i, '')
+    // 「with bright signage」「and bustling nightlife」「, crowds」 — 접속사째로 뺀다
+    .replace(/(,|\band|\bwith)?\s*\b(bright|neon|colou?rful|bustling|lively|busy|vibrant)?\s*\b(signage|signs|crowds?|nightlife|people|pedestrians|shoppers|tourists)\b/gi, '')
+    .replace(/\b(lively|bustling|vibrant|busy|crowded|packed|inviting|stylish|ideal|perfect)\b,?\s*/gi, '')
+    .replace(/\b(of|in|at)\s*,/g, ',').replace(/\s+,/g, ',').replace(/,\s*(,|\.|$)/g, '$1').replace(/\s{2,}/g, ' ').replace(/[,\s]*\.?\s*$/, '').trim();
+}
+
+function framingForDistance(text, distance) {
+  if (distance === 'detail') {
+    // ⚠️ FRAMING 문장들이 「그녀의 얼굴에 빛이 어떻게 떨어지는가」로 쓰여 있다.
+    //    얼굴이 프레임에 없는 컷에서 얼굴을 언급하면 모델이 얼굴을 그려 넣는다.
+    return (text.includes(SHALLOW_DOF) ? text.replace(SHALLOW_DOF, DETAIL_DOF) : text)
+      .replace('the daylight side of her face reads slightly blue, the shadow side slightly green',
+               'the daylight side of the surface reads slightly blue, the shadow side slightly green');
+  }
+  if (distance !== 'wide' && distance !== 'medium') return text;
+  return text.includes(SHALLOW_DOF) ? text.replace(SHALLOW_DOF, DEEP_DOF) : text;
+}
+
 export function scenePrompt(
   persona,
   {
@@ -521,6 +769,11 @@ export function scenePrompt(
     styling = '', // looks[look] 대신 쓸 구체 복장. 게시물 안에서 옷을 고정할 때.
     expression = '', // 표정 지정. 안 주면 imperfections가 만드는 무심한 얼굴.
     seasonNote = '', // 계절 보정. 고정 배치 중 계절에 안 맞는 물건을 덮어쓴다.
+    distance = '',   // 'wide'|'medium'|'close'|'detail'. 배경을 살릴지 뭉갤지를 정한다.
+    // 섭외한 실사 레퍼런스의 한 줄 설명(영어). 장소 블록 끝에 「레퍼런스 사진이 이 장소다」로 붙는다.
+    // 레퍼런스는 편집 대상이라 그림을 정하고, 이 문장은 그 그림에 이름을 붙여 텍스트와 사진이
+    // 같은 곳을 가리키게 한다(일정 브이로그, 2026-09-04).
+    placeNote = '',
   } = {}
 ) {
   const a = persona.appearance;
@@ -549,34 +802,84 @@ export function scenePrompt(
   //    그래서 (1) 맨 앞에 「인물이 주인공」을 못박고 (2) 장소는 맨 뒤로 보내
   //    「그녀 뒤의 배경」이라고 이름 붙인다. 장소는 배경이지 피사체가 아니다.
   const placeText = persona.setting?.places?.[place] || persona.setting?.roomPrompt || '';
+  // 장소 한 줄 요약(영어). 1번 자리와 장소 블록 접두사가 같이 쓴다.
+  const placeHeadline = persona.setting?.headlineFor?.[place] || (place === 'room' ? 'the room' : '');
+  // ⚠️ 넓은 컷에서 장소를 "out of focus and secondary"라고 소개하면 배경을 보여달라는
+  //    구도 지시와 정면으로 싸운다. 거리에 따라 소개 방식을 바꾼다.
+  const wideShot = distance === 'wide' || distance === 'medium';
+  // ⚠️ 디테일 컷은 손과 상판만 나오는 컷이다. 그런데 예전에는 그 뒤로 얼굴 묘사(141단어),
+  //    체형(156단어), 목선·화장·얼굴 결점까지 500단어 가까이가 그대로 붙었다.
+  //    40단어짜리 구도 지시가 이길 수 없다 — 실측 2026-08-31: 손만 나와야 할 컷이
+  //    전신 정면으로 나왔다. 프레임에 얼굴이 없으면 얼굴 이야기를 하지 않는다.
+  const detailShot = distance === 'detail';
+  const placeLead = wideShot
+    ? 'The place she is in, sharp and clearly readable around her:'
+    : 'Behind her, out of focus and secondary to her:';
   return [
     // ⚠️ "fills most of the frame"까지 쓰면 구도 지시를 눌러버려 5장이 전부 같은
     //    정면 반신으로 나온다(실측). 거리·구도는 아래 composition/FRAMING이 정하게 두고,
     //    여기서는 「무엇을 찍는 사진인가」만 못박는다.
-    'A photo of one young Korean woman. She is what this photo is of — the camera is placed ' +
-      'to photograph her, and the room is the background she happens to be in.',
+    // ⚠️ 여기는 프롬프트 1번 자리 — 가장 강한 자리다. 예전엔 장소와 무관하게 항상
+    //    "the room is the background"라고 못박혀 있었다. 그래서 place가 ikea든 beach든
+    //    모델이 맨 먼저 읽는 단어가 「방」이었고, 12번 자리의 장소 블록은 이길 수가 없었다
+    //    (2026-08-31 실측: 가구매장 소재 5장이 전부 남의 집 침실에서 나옴).
+    detailShot
+      ? 'A close-up photo of a young Korean woman\'s hands and the surface in front of her. ' +
+        'Her hands and that surface are what this photo is of.'
+      : 'A photo of one young Korean woman. She is what this photo is of — the camera is placed ' +
+        `to photograph her, and ${placeHeadline} is the background she happens to be in.`,
+    // 장소 한 줄을 앞으로 끌어올린다. 상세 묘사는 뒤에 두되, 「어디인가」만 먼저 못박는다.
+    // 뒤쪽 긴 블록이 예산에 밀려 무시돼도 장소 정체성은 살아남는다.
+    // ⚠️ "She is ${headline}" 형태로 쓰면 「She is a warehouse store.」 같은 문장이 된다.
+    //    장소마다 전치사가 달라(in the room / on a beach) 안전한 명사구 형태로 붙인다.
+    // 넓은/중간 컷에서만 장소를 한 번 더 못박는다. 배경이 보여야 하는 컷이라 반복이 값을 한다.
+    // 가까운 컷·디테일 컷에서는 배경이 어차피 안 보이므로 단어만 낭비다.
+    placeHeadline && wideShot ? `The place around her: ${placeHeadline}.` : '',
     // 구도를 앞으로 올린다. 뒤에 두면 긴 묘사에 묻혀 매번 같은 그림이 된다.
     angleText,
     // ⚠️ 표정도 같은 이유로 앞에 둔다. 예전엔 FRAMING(조명·카메라 설정 한 문단) 뒤에
     //    있었는데, 표정 지시를 컷마다 다르게 넣어도 결과는 전부 같은 무표정이었다(실측).
     //    표정은 「어떤 사진인가」를 정하는 요소지 마감 손질이 아니다.
-    expression ? `Her expression in this photo: ${expression}.` : '',
-    identity,
+    detailShot ? '' : expression ? `Her expression in this photo: ${expression}.` : '',
+    detailShot ? '' : identity,
     // ⚠️ 레퍼런스를 첨부할 때는 점을 말로 다시 설명하지 않는다.
     //    앵커가 시기별로 따로 있어 점 유무가 이미 반영돼 있고,
     //    "레퍼런스대로 베껴라"와 "여기에 그려라"가 충돌하면 모델이 위치를 재해석해 매번 옮긴다.
     withReference ? '' : fragment,
     // 변신 단계가 바꾸는 건 화장뿐이다. 옷차림·노출은 exposureStandard로 고정
     // (사용자가 바닷가 V넥 컷을 표준으로 확정) — 단계가 올라가도 안 변한다.
-    makeupFor(stage, place),
-    `What she is wearing right now: ${styling || a.looks[look]}. ` +
-      'She has these clothes on in every photo of this set.',
-    persona.exposureStandard,
-    a.figurePrompt || '',
+    detailShot ? '' : makeupFor(stage, place),
+    detailShot
+      ? `Only her forearms and sleeves show, from: ${styling || a.looks[look]}.`
+      // ⚠️ 옷 문장은 331번째 단어, 체형은 422번째다. 옷이 90단어 앞서므로 옷이 이긴다.
+      //    「니트」처럼 헐렁한 옷을 지정하면 체형 문장이 통째로 눌린다(실측 2026-09-03:
+      //    베이지 니트를 입혔더니 D컵 실루엣이 사라졌다).
+      //    그래서 옷을 말하는 자리에서 「그 옷이 그녀 몸 위에 어떻게 걸리는가」까지 같이 말한다.
+      : `What she is wearing right now: ${styling || a.looks[look]}. ` +
+        'Whatever the garment is, it follows the shape of her body rather than hanging straight ' +
+        'from her shoulders: it drapes over the full curve of her bust and falls in from there, ' +
+        'so her figure still reads clearly through the clothing. ' +
+        'She has these clothes on in every photo of this set.',
+    detailShot ? '' : persona.exposureStandard,
+    // 넓은 컷에서는 체형을 실루엣 수준으로만 말한다 — 상세판은 가까운 거리에서만 의미가 있고,
+    // 넓은 컷에 넣으면 예산을 먹으면서 「더 가까이」로 작용한다.
+    (detailShot ? '' : distance === 'wide' ? a.figurePromptWide || a.figurePrompt : a.figurePrompt) || '',
     scene ? `Action: ${scene}` : '',
-    FRAMING[framing] || FRAMING.reel,
-    `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
-    placeText ? `Behind her, out of focus and secondary to her: ${placeText}` : '',
+    framingForDistance(FRAMING[framing] || FRAMING.reel, distance),
+    detailShot ? '' : `Her face shows ${pickImperfections(seed || `${look}-${framing}-${scene}`, 3, ph)}`,
+    // ⚠️ 디테일 컷에는 장소 상세(300단어 이상)를 넣지 않는다. 손과 상판만 보이는 컷인데
+    //    「홀이 뒤로 열린다」 같은 문장이 들어가면 모델이 그걸 그리려고 카메라를 뒤로 뺀다
+    //    (실측: 손 클로즈업을 요청했는데 통로 전경이 나오고 팔이 세 개가 됐다).
+    //    어디인지 한 줄만 남긴다 — 상판 재질과 조명만 맞으면 충분하다.
+    detailShot
+      ? (placeHeadline ? `They are in ${placeHeadline}, but only the surface and her hands are in shot.` : '')
+      : placeText
+        // 섭외 사진(Pexels)은 낮에 찍힌 게 많다. 배치·재질은 사진대로, 빛은 프레이밍대로.
+        // ⚠️ 레퍼런스 문장은 장소 블록 「앞」에 둔다 — 장소 블록 끝의 간판·인파 억제 문장이
+        //    마지막 말이어야 한다. Pexels alt는 「lively, bustling nightlife」 같은 홍보 문구라
+        //    뒤에 붙이면 그게 억제 문장을 덮는다(실측 2026-09-04 밤거리 컷). 그 단어들은 지운다.
+        ? `${placeLead} ${placeNote ? `The reference photo shows this exact place: ${cleanPlaceNote(placeNote)}. Keep its layout, furnishings and materials, but light it as described above. ` : ''}${placeText}`
+        : '',
     seasonNote,
     'Unedited camera roll photo. No filter, no retouching, no beauty app.',
     // ⚠️ FLUX.2는 네거티브를 지원하지 않는다. BFL 문서의 치환 예시대로 긍정형으로 쓴다.

@@ -29,7 +29,7 @@ function parse(line) {
 
 // 이미지 1장 검수. { ok, reason, stats } 반환. 도구가 없거나 실패하면 통과시킨다
 // (검수 때문에 발행이 멈추면 안 된다).
-export function inspectImage(imgPath, refPath = null) {
+export function inspectImage(imgPath, refPath = null, { distance = '' } = {}) {
   return new Promise((resolve) => {
     if (!existsSync(QC_BIN) || !existsSync(imgPath)) return resolve({ ok: true, reason: 'skip' });
     const args = refPath && existsSync(refPath) ? [imgPath, refPath] : [imgPath];
@@ -42,6 +42,10 @@ export function inspectImage(imgPath, refPath = null) {
       //    실측: klein-9b로 바꿨을 때 5장 전부 사람 없는 빈 방이 나왔는데 검수를 그대로
       //    통과했다 — 「셀 수 있는 것만 센다」는 원칙 아래서도 0은 셀 수 있다.
       //    handsOnly 구도는 얼굴이 없는 게 정상이라 손으로 걸러진다.
+      // ⚠️ 사물 클로즈업(objectDetail)은 얼굴도 몸도 손도 안 나오는 게 정상이다.
+      //    이 규칙을 그대로 걸면 의도한 디테일 컷이 매번 「인물 없음」으로 미선택 처리된다.
+      //    거리를 알려준 경우에만 예외를 준다 — 모르면 예전대로 엄격하게 본다.
+      if (distance === 'detail') return resolve({ ok: true, reason: 'detail 컷(인물 없음 허용)', stats: s });
       if (s.faces === 0 && s.bodies === 0 && s.hands === 0) {
         return resolve({ ok: false, reason: '인물 없음(빈 배경)', stats: s });
       }
