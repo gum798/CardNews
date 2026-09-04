@@ -12,7 +12,10 @@
 ⚠️ 반드시 본인 소유 Space만 호출한다. 남의 Space를 스크립트로 두드리는 건
    약관상 회색지대라 쓰지 않는다.
 """
-import os, sys, shutil, argparse, json
+import os, sys, shutil, argparse, json, re, time
+
+# scripts/ 아래에 있으므로 한 단계 위가 리포 루트. .env와 out/ 경로의 기준.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ⚠️ 이 맥은 회사 TLS 검사(SK C&C CA) 뒤에 있다. 설정 안 하면
 #    httpx.ConnectError: CERTIFICATE_VERIFY_FAILED 로 죽는다(실측).
@@ -20,6 +23,29 @@ _CA = "/Users/seojeonghwa/models/localgen/ca-bundle.pem"
 if os.path.exists(_CA):
     os.environ.setdefault("SSL_CERT_FILE", _CA)
     os.environ.setdefault("REQUESTS_CA_BUNDLE", _CA)
+
+def save_quota(msg):
+    """HF가 거절하며 알려준 실제 잔량을 out/zerogpu-quota.json에 남긴다.
+
+    src/persona/zerogpu-budget.js의 remaining()이 이 파일을 우리 추정보다 우선한다 —
+    ZeroGPU는 롤링 24시간 창이라 자체 장부로는 잔량을 정확히 못 센다.
+    메시지 예: "You have exceeded your GPU quota (62s requested vs. 16s left). Try again in 1:23:45"
+    잔량 숫자를 못 읽으면 쓰지 않는다(엉터리 값으로 장부를 덮는 것보다 낫다).
+    """
+    m = re.search(r"(\d+(?:\.\d+)?)\s*s\s*left", msg, re.I) or re.search(r"left[^\d]{0,10}(\d+(?:\.\d+)?)\s*s", msg, re.I)
+    if not m:
+        return
+    left = int(float(m.group(1)))
+    t = re.search(r"(\d+):(\d{2}):(\d{2})", msg)
+    reset = int(t.group(1)) * 3600 + int(t.group(2)) * 60 + int(t.group(3)) if t else 3600
+    try:
+        os.makedirs(os.path.join(ROOT, "out"), exist_ok=True)
+        with open(os.path.join(ROOT, "out", "zerogpu-quota.json"), "w") as f:
+            json.dump({"checkedAt": int(time.time()), "secondsLeft": left, "resetInSec": reset}, f)
+        print(f"[zerogpu] 실제 잔량 기록: {left}초 남음, {reset}초 뒤 회복", file=sys.stderr)
+    except OSError as e:
+        print(f"[zerogpu] 잔량 기록 실패: {e}", file=sys.stderr)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -40,7 +66,7 @@ def main():
     token = os.environ.get("HF_TOKEN")
     if not token:
         # .env에서 읽는다. 토큰은 .env에만 두고 코드·로그에 남기지 않는다.
-        envp = "/Users/seojeonghwa/project/CardNews/.env"
+        envp = os.path.join(ROOT, ".env")
         if os.path.exists(envp):
             for line in open(envp):
                 if line.startswith("HF_TOKEN="):
@@ -53,8 +79,14 @@ def main():
     #    H3 Turbo는 인기가 많아 자주 붐비는데(실측 2026-09-03), 붐빔은 할당량과 무관하므로
     #    WAN으로 넘어가면 대개 바로 된다. WAN은 16fps라 호출부에서 30fps 보간이 필요하다.
     kinds = [k.strip() for k in a.kind.split(',') if k.strip()]
+    # ⚠️ generate_one()이 비어 있는 a.space / a.steps를 kind 기본값으로 채워 넣는다.
+    #    그대로 두면 두 번째 kind가 첫 kind의 Space·스텝을 물려받아(h3 → wan 폴백이
+    #    H3 Space에 WAN 인자를 던져 실패) 폴백이 한 번도 동작하지 않았다.
+    #    → 명령줄에서 받은 값만 기억해 두고 kind마다 되돌린다.
+    cli_space, cli_steps = a.space, a.steps
     last_rc = 1
     for ki, kind in enumerate(kinds):
+        a.space, a.steps = cli_space, cli_steps
         if len(kinds) > 1:
             print(f'[zerogpu] 시도 {ki+1}/{len(kinds)}: {kind}', file=sys.stderr)
         rc = generate_one(a, kind, token)
@@ -114,6 +146,7 @@ def generate_one(a, kind, token):
         except Exception as e:
             msg = str(e)
             if "quota" in msg.lower() or "exceeded" in msg.lower() or "gpu" in msg.lower():
+                save_quota(msg)
                 print(f"[zerogpu] 할당량/GPU 사유로 거절됨:\n{msg[:500]}", file=sys.stderr); return 3
             print(f"[zerogpu] 실패: {msg[:800]}", file=sys.stderr); return 1
 

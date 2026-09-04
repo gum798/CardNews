@@ -54,7 +54,7 @@ export function spent() {
 
 export function remaining() {
   // ⚠️ HF가 거절하며 알려준 실제 잔량이 있으면 그게 우선이다(우리 추정보다 정확).
-  //    scripts/zerogpu-clip.py가 거절 시 out/zerogpu-quota.json에 남긴다.
+  //    scripts/zerogpu-clip.py(save_quota)가 거절 시 out/zerogpu-quota.json에 남긴다.
   try {
     const f = new URL('../../out/zerogpu-quota.json', import.meta.url);
     const q = JSON.parse(readFileSync(f, 'utf8'));
