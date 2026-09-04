@@ -121,18 +121,28 @@ def generate_one(a, kind, token):
         # ⚠️ predict()는 기본 읽기 타임아웃이 짧아 긴 생성에서 "The read operation timed out"으로 끊긴다(실측).
         #    submit()으로 던져두고 폴링한다 — 서버는 계속 만들고 있으므로 기다리기만 하면 된다.
         import time
-        if kind == "h3":
-            # H3 Space는 파라미터 이름이 없어 위치 인자로 넘긴다(app.py의 generate_video 순서).
-            job = client.submit(
-                a.prompt, handle_file(a.image), None, a.canvas,
-                a.duration, a.steps, a.seed, False, a.lora,
-                api_name="/output_video")
-        else:
-            # WAN Lightning은 이름 있는 파라미터를 준다. 4스텝이라 할당량을 훨씬 덜 쓴다.
-            job = client.submit(
-                input_image=handle_file(a.image), last_image=None, prompt=a.prompt,
-                steps=a.steps, duration_seconds=a.duration, seed=a.seed, randomize_seed=False,
-                api_name="/generate_video")
+        try:
+            if kind == "h3":
+                # H3 Space는 파라미터 이름이 없어 위치 인자로 넘긴다(app.py의 generate_video 순서).
+                job = client.submit(
+                    a.prompt, handle_file(a.image), None, a.canvas,
+                    a.duration, a.steps, a.seed, False, a.lora,
+                    api_name="/output_video")
+            else:
+                # WAN Lightning은 이름 있는 파라미터를 준다. 4스텝이라 할당량을 훨씬 덜 쓴다.
+                job = client.submit(
+                    input_image=handle_file(a.image), last_image=None, prompt=a.prompt,
+                    steps=a.steps, duration_seconds=a.duration, seed=a.seed, randomize_seed=False,
+                    api_name="/generate_video")
+        except ValueError as e:
+            # ⚠️ Space가 잠들었거나(무료 Space는 48시간 놀면 잠든다) 재빌드 중이면 API 목록이 비어
+            #    "Cannot find a function with `api_name`: /generate_video"가 난다(실측 2026-09-04 10:00,
+            #    같은 Space가 14시에는 정상). 할당량 문제가 아니라 「지금 못 받음」이므로 rc=3으로
+            #    돌려 다음 kind로 넘어가게 한다. 예전엔 예외가 그대로 터져 rc=1로 사슬이 끊겼다.
+            if "api_name" in str(e):
+                print(f"[zerogpu] {a.space} 엔드포인트 없음(잠들었거나 재빌드 중) → 건너뜀: {str(e)[:200]}", file=sys.stderr)
+                return 3
+            raise
 
         waited = 0
         while not job.done():

@@ -49,4 +49,12 @@ done
 # EDIT: vlog rhythm = mostly hard CUTS, whips for energy, one dip-to-black beat,
 # one slow dissolve to close. A dissolve between two shots of the same face
 # double-exposes it and instantly reads "slideshow" - so almost none are used.
-"$HERE/assemble.sh" "$OUT" "whip:0.30:l,cut,whip:0.28:r,cut,cut,whip:0.26:u,cut,diss:0.45" "${SHOTS[@]}"
+# ⚠️ 조인 목록은 「컷 수 - 1」개여야 한다. 예전엔 8개 고정이라 사진 5장(컷 10개 = 조인 9개)에서
+#    assemble.sh가 "JOINS[8]: unbound variable"로 죽었고, 겉으로는 "body.mp4: No such file"만
+#    보였다(실측 2026-09-03 day · 09-04 evening — 릴스가 이틀 연속 안 만들어졌다).
+#    장수 가변(위 PLAN)으로 바꾼 뒤 생긴 불일치다. 컷 수에 맞춰 리듬 패턴을 돌리고 마지막만 디졸브.
+PATTERN=(whip:0.30:l cut whip:0.28:r cut cut whip:0.26:u cut)
+EDIT=""; k=0
+while [ $k -lt $(( ${#SHOTS[@]} - 2 )) ]; do EDIT="$EDIT${PATTERN[$((k % ${#PATTERN[@]}))]},"; k=$((k+1)); done
+EDIT="${EDIT}diss:0.45"
+"$HERE/assemble.sh" "$OUT" "$EDIT" "${SHOTS[@]}"

@@ -75,13 +75,17 @@ for ((i=1; i<=CLIPS; i++)); do
     const a=(p.photos&&p.photos[$i-1]&&p.photos[$i-1].action)||'';
     console.log('P>' + (a || 'A young Korean woman, handheld phone footage, natural light, realistic'));" 2>/dev/null | grep -oE '^P>.*' | tail -1 | cut -c3-)
   echo "[reel] 클립 $i 생성..."
+  # ⚠️ 출력을 `tail -2`로만 남기면 폴백 사슬(h3 → wan)에서 앞 kind가 왜 실패했는지가 사라진다
+  #    (실측 2026-09-04: WAN 트레이스백 2줄만 남고 H3 사유는 유실). 파일로 받아 [zerogpu] 줄만 남긴다.
   if "$PY" "$ROOT/scripts/zerogpu-clip.py" --kind "$KIND" --image "$IMG" \
        --prompt "$PROMPT, handheld phone footage, natural light, realistic" \
-       --duration 3 --out "$TMP/hero$i.mp4" 2>&1 | tail -2; then
+       --duration 3 --out "$TMP/hero$i.mp4" > "$TMP/zg$i.log" 2>&1; then
+    grep -a '^\[zerogpu\]' "$TMP/zg$i.log" | tail -2
     [ -f "$TMP/hero$i.mp4" ] && { HERO+=("$TMP/hero$i.mp4")
       (cd "$ROOT" && /opt/homebrew/bin/node -e "
         import('./src/persona/zerogpu-budget.js').then(b=>b.record(62));" 2>/dev/null); }
   else
+    grep -a '^\[zerogpu\]\|Error' "$TMP/zg$i.log" | grep -v '접속\|대기' | tail -6 | cut -c1-240
     echo "[reel] 클립 $i 실패 → 건너뜀"
   fi
 done
