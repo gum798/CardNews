@@ -39,25 +39,66 @@ export function estimateNeurons(model, { width = 768, height = 1376, refs = 0 } 
 }
 
 // 오늘(UTC) 키. 00:00 UTC에 바뀌므로 그때 장부가 저절로 초기화된다.
+function dayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
 function todayKey() {
-  return `cf_neurons:${new Date().toISOString().slice(0, 10)}`;
+  return `cf_neurons:${dayKey()}`;
+}
+// 계정별 장부. 총액 하나로는 「어느 계정이 얼마 남았나」를 모른다.
+// 실측 2026-09-04: 총액 장부는 12,794 남았다고 했는데 실제로는 두 계정 다 429였다.
+//   계정 1은 전날 뉴스가 다 먹은 채로 UTC 자정이 지나도 429가 계속 왔고(초기화 시각이
+//   문서와 다르거나 다른 소비처가 있는 듯), 계정 2는 재시도 포함 7번 호출로 바닥났다.
+//   그래서 가드가 통과 → 5장 전원 실패 → 텔레그램에 실패 알림만 갔다.
+const acctKey = (ai) => `cf_neurons:${dayKey()}:${ai}`;
+const exhaustedKey = (ai) => `cf_exhausted:${dayKey()}:${ai}`;
+
+// ai를 주면 그 계정(0부터), 안 주면 오늘 총액.
+export function spent(ai = null) {
+  return Number(getMeta(ai == null ? todayKey() : acctKey(ai)) || 0);
 }
 
-export function spent() {
-  return Number(getMeta(todayKey()) || 0);
+export function record(neurons, ai = null) {
+  const n = Math.max(0, Math.round(neurons));
+  setMeta(todayKey(), String(spent() + n));
+  if (ai != null) setMeta(acctKey(ai), String(spent(ai) + n));
 }
 
-export function record(neurons) {
-  setMeta(todayKey(), String(spent() + Math.max(0, Math.round(neurons))));
+// 429는 뉴런을 안 쓰지만 「이 계정은 오늘 끝」이라는 정보다. 장부가 얼마를 남겼다고
+// 하든 CF가 옳으므로, 그 계정은 오늘(UTC) 남은 몫 0으로 친다.
+export function markExhausted(ai) {
+  setMeta(exhaustedKey(ai), '1');
+}
+export function isExhausted(ai) {
+  return getMeta(exhaustedKey(ai)) === '1';
 }
 
 export function remaining(accountCount = 1) {
-  return Math.max(0, FREE_NEURONS_PER_ACCOUNT * accountCount - spent());
+  let sum = 0;
+  for (let ai = 0; ai < accountCount; ai++) {
+    if (isExhausted(ai)) continue;
+    sum += Math.max(0, FREE_NEURONS_PER_ACCOUNT - spent(ai));
+  }
+  // 계정 기록 없이 총액만 남긴 호출(옛 코드)과 섞여도 총액 기준보다 낙관하지 않는다.
+  return Math.min(sum, Math.max(0, FREE_NEURONS_PER_ACCOUNT * accountCount - spent()));
+}
+
+// 로그·가드용 한 줄 요약. 예: "계정1 소진 · 계정2 7206/10000"
+export function summary(accountCount = 1) {
+  const parts = [];
+  for (let ai = 0; ai < accountCount; ai++) {
+    parts.push(isExhausted(ai) ? `계정${ai + 1} 소진` : `계정${ai + 1} ${spent(ai)}/${FREE_NEURONS_PER_ACCOUNT}`);
+  }
+  return parts.join(' · ');
 }
 
 // 이 작업이 n장을 만들 여유가 있는지. 없으면 몇 장까지 되는지 알려준다.
 // ⚠️ 남는 걸 0까지 긁어 쓰지 않는다. 뒤에 올 작업(뉴스 키프레임 등) 몫을 남긴다.
-export function planPhotos(model, wanted, { accountCount = 1, reserve = 3000, ...size } = {}) {
+//    예비 1,000: 키프레임은 4B라 한 장 약 160뉴런, 하루 4장 ≈ 650 + 재시도 한 번.
+//    (예전 3,000은 장부가 총액뿐이라 계정별 상태를 몰랐을 때의 안전 마진이었다. 계정별
+//    장부·탐침을 넣은 뒤에도 3,000을 두면 계정 하나만 살아 있는 아침엔 9,960−3,000=6,960
+//    → 4장으로 깎여 5정거장 브이로그의 마지막 정거장이 통째로 빠진다.)
+export function planPhotos(model, wanted, { accountCount = 1, reserve = 1000, ...size } = {}) {
   const per = estimateNeurons(model, size);
   const usable = Math.max(0, remaining(accountCount) - reserve);
   const affordable = Math.floor(usable / per);
