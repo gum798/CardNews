@@ -93,16 +93,55 @@ const SLOT_GUIDE = {
   },
 };
 
+// 일정(out/schedule/YYYYMMDD.json)이 있는 날의 동선. 정거장마다 사진을 배정한다.
+// 정거장이 사진 장수보다 많으면 앞에서 자른다 — 장수는 뉴런 예산에 묶여 있다(PHOTO_COUNT).
+function scheduleStops(schedule) {
+  return (schedule?.stops || []).slice(0, PHOTO_COUNT).map((st) => ({
+    key: String(st.key),
+    place: String(st.place),
+    label: st.label || hana.setting.summaryFor?.[st.place] || st.place,
+    when: st.when || '',
+    // 작성자가 정거장에 night를 명시했으면 그대로 실어 보낸다 — framingFor가 이걸 본다.
+    ...(st.night === undefined ? {} : { night: Boolean(st.night) }),
+  }));
+}
+
+// 사진마다 정거장을 붙인다. LLM이 준 stop 키가 틀리면 순서대로 고르게 나눠 배정한다.
+function assignStops(photos, stops) {
+  const keys = stops.map((s) => s.key);
+  const out = photos.map((x, i) => {
+    const k = keys.includes(String(x.stop)) ? String(x.stop) : keys[Math.min(keys.length - 1, Math.floor((i * keys.length) / photos.length))];
+    return { ...x, stop: k };
+  });
+  const order = out.map((x) => keys.indexOf(x.stop));
+  // 정거장이 빠지면(같은 키 중복으로 어느 정거장은 사진 0장) 순서대로 고르게 다시 배정한다.
+  // 사진보다 정거장이 많을 땐 다 채울 수 없으니 건드리지 않는다(Math.min).
+  if (new Set(order).size < Math.min(keys.length, out.length)) {
+    return out.map((x, i) => ({ ...x, stop: keys[Math.min(keys.length - 1, Math.floor((i * keys.length) / out.length))] }));
+  }
+  // 정거장 순서를 거스르면(3번 뒤에 1번) 사진을 동선 순서로 재정렬한다.
+  // ⚠️ 라벨만 다시 붙이면 action(그 정거장에서 벌어지는 일)이 엉뚱한 정거장에 붙어
+  //    레퍼런스 사진·프레이밍·장소 설명이 통째로 어긋난다. 짝은 유지하고 순서만 고친다.
+  if (order.some((v, i) => i && v < order[i - 1])) {
+    return out.map((x, i) => ({ x, i })).sort((a, b) => order[a.i] - order[b.i] || a.i - b.i).map((o) => o.x);
+  }
+  return out;
+}
+
 // slot: 'day' | 'evening'
-// → { theme, caption, hashtags[], photos:[{ action, look }] }
-export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSeed = '' } = {}) {
+// → { theme, place, caption, hashtags[], photos:[{ action, look, stop?, place }], stops? }
+// schedule: 그날의 동선(out/schedule/YYYYMMDD.json). 있으면 소재·장소·상황을 일정에서 가져오고
+//           사진마다 정거장을 배정한다. 없으면 예전처럼 소재 풀에서 뽑는다.
+export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSeed = '', schedule = null } = {}) {
+  const stops = scheduleStops(schedule);
   // 소재를 지정하면 풀에서 뽑지 않는다(수동 실행에서 오늘 소재를 바꿀 때).
-  const theme = forcedTheme || pickTheme(slot);
+  // 일정이 있는 날은 일정 제목이 소재다 — 풀 사용 이력(meta)도 건드리지 않는다.
+  const theme = stops.length ? schedule.title || forcedTheme || '오늘의 동선' : forcedTheme || pickTheme(slot);
   // 소재가 장소를 못박지 않았으면 시간대 풀에서 시드로 고른다 —
   // 회고형 소재가 전부 방으로 몰려 매일 같은 그림이 나오던 문제(방 비중 73%).
-  const place = placeForTheme(theme, placeSeed || `${slot}-${theme}`, slot);
+  const place = stops.length ? stops[0].place : placeForTheme(theme, placeSeed || `${slot}-${theme}`, slot);
   const expression = expressionForTheme(theme);
-  const brief = hana.themeBriefs?.[theme] || '';
+  const brief = (stops.length && schedule.brief) || hana.themeBriefs?.[theme] || '';
   // 날씨를 모르면 8월에 「쌀쌀하네요」 같은 글이 나온다.
   const weather = await getSeoulWeather();
   const s = SLOT_GUIDE[slot] || SLOT_GUIDE.day;
@@ -124,7 +163,10 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSee
     `- 소재: ${theme}\n` +
     // ⚠️ 장소를 반드시 넘긴다. 예전엔 summaryFor가 없어 undefined가 들어갔고,
     //    글 쓰는 쪽이 어디인지 몰라 집 이야기를 써서 사진(카페)과 어긋났다.
-    (place !== 'room'
+    (stops.length
+      ? `- 오늘의 동선(시간 순) — 글은 이 동선을 따라갑니다. 여기 없는 장소·일은 쓰지 마세요.\n` +
+        stops.map((st, i) => `  ${i + 1}. ${st.when ? st.when + ' ' : ''}${st.label} [stop=${st.key}]`).join('\n') + '\n'
+      : place !== 'room'
       ? `- 장소: ${hana.setting.summaryFor?.[place] || place} — 집이 아닙니다. 이 장소에서 할 법한 행동만 쓰세요.\n` +
         `  글 전체가 이 장소에서 벌어져야 합니다. 집·방 이야기를 쓰지 마세요.\n`
       : '- 장소: 자취방 (원룸) — 이 글은 방 안에서 쓴 것입니다.\n') +
@@ -156,10 +198,16 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSee
     // 손은 결함이 가장 잦은 부위다. 화면 가운데 크게 펼쳐지지 않게 유도한다.
     `- 손이 화면 가운데 크게 펼쳐진 장면을 쓰지 마세요. 손은 컵·가방·주머니에 반쯤 가려지거나\n` +
     `  프레임 가장자리에 걸치게 쓰세요.\n` +
-    `- 첫 장은 인물이 보이는 사진, 나머지는 손·사물 클로즈업도 좋습니다.\n\n` +
-    `아래 형식의 JSON만 출력하세요(다른 텍스트 금지):\n` +
+    `- 첫 장은 인물이 보이는 사진, 나머지는 손·사물 클로즈업도 좋습니다.\n` +
+    (stops.length
+      ? `- 사진마다 어느 정거장에서 찍었는지 photos[].stop 에 위 [stop=…] 키를 적으세요.\n` +
+        `  동선 순서대로, 모든 정거장이 최소 한 장씩 나오게 하세요. action의 장면도 그 정거장에서 벌어지는 일이어야 합니다.\n` +
+        // 친구는 별도 인물 참조가 없어 얼굴을 그리면 매번 다른 사람이 된다.
+        `- 함께 있는 사람은 얼굴이 나오지 않게 쓰세요(손·어깨·뒷모습·프레임 밖). 인물의 얼굴은 하나뿐입니다.\n`
+      : '') +
+    `\n아래 형식의 JSON만 출력하세요(다른 텍스트 금지):\n` +
     `{"caption":"게시물 본문(줄바꿈 포함)","hashtags":["#취준일기","#공채준비"],` +
-    `"photos":[{"action":"영어 한 문장"}]}`;
+    (stops.length ? `"photos":[{"stop":"정거장 키","action":"영어 한 문장"}]}` : `"photos":[{"action":"영어 한 문장"}]}`);
 
   const parsed = await askClaudeJson(prompt);
   const caption = String(parsed?.caption ?? '').trim();
@@ -168,6 +216,20 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSee
     throw new Error(`vlog 스키마 검증 실패 (caption=${caption.length}자, photos=${photos.length})`);
   }
 
+  const picked = photos.slice(0, PHOTO_COUNT);
+  if (!stops.length) {
+    return {
+      slot,
+      theme,
+      place,
+      expression,
+      weather,
+      caption,
+      hashtags: (parsed.hashtags || []).slice(0, 6).map(String),
+      photos: picked.map((x) => ({ action: String(x.action), look: s.lookHint })),
+    };
+  }
+  const placeOf = Object.fromEntries(stops.map((st) => [st.key, st.place]));
   return {
     slot,
     theme,
@@ -176,6 +238,8 @@ export async function writeVlogPost(slot = 'day', { theme: forcedTheme, placeSee
     weather,
     caption,
     hashtags: (parsed.hashtags || []).slice(0, 6).map(String),
-    photos: photos.slice(0, PHOTO_COUNT).map((x) => ({ action: String(x.action), look: s.lookHint })),
+    schedule: { date: schedule.stamp || schedule.date || '', title: schedule.title || '' },
+    stops,
+    photos: assignStops(picked, stops).map((x) => ({ action: String(x.action), look: s.lookHint, stop: x.stop, place: placeOf[x.stop] })),
   };
 }
