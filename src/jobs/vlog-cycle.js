@@ -14,7 +14,7 @@ import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { loadPost, savePost, reviewText, reviewKeyboard } from '../vlog/review.js';
 import { existsSync } from 'node:fs';
-import { writeVlogPost } from '../curator/vlog.js';
+import { writeVlogPost, PHOTO_COUNT } from '../curator/vlog.js';
 import { generateImage, scenePrompt, COMPOSITION_SETS, compositionsForPlace, distancePlanFor, pickComposition, COMPOSITION_DISTANCE, venueOf, probeCloudflare } from '../persona/image.js';
 import { scheduleFor, loadSchedule, scoutSchedule, sendScoutReport, isNightStop } from '../vlog/scout.js';
 import { anchorPath, recentVlogPhoto } from '../persona/keyframe.js';
@@ -70,8 +70,8 @@ function postId(slot) {
   return `vlog-${stamp}-${slot}`;
 }
 
-// 브이로그 목표 장수. 실제 장수는 남은 뉴런에 따라 이보다 줄 수 있다.
-const PHOTO_TARGET = 5;
+// 브이로그 목표 장수(글쓰기 쪽과 같은 값 — curator/vlog.js PHOTO_COUNT). 실제 장수는 남은 뉴런에 따라 이보다 줄 수 있다.
+const PHOTO_TARGET = PHOTO_COUNT;
 
 async function main() {
   const slot = process.env.VLOG_SLOT === 'evening' ? 'evening' : 'day';
